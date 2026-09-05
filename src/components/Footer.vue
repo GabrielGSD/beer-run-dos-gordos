@@ -1,0 +1,221 @@
+<template>
+  <footer id="contato" class="footer-section">
+    <!-- Top CTA Banner -->
+    <div id="inscricoes" class="footer-cta-banner dark-ribbon">
+      <div class="container footer-cta-grid">
+        <div class="cta-quote-box">
+          <div class="quote-stars font-slab">★ TREINE SE PUDER. SE NÃO PUDER, VENHA MESMO ASSIM. ★</div>
+          <div class="quote-sub font-condensed">O IMPORTANTE É PARTICIPAR E APROVEITAR!</div>
+        </div>
+
+        <div class="cta-action-box">
+          <button class="btn-vintage footer-btn" @click="$emit('open-registration')">
+            <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
+          </button>
+          <span class="footer-subtag font-condensed">VAGAS LIMITADAS!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Footer Bar -->
+    <div class="footer-main">
+      <div class="container footer-main-grid">
+        <!-- Stamp Seal Left -->
+        <div class="stamp-seal font-condensed">
+          <div class="seal-inner">
+            <span>RESPEITO</span>
+            <span>FOCO</span>
+            <span>CERVEJA</span>
+            <span>& CHURRASCO</span>
+          </div>
+        </div>
+
+        <!-- Center Social Links -->
+        <div class="footer-social-box">
+          <h4 class="social-title font-condensed">ACOMPANHE NOSSAS REDES</h4>
+          <div class="social-icons">
+            <a href="#" aria-label="Instagram" class="social-btn"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#" aria-label="Facebook" class="social-btn"><i class="fa-brands fa-facebook"></i></a>
+            <a href="#" aria-label="TikTok" class="social-btn"><i class="fa-brands fa-tiktok"></i></a>
+          </div>
+        </div>
+
+        <!-- Right Realization Note -->
+        <div class="footer-realization">
+          <img src="/logo.png" alt="BEER RUN DOS GORDOS" class="footer-logo" />
+          <div class="realization-tag font-condensed">
+            <i class="fa-solid fa-beer-mug-empty"></i> REALIZAÇÃO EM BREVE
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script setup>
+defineEmits(['open-registration'])
+</script>
+
+<style scoped>
+.footer-section {
+  margin-top: 40px;
+}
+
+.footer-cta-banner {
+  padding: 32px 0;
+}
+
+.footer-cta-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.cta-quote-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.quote-stars {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--accent-gold);
+  letter-spacing: 0.5px;
+}
+
+.quote-sub {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-light);
+}
+
+.cta-action-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-btn {
+  font-size: 1.2rem;
+  padding: 12px 28px;
+}
+
+.footer-subtag {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-light);
+  letter-spacing: 1px;
+}
+
+.footer-main {
+  background-color: #12100e;
+  color: var(--text-light);
+  padding: 40px 0 30px 0;
+  border-top: 2px solid var(--accent-border);
+}
+
+.footer-main-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.stamp-seal {
+  width: 100px;
+  height: 100px;
+  border: 2px dashed var(--accent-gold);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  transform: rotate(-8deg);
+}
+
+.seal-inner {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+  line-height: 1.1;
+}
+
+.footer-social-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.social-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #d1c5b0;
+}
+
+.social-icons {
+  display: flex;
+  gap: 16px;
+}
+
+.social-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #24201b;
+  border: 2px solid var(--accent-gold);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.social-btn:hover {
+  background-color: var(--accent-gold);
+  color: var(--accent-dark);
+  transform: translateY(-3px);
+}
+
+.footer-realization {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.footer-logo {
+  height: 36px;
+  opacity: 0.85;
+}
+
+.realization-tag {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #a89a80;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 800px) {
+  .footer-cta-grid, .footer-main-grid {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .footer-realization {
+    align-items: center;
+  }
+}
+</style>
