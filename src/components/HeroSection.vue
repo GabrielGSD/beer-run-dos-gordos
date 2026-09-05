@@ -259,11 +259,11 @@ defineEmits(['open-registration'])
 @media (max-width: 900px) {
   .hero-grid {
     grid-template-columns: 1fr;
-    text-align: left;
+    text-align: center;
   }
 
   .hero-content {
-    align-items: flex-start;
+    align-items: center;
   }
 
   .hero-main-title {
@@ -271,7 +271,7 @@ defineEmits(['open-registration'])
   }
 
   .hero-info-cards {
-    justify-content: flex-start;
+    justify-content: center;
     flex-wrap: wrap;
   }
 

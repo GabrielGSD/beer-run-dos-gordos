@@ -31,15 +31,23 @@
             </div>
 
             <div class="form-group">
-              <label class="font-condensed">TAMANHO CAMISETA</label>
-              <select v-model="form.shirtSize" class="vintage-input font-condensed">
-                <option value="P">P</option>
-                <option value="M">M</option>
-                <option value="G">G</option>
-                <option value="GG">GG</option>
-                <option value="XGG">XGG</option>
-                <option value="EXG">EXG (Super Gordo)</option>
-              </select>
+              <label class="font-condensed">BEBO? 🍺</label>
+              <div class="beer-toggle">
+                <button
+                  type="button"
+                  :class="['toggle-btn', { active: form.drinksBeer === true }]"
+                  @click="form.drinksBeer = true"
+                >
+                  SIM, CLARO!
+                </button>
+                <button
+                  type="button"
+                  :class="['toggle-btn', { active: form.drinksBeer === false }]"
+                  @click="form.drinksBeer = false"
+                >
+                  NÃO, OBRIGADO
+                </button>
+              </div>
             </div>
           </div>
 
@@ -79,7 +87,7 @@ const form = reactive({
   name: '',
   email: '',
   modality: 'corrida',
-  shirtSize: 'GG'
+  drinksBeer: true
 })
 
 function handleSubmit() {
@@ -173,6 +181,38 @@ function closeModal() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  align-items: start;
+}
+
+.beer-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toggle-btn {
+  padding: 8px 10px;
+  font-family: var(--font-condensed);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  background-color: #fff;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn.active {
+  background-color: var(--accent-gold);
+  border-color: #1c1b18;
+  color: #1c1b18;
+  box-shadow: 1px 1px 0px #1c1b18;
+}
+
+.toggle-btn:not(.active):hover {
+  border-color: var(--accent-gold);
 }
 
 .vintage-input {
