@@ -19,7 +19,7 @@
             @click="currentView = 'illustrated'"
           >
             <span class="tab-icon">🗺️</span>
-            <span>MAPA ILUSTRADO RAIZ</span>
+            <span>MAPA ILUSTRADO</span>
           </button>
 
           <button 
@@ -39,17 +39,10 @@
             <span class="tab-icon">📈</span>
             <span>ALTIMETRIA</span>
           </button>
-        </div>
-
-        <div class="route-actions">
           <button @click="openFullscreen = true" class="btn-action-outline">
             <span>🔍</span>
             <span>AMPLIAR MAPA</span>
           </button>
-          <a href="/gpx/Corrida_matinal.gpx" download="Beer_Run_Dos_Gordos_Percurso.gpx" class="btn-gpx">
-            <span class="btn-icon">📥</span>
-            <span>BAIXAR GPX</span>
-          </a>
         </div>
       </div>
 
@@ -57,8 +50,8 @@
       <div class="route-main-grid">
         <!-- Left Column: Waypoints list and active landmark card -->
         <div class="route-sidebar">
-          <!-- Active Selected Waypoint Spotlight Card -->
-          <div v-if="selectedWaypoint" class="vintage-card waypoint-spotlight-card animate-fade-in">
+          <!-- Active Selected Waypoint Spotlight Card (Desktop only) -->
+          <div v-if="selectedWaypoint" class="vintage-card waypoint-spotlight-card desktop-only animate-fade-in">
             <div class="spotlight-header">
               <div class="spotlight-badge" :class="selectedWaypoint.type">
                 {{ getWaypointTypeLabel(selectedWaypoint.type) }}
@@ -93,7 +86,7 @@
                 :key="wp.id"
                 class="waypoint-list-item"
                 :class="{ active: selectedWaypoint && selectedWaypoint.id === wp.id }"
-                @click="selectWaypoint(wp)"
+                @click="handleListClick(wp)"
                 @mouseenter="hoveredWaypoint = wp"
                 @mouseleave="hoveredWaypoint = null"
               >
@@ -144,7 +137,7 @@
                   { hovered: hoveredWaypoint && hoveredWaypoint.id === wp.id }
                 ]"
                 :style="{ top: wp.posY + '%', left: wp.posX + '%' }"
-                @click="selectWaypoint(wp)"
+                @click="handlePinClick(wp)"
                 @mouseenter="hoveredWaypoint = wp"
                 @mouseleave="hoveredWaypoint = null"
               >
@@ -171,7 +164,7 @@
               <!-- Map Overlay Legend Floating Card -->
               <div class="map-floating-legend font-condensed">
                 <div class="legend-chip"><span class="chip-dot green"></span> Largada/Chegada</div>
-                <div class="legend-chip"><span class="chip-dot amber"></span> Pontos de Chopp</div>
+                <div class="legend-chip"><span class="chip-dot amber"></span> PCA</div>
                 <div class="legend-chip"><span class="chip-dot blue"></span> Atrativos</div>
               </div>
             </div>
@@ -361,6 +354,42 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile Waypoint Detail Popup Modal -->
+    <div 
+      v-if="showWaypointModal && selectedWaypoint" 
+      class="waypoint-modal-backdrop animate-fade-in"
+      @click.self="showWaypointModal = false"
+    >
+      <div class="waypoint-modal-card vintage-card animate-slide-up">
+        <div class="modal-card-header">
+          <div class="spotlight-badge" :class="selectedWaypoint.type">
+            {{ getWaypointTypeLabel(selectedWaypoint.type) }}
+          </div>
+          <div class="modal-header-right">
+            <div class="spotlight-km font-slab">
+              KM {{ selectedWaypoint.actualKm.toFixed(2).replace('.', ',') }}
+            </div>
+            <button class="modal-close-btn" @click="showWaypointModal = false" aria-label="Fechar">✕</button>
+          </div>
+        </div>
+
+        <div v-if="getWaypointImage(selectedWaypoint.id)" class="spotlight-thumb-wrap">
+          <img :src="getWaypointImage(selectedWaypoint.id)" :alt="selectedWaypoint.name" class="spotlight-img" />
+          <div class="spotlight-ele-tag font-condensed">
+            ⛰️ {{ selectedWaypoint.actualEle }}m altitude
+          </div>
+        </div>
+
+        <h3 class="spotlight-title font-slab">{{ selectedWaypoint.name }}</h3>
+        <div class="spotlight-sub font-condensed">{{ selectedWaypoint.subtitle }}</div>
+        <p class="spotlight-desc">{{ selectedWaypoint.desc }}</p>
+
+        <button class="modal-action-btn font-slab" @click="showWaypointModal = false">
+          FECHAR INFORMAÇÕES
+        </button>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -374,6 +403,25 @@ const currentView = ref('illustrated')
 const openFullscreen = ref(false)
 const hoveredWaypoint = ref(null)
 const scrubbedPoint = ref(null)
+const showWaypointModal = ref(false)
+
+function handlePinClick(wp) {
+  selectWaypoint(wp)
+  if (window.innerWidth <= 960) {
+    showWaypointModal.value = true
+  }
+}
+
+function handleListClick(wp) {
+  selectWaypoint(wp)
+  if (window.innerWidth <= 960) {
+    showWaypointModal.value = true
+    const mapWrap = document.querySelector('.route-map-wrapper')
+    if (mapWrap) {
+      mapWrap.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+}
 
 // Waypoints configured with precise relative positions (%) matching the illustrated map artwork
 const mapWaypoints = [
@@ -1027,6 +1075,9 @@ onMounted(() => {
   grid-template-columns: 340px 1fr;
   gap: 24px;
   align-items: start;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Sidebar Styles */
@@ -1283,6 +1334,9 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   background-color: #ebdfc4;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .illustrated-map-container {
@@ -1480,17 +1534,19 @@ onMounted(() => {
 /* Floating Legend */
 .map-floating-legend {
   position: absolute;
-  bottom: 14px;
-  left: 14px;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: rgba(255, 255, 255, 0.9);
   padding: 4px 12px;
   border-radius: 20px;
   border: 1px solid var(--accent-border);
   display: flex;
   gap: 12px;
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 800;
   box-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+  min-width: 300px;
 }
 
 .legend-chip {
@@ -1548,11 +1604,17 @@ onMounted(() => {
    ========================================================================== */
 .elevation-detailed-container {
   padding: 24px 20px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .elevation-hero-header {
   margin-bottom: 20px;
   text-align: center;
+  min-width: 0;
+  width: 100%;
 }
 
 .ele-header-badge {
@@ -1587,6 +1649,10 @@ onMounted(() => {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-top: 14px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ele-stat-card {
@@ -1599,6 +1665,8 @@ onMounted(() => {
   border-radius: 6px;
   box-shadow: 1.5px 1.5px 0px rgba(0,0,0,0.15);
   text-align: left;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .ele-stat-icon {
@@ -1643,6 +1711,10 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .hud-live-content {
@@ -1690,19 +1762,48 @@ onMounted(() => {
 .elevation-chart-canvas-wrap {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: linear-gradient(180deg, #fffbf2 0%, #f4ebda 100%);
   border: 2px solid var(--accent-border);
   border-radius: 8px;
   padding: 12px 6px 6px 6px;
   cursor: crosshair;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 2px 2px 0px rgba(0,0,0,0.15);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #d9822b #e8dcc4;
+}
+
+.elevation-chart-canvas-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+.elevation-chart-canvas-wrap::-webkit-scrollbar-track {
+  background: #e8dcc4;
+  border-radius: 3px;
+}
+
+.elevation-chart-canvas-wrap::-webkit-scrollbar-thumb {
+  background: #d9822b;
+  border-radius: 3px;
 }
 
 .detailed-ele-svg {
   width: 100%;
   height: auto;
   display: block;
+}
+
+@media (max-width: 768px) {
+  .detailed-ele-svg {
+    min-width: 580px;
+    width: 580px;
+    flex-shrink: 0;
+  }
 }
 
 .chart-wp-marker-group {
@@ -1721,6 +1822,10 @@ onMounted(() => {
 }
 
 @media (max-width: 600px) {
+  .elevation-detailed-container {
+    padding: 16px 10px;
+  }
+
   .ele-stats-ribbon {
     grid-template-columns: 1fr;
   }
@@ -1795,10 +1900,129 @@ onMounted(() => {
   animation: fadeIn 0.25s ease-out;
 }
 
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mobile Waypoint Modal Popup */
+.waypoint-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.waypoint-modal-card {
+  position: relative;
+  background-color: #fdfaf3;
+  border-radius: 12px;
+  max-width: 440px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 22px 18px 18px 18px;
+  border-left: 6px solid var(--accent-gold);
+  border-top: 2px solid var(--accent-border);
+  border-right: 2px solid var(--accent-border);
+  border-bottom: 3px solid var(--accent-border);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+}
+
+.modal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.modal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-close-btn {
+  background: var(--accent-dark);
+  color: #ffffff;
+  border: 1.5px solid var(--accent-gold);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: var(--accent-gold);
+  color: var(--accent-dark);
+  transform: scale(1.1);
+}
+
+.modal-action-btn {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  background-color: var(--accent-dark);
+  color: #ffffff;
+  border: 2px solid var(--accent-gold);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.modal-action-btn:hover {
+  background-color: var(--accent-gold);
+  color: var(--accent-dark);
+}
+
 /* Responsive */
 @media (max-width: 960px) {
   .route-main-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .route-map-wrapper {
+    order: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .route-sidebar {
+    order: 2;
+  }
+
+  .waypoint-spotlight-card.desktop-only {
+    display: none !important;
+  }
+
+  .pin-tooltip {
+    display: none !important;
   }
 
   .route-controls-bar {
