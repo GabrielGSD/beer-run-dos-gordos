@@ -1045,7 +1045,6 @@ onMounted(() => {
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
-  margin-left: auto;
   white-space: nowrap;
 }
 
