@@ -39,6 +39,7 @@
             <span class="tab-icon">📈</span>
             <span>ALTIMETRIA</span>
           </button>
+          
           <button @click="openFullscreen = true" class="btn-action-outline">
             <span>🔍</span>
             <span>AMPLIAR MAPA</span>
@@ -980,32 +981,36 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 18px;
+  padding: 8px 12px;
   border-radius: 8px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 14px;
+  margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .view-switch-tabs {
   display: flex;
+  align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
   background-color: rgba(228, 213, 183, 0.6);
   color: var(--text-dark);
   font-family: var(--font-slab);
   font-weight: 800;
-  font-size: 0.95rem;
-  padding: 10px 18px;
-  border: 2px solid var(--accent-border);
+  font-size: 0.88rem;
+  padding: 8px 14px;
+  border: 1.5px solid var(--accent-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .tab-btn:hover {
@@ -1028,17 +1033,20 @@ onMounted(() => {
 .btn-action-outline {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background-color: #ffffff;
   color: var(--accent-dark);
   font-family: var(--font-slab);
   font-weight: 800;
-  font-size: 0.9rem;
-  padding: 10px 16px;
-  border: 2px solid var(--accent-border);
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border: 1.5px solid var(--accent-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .btn-action-outline:hover {
@@ -2026,19 +2034,54 @@ onMounted(() => {
   }
 
   .route-controls-bar {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 6px 8px;
+    margin-bottom: 12px;
   }
 
   .view-switch-tabs {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    width: 100%;
   }
 
-  .tab-btn {
-    flex: 1;
+  .tab-btn,
+  .btn-action-outline {
+    width: 100%;
+    margin-left: 0;
+    padding: 7px 6px;
+    font-size: 0.78rem;
+    gap: 4px;
     justify-content: center;
-    font-size: 0.85rem;
-    padding: 8px 12px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .tab-btn,
+  .btn-action-outline {
+    font-size: 0.74rem;
+    padding: 6px 4px;
+    gap: 3px;
+  }
+
+  .section-header {
+    margin-bottom: 14px;
+  }
+
+  .section-badge {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-size: 1.45rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem;
   }
 }
 </style>
