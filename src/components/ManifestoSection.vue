@@ -116,7 +116,7 @@ defineEmits(['open-registration'])
   background-image: url('/images/parchment-clean.jpg');
   background-size: cover;
   background-position: center;
-  opacity: 0.65;
+  opacity: 0.4;
   pointer-events: none;
   z-index: 1;
 }
