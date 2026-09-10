@@ -1,13 +1,13 @@
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="vintage-card modal-box">
-      <button class="close-btn" @click="closeModal">&times;</button>
+      <button class="close-btn" @click="closeModal" aria-label="Fechar">&times;</button>
 
       <div v-if="!submitted" class="modal-content">
         <div class="modal-header">
           <img src="/logo.png" alt="Logo" class="modal-logo" />
-          <h3 class="modal-title font-slab">INSCRIÇÃO BEER RUN DOS GORDOS</h3>
-          <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e muita diversão!</p>
+          <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
+          <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e diversão!</p>
         </div>
 
         <form @submit.prevent="handleSubmit" class="modal-form">
@@ -38,36 +38,36 @@
           </div>
 
           <div class="form-row">
-            <div class="form-group">
+            <div class="form-group modality-col">
               <label class="font-condensed">MODALIDADE</label>
-              <select v-model="form.modality" class="vintage-input font-condensed">
+              <select v-model="form.modality" class="vintage-input vintage-select font-condensed">
                 <option value="corrida">Corrida 6.37 KM</option>
                 <option value="caminhada">Caminhada 6.37 KM</option>
               </select>
             </div>
 
-            <div class="form-group">
-              <label class="font-condensed">BEBO? 🍺</label>
-              <div class="beer-toggle">
+            <div class="form-group beer-col">
+              <label class="font-condensed">BEBE CHOPP? 🍺</label>
+              <div class="beer-toggle-row">
                 <button
                   type="button"
                   :class="['toggle-btn', { active: form.drinksBeer === true }]"
                   @click="form.drinksBeer = true"
                 >
-                  SIM, CLARO!
+                  SIM
                 </button>
                 <button
                   type="button"
                   :class="['toggle-btn', { active: form.drinksBeer === false }]"
                   @click="form.drinksBeer = false"
                 >
-                  NÃO, OBRIGADO
+                  NÃO
                 </button>
               </div>
             </div>
           </div>
 
-          <button type="submit" class="btn-vintage submit-btn">
+          <button type="submit" class="btn-vintage submit-btn font-slab">
             <i class="fa-solid fa-check"></i> CONFIRMAR PRÉ-INSCRIÇÃO
           </button>
         </form>
@@ -83,7 +83,7 @@
         <p class="success-desc font-condensed">
           Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
         </p>
-        <button class="btn-vintage" @click="closeModal">FECHAR</button>
+        <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
       </div>
     </div>
   </div>
@@ -148,72 +148,105 @@ function closeModal() {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(25, 23, 20, 0.75);
-  backdrop-filter: blur(4px);
-  z-index: 999;
+  height: 100dvh;
+  background-color: rgba(25, 23, 20, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .modal-box {
   width: 100%;
-  max-width: 520px;
-  background-color: var(--bg-parchment-light);
-  padding: 32px;
+  max-width: 460px;
+  max-height: calc(100dvh - 28px);
+  background-color: #eeddbb;
+  background-image: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+  padding: 20px 18px 16px;
   border-radius: 8px;
+  border: 2px solid #1c1b18;
+  box-shadow: 4px 4px 0px #1c1b18, 0 12px 28px rgba(0, 0, 0, 0.35);
   position: relative;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #d9822b transparent;
+}
+
+.modal-box::-webkit-scrollbar {
+  width: 4px;
+}
+.modal-box::-webkit-scrollbar-thumb {
+  background: #d9822b;
+  border-radius: 4px;
 }
 
 .close-btn {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: 6px;
+  right: 10px;
   background: none;
   border: none;
-  font-size: 2rem;
-  color: var(--accent-dark);
+  font-size: 1.8rem;
+  color: #1c1b18;
   cursor: pointer;
   line-height: 1;
+  padding: 4px 8px;
+  z-index: 10;
+  transition: transform 0.15s ease;
+}
+
+.close-btn:hover {
+  transform: scale(1.15);
 }
 
 .modal-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .modal-logo {
-  height: 48px;
-  margin-bottom: 8px;
+  height: 36px;
+  margin-bottom: 3px;
+  object-fit: contain;
 }
 
 .modal-title {
-  font-size: 1.5rem;
+  font-size: 1.22rem;
   font-weight: 900;
-  color: var(--text-dark);
+  color: #1c1b18;
+  line-height: 1.15;
+  margin-bottom: 2px;
+  letter-spacing: -0.2px;
 }
 
 .modal-subtitle {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--accent-green);
+  color: #354c23;
+  line-height: 1.2;
 }
 
 .modal-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .label-with-hint {
@@ -223,114 +256,176 @@ function closeModal() {
 }
 
 .optional-hint {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  color: var(--accent-gold);
-  letter-spacing: 0.5px;
+  color: #a45a16;
+  letter-spacing: 0.3px;
 }
 
 .form-group label {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  color: var(--text-dark);
+  color: #1c1b18;
+  letter-spacing: 0.3px;
 }
 
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 10px;
+  align-items: end;
 }
 
-.beer-toggle {
+.beer-toggle-row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  gap: 4px;
+  width: 100%;
+  height: 38px;
 }
 
 .toggle-btn {
-  padding: 8px 10px;
+  flex: 1;
+  height: 100%;
+  padding: 0 4px;
   font-family: var(--font-condensed);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  border: 2px solid var(--accent-border);
+  letter-spacing: 0.3px;
+  border: 2px solid #1c1b18;
   border-radius: 6px;
   background-color: #fff;
-  color: var(--text-dark);
+  color: #1c1b18;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .toggle-btn.active {
-  background-color: var(--accent-gold);
+  background-color: #d8812a;
   border-color: #1c1b18;
   color: #1c1b18;
   box-shadow: 1px 1px 0px #1c1b18;
 }
 
 .toggle-btn:not(.active):hover {
-  border-color: var(--accent-gold);
+  background-color: #f7eee0;
 }
 
 .vintage-input {
-  padding: 10px 14px;
-  font-size: 1.05rem;
+  padding: 7px 10px;
+  height: 38px;
+  box-sizing: border-box;
+  font-size: 0.92rem;
   font-weight: 700;
   background-color: #fff;
-  border: 2px solid var(--accent-border);
+  border: 2px solid #1c1b18;
   border-radius: 6px;
-  color: var(--text-dark);
+  color: #1c1b18;
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vintage-select {
+  cursor: pointer;
 }
 
 .vintage-input:focus {
-  border-color: var(--accent-gold);
-  box-shadow: 0 0 0 3px rgba(217, 130, 43, 0.2);
+  border-color: #d8812a;
+  box-shadow: 0 0 0 2px rgba(216, 129, 42, 0.25);
 }
 
 .submit-btn {
-  margin-top: 8px;
+  margin-top: 4px;
   width: 100%;
+  padding: 10px 14px;
+  font-size: 0.98rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-btn-close {
+  width: 100%;
+  padding: 9px;
+  margin-top: 4px;
 }
 
 .success-box {
   text-align: center;
-  padding: 20px 0;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .stamp-circle {
-  width: 100px;
-  height: 100px;
-  border: 4px dashed var(--accent-green);
+  width: 80px;
+  height: 80px;
+  border: 3px dashed #354c23;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--accent-green);
+  color: #354c23;
   font-weight: 900;
-  margin-bottom: 16px;
-  transform: rotate(-10deg);
+  margin-bottom: 12px;
+  transform: rotate(-8deg);
 }
 
 .stamp-circle i {
-  font-size: 2rem;
+  font-size: 1.5rem;
 }
 
 .success-title {
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 900;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  color: #1c1b18;
 }
 
 .success-desc {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 24px;
-  color: var(--text-muted);
+  margin-bottom: 18px;
+  color: #4a453e;
+  line-height: 1.35;
+}
+
+@media (max-width: 480px) {
+  .modal-box {
+    padding: 16px 12px 14px;
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal-logo {
+    height: 32px;
+  }
+
+  .modal-title {
+    font-size: 1.15rem;
+  }
+
+  .modal-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .modal-form {
+    gap: 8px;
+  }
+
+  .form-row {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 8px;
+  }
+
+  .toggle-btn {
+    font-size: 0.76rem;
+  }
 }
 </style>

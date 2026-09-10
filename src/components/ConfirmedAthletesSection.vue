@@ -62,16 +62,9 @@
                 <span class="athlete-number font-slab">
                   #{{ String(totalAthletes - index).padStart(2, '0') }}
                 </span>
-                <div class="athlete-avatar">
-                  <i v-if="athlete.drinksBeer" class="fa-solid fa-beer-mug-empty avatar-beer-icon"></i>
-                  <i v-else class="fa-solid fa-person-running avatar-runner-icon"></i>
-                </div>
+                
                 <div class="athlete-details">
                   <h4 class="athlete-name font-slab">{{ athlete.displayName || athlete.name }}</h4>
-                  <span class="athlete-modality font-condensed">
-                    <i :class="athlete.modality === 'caminhada' ? 'fa-solid fa-person-walking' : 'fa-solid fa-person-running'"></i>
-                    {{ athlete.modality === 'caminhada' ? 'Caminhada 6.37 KM' : 'Corrida 6.37 KM' }}
-                  </span>
                 </div>
               </div>
 
@@ -83,7 +76,7 @@
                 >
                   <template v-if="athlete.drinksBeer">
                     <span class="status-icon">🍺</span>
-                    <span class="status-text">VAI BEBER CHOPP</span>
+                    <span class="status-text">VAI BEBER</span>
                   </template>
                   <template v-else>
                     <span class="status-icon">🥤</span>
@@ -92,7 +85,8 @@
                 </div>
 
                 <span class="confirmed-badge font-condensed">
-                  <i class="fa-solid fa-circle-check"></i> CONFIRMADO
+                  <i :class="athlete.modality === 'caminhada' ? 'fa-solid fa-person-walking' : 'fa-solid fa-person-running'"></i>
+                    {{ athlete.modality === 'caminhada' ? 'Caminhada' : 'Corrida' }}
                 </span>
               </div>
             </div>
@@ -339,7 +333,7 @@ const filteredAthletes = computed(() => {
 .athlete-main-info {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 5px;
 }
 
 .athlete-number {
@@ -350,9 +344,9 @@ const filteredAthletes = computed(() => {
 }
 
 .athlete-avatar {
-  width: 40px;
+  width: 50px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 100%;
   background: var(--bg-parchment-light);
   border: 1.5px solid var(--accent-border);
   display: flex;
@@ -434,7 +428,7 @@ const filteredAthletes = computed(() => {
   border: 1px solid rgba(56, 75, 40, 0.3);
   padding: 4px 10px;
   border-radius: 4px;
-  font-size: 0.78rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.5px;
 }
@@ -542,7 +536,7 @@ const filteredAthletes = computed(() => {
 
   .athlete-status-group {
     width: 100%;
-    justify-content: space-between;
+    justify-content: left;
   }
 
   .athletes-footer-ribbon {

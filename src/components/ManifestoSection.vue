@@ -2,99 +2,74 @@
   <section id="manifesto" class="manifesto-section dash-section">
     <div class="container">
       <h2 class="section-title">MANIFESTO</h2>
+      <div class="manifesto-map-wrapper">
+        <!-- Antique Map Parchment Card -->
+        <article class="map-parchment-card">
+          <!-- Clean Background Parchment Texture -->
+          <div class="map-bg-texture" aria-hidden="true"></div>
 
-      <div class="vintage-card manifesto-card">
-        <!-- Festive Vintage Corner Stamp -->
-        <div class="solidary-stamp font-condensed">
-          <div class="stamp-inner">
-            <span class="stamp-icon">🎅</span>
-            <span class="stamp-title">NATAL SOLIDÁRIO</span>
-            <span class="stamp-subtitle">TRADIÇÃO</span>
+          <!-- Top-Right Vintage Tradition Stamp -->
+          <div class="vintage-seal-stamp font-condensed" aria-hidden="true">
+            <span class="seal-stars">★★★</span>
+            <span class="seal-title">TRADIÇÃO</span>
+            <span class="seal-year">OFICIAL</span>
           </div>
-        </div>
 
-        <div class="manifesto-header">
-          <h3 class="manifesto-headline font-slab">
-            "A gente acredita que correr é só uma parte da história."
-          </h3>
-        </div>
+          <div class="manifesto-inner-content">
+            <!-- Header Title -->
+            <header class="manifesto-header">
+              <h3 class="manifesto-title font-lora">
+                Correr é só uma parte da história.
+              </h3>
+              <div class="manifesto-divider"></div>
+            </header>
 
-        <div class="manifesto-body font-condensed">
-          <p class="manifesto-lead">
-            O que importa mesmo é reunir os amigos, juntar a família, dar boas risadas e criar histórias que vão muito além da linha de chegada.
-          </p>
+            <!-- Letter Body in Lora Serif -->
+            <div class="manifesto-body font-lora">
+              <p>
+                O que importa mesmo é reunir os amigos, juntar a família, dar boas risadas e criar histórias que vão muito além da linha de chegada.
+              </p>
 
-          <p class="manifesto-paragraph">
-            Por isso nasceu a <strong>Beer Run dos Gordos</strong>: uma corrida feita para quem corre, para quem tenta correr e, principalmente, para quem veio viver o momento.
-          </p>
+              <p>
+                Por isso nasceu a <strong>Beer Run dos Gordos</strong>.
+              </p>
 
-          <!-- Festive Christmas Solidary Showcase Box -->
-          <div class="christmas-solidary-box">
-            <!-- Festive Ribbon Bar -->
-            <div class="christmas-ribbon-stripe"></div>
+              <p>
+                Uma corrida feita para quem corre, para quem tenta correr e, principalmente, para quem veio viver o momento.
+              </p>
 
-            <div class="christmas-box-inner">
-              <div class="christmas-header">
-                <span class="christmas-tag font-slab">
-                  🎄 TRADIÇÃO OFICIAL DE FIM DE ANO 🎅
-                </span>
-                <h4 class="christmas-title font-slab">
-                  NATAL SOLIDÁRIO DOS GORDOS
-                </h4>
-                <p class="christmas-subtitle font-condensed">
-                  Toda a nossa diversão tem um coração gigante por trás!
-                </p>
-              </div>
+              <p>Mas a história não termina quando a prova acaba.</p>
 
-              <div class="christmas-story font-condensed">
-                <p>
-                  Mas a história não termina quando a prova acaba! Toda essa festa tem um propósito muito especial:
-                  arrecadar para o Natal Solidário dos Gordos, uma tradição emocionante que leva doces, balas, chocolates e muitos sorrisos para centenas de crianças no Natal.
-                </p>
-              </div>
+              <p>
+                Toda essa diversão também tem um propósito: arrecadar para o <strong>Natal Solidário dos Gordos</strong>, uma tradição que adoça o fim do ano das crianças.
+              </p>
 
-              <!-- Festive Highlights Grid -->
-              <div class="christmas-pillars-grid">
-                <div class="pillar-card">
-                  <span class="pillar-icon">🍬</span>
-                  <h5 class="pillar-title font-slab">DOCES & BALAS</h5>
-                  <p class="pillar-desc font-condensed">Sacos cheios de guloseimas e alegria entregues diretamente para as crianças.</p>
-                </div>
+              <p>
+                Porque no final, o que importa não é o tempo que você fez, mas o sorriso que você ajuda a colocar no rosto de uma criança.
+              </p>
 
-                <div class="pillar-card">
-                  <span class="pillar-icon">🎅</span>
-                  <h5 class="pillar-title font-slab">CORRENTE DO BEM</h5>
-                  <p class="pillar-desc font-condensed">Uma tradição da nossa galera para transformar o Natal da comunidade.</p>
-                </div>
-
-                <div class="pillar-card">
-                  <span class="pillar-icon">🎁</span>
-                  <h5 class="pillar-title font-slab">VOCÊ FAZ A FESTA</h5>
-                  <p class="pillar-desc font-condensed">Ao se inscrever, você também vira o Papai Noel dessa turma!</p>
-                </div>
-              </div>
+              <p class="manifesto-closing font-lora">
+                Então venha correr, caminhar, rir, beber e, principalmente, fazer parte dessa história.
+              </p>
             </div>
+
+            <!-- Footer Slogan & Santa Sticker -->
+            <footer class="manifesto-footer">
+              <div class="slogan-box">
+                <p class="slogan-sub font-lora">
+                  Vamos juntos fazer um Natal mais doce para as crianças!
+                </p>
+              </div>
+
+              <img
+                src="/images/santa-icon.webp"
+                alt="Natal Solidário dos Gordos"
+                class="manifesto-santa-icon"
+                loading="lazy"
+              />
+            </footer>
           </div>
-
-          <p class="manifesto-invitation font-slab">
-            Então venha correr, caminhar, rir, beber e, principalmente, fazer parte dessa história.
-          </p>
-        </div>
-
-        <!-- Punchline & Slogan Footer Banner -->
-        <div class="manifesto-footer-banner">
-          <div class="slogan-box">
-            <span class="slogan-primary font-slab">PERFORMANCE QUESTIONÁVEL. HISTÓRIAS GARANTIDAS.</span>
-            <span class="slogan-secondary font-condensed">E um Natal muito mais doce para as crianças! 🎅🍬✨</span>
-          </div>
-
-          <button
-            @click="$emit('open-registration')"
-            class="btn-vintage btn-manifesto font-slab"
-          >
-            FAZER PARTE DESSA HISTÓRIA <i class="fa-solid fa-heart"></i>
-          </button>
-        </div>
+        </article>
       </div>
     </div>
   </section>
@@ -106,349 +81,223 @@ defineEmits(['open-registration'])
 
 <style scoped>
 .manifesto-section {
-  padding: 50px 0 60px 0;
+  padding: 40px 0 70px 0;
   position: relative;
 }
 
-.manifesto-card {
+.manifesto-map-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
   position: relative;
-  padding: 44px 40px 36px 40px;
-  border-radius: 8px;
-  background: rgba(247, 241, 228, 0.96);
-  border: 2px solid var(--accent-border);
-  box-shadow: 6px 6px 0px rgba(25, 23, 20, 0.85);
+  border: 2px solid rgba(25, 23, 20, 0.85);
+  border-radius: 6px;
+  box-shadow: 4px 4px 0px rgba(25, 23, 20, 0.85);
+}
+
+/* Map Parchment Card */
+.map-parchment-card {
+  position: relative;
+  background-color: #f3e6ce;
+  border-radius: 4px;
   overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(115, 75, 25, 0.15);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* Festive Corner Stamp */
-.solidary-stamp {
+.map-parchment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 50px rgba(115, 75, 25, 0.2);
+}
+
+/* Background Parchment Texture */
+.map-bg-texture {
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/parchment-clean.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.65;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Vintage Tradition Stamp */
+.vintage-seal-stamp {
   position: absolute;
   top: 24px;
-  right: 28px;
-  width: 96px;
-  height: 96px;
-  border: 2.5px dashed #a82424;
+  right: 26px;
+  width: 76px;
+  height: 76px;
+  border: 2px dashed #5d4d19cc;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: rotate(12deg);
-  background: rgba(168, 36, 36, 0.08);
-  box-shadow: 0 0 12px rgba(168, 36, 36, 0.15);
-  pointer-events: none;
-}
-
-.stamp-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  line-height: 1.1;
+  justify-content: center;
+  color: #5d4d19cc;
+  transform: rotate(12deg);
+  opacity: 0.88;
+  pointer-events: none;
+  z-index: 4;
 }
 
-.stamp-icon {
-  font-size: 1.4rem;
-  margin-bottom: 2px;
+.seal-stars {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  line-height: 1;
 }
 
-.stamp-title {
-  font-size: 0.7rem;
+.seal-title {
+  font-size: 0.6rem;
   font-weight: 900;
-  color: #a82424;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
-.stamp-subtitle {
+.seal-year {
   font-size: 0.65rem;
   font-weight: 800;
-  color: var(--accent-dark);
+}
+
+/* Inner Content Area */
+.manifesto-inner-content {
+  position: relative;
+  z-index: 3;
+  padding: 44px 50px 38px 50px;
 }
 
 /* Header */
 .manifesto-header {
-  text-align: center;
-  max-width: 800px;
-  margin: 0 auto 28px auto;
+  margin-bottom: 22px;
+  text-align: left;
 }
 
-.manifesto-headline {
-  font-size: 1.9rem;
-  font-weight: 900;
-  color: var(--accent-dark);
-  line-height: 1.3;
-  letter-spacing: -0.5px;
-}
-
-/* Body */
-.manifesto-body {
-  max-width: 860px;
-  margin: 0 auto;
-  font-size: 1.2rem;
-  line-height: 1.6;
-  color: var(--text-dark);
-}
-
-.manifesto-lead {
-  font-size: 1.3rem;
+.manifesto-title {
+  font-family: var(--font-lora), 'Lora', serif;
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
   font-weight: 700;
-  color: var(--text-dark);
-  text-align: center;
-  margin-bottom: 20px;
-  line-height: 1.5;
-}
-
-.manifesto-paragraph {
-  font-size: 1.15rem;
-  font-weight: 600;
-  text-align: center;
-  color: var(--accent-dark);
-  margin-bottom: 28px;
-}
-
-.manifesto-paragraph strong {
-  color: var(--accent-dark);
-}
-
-/* =========================================
-   Festive Christmas Solidary Box Redesign
-   ========================================= */
-.christmas-solidary-box {
-  position: relative;
-  background: linear-gradient(145deg, #fff 0%, #fff9ed 50%, #fff 100%);
-  border-left: 3px solid rgba(39, 71, 40, 0.9);
-  border-radius: 10px;
-  box-shadow: 4px 5px 0px rgba(39, 71, 40, 0.9), 0 8px 24px rgba(184, 50, 39, 0.12);
-  margin: 32px 0;
-  overflow: hidden;
-}
-
-/* Candy-cane festive striped top bar */
-.christmas-ribbon-stripe {
-  height: 8px;
-  width: 100%;
-  background: repeating-linear-gradient(
-    45deg,
-    #b83227,
-    #b83227 12px,
-    #ffffff 12px,
-    #ffffff 22px,
-    #274728 22px,
-    #274728 34px,
-    #ffffff 34px,
-    #ffffff 44px
-  );
-}
-
-.christmas-box-inner {
-  padding: 28px 28px 26px 28px;
-}
-
-.christmas-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.christmas-tag {
-  display: inline-block;
-  background: #274728;
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  padding: 5px 14px;
-  border-radius: 20px;
-  border: 1.5px solid #d9822b;
-  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2);
-  margin-bottom: 10px;
-}
-
-.christmas-title {
-  font-size: 1.75rem;
-  font-weight: 900;
-  color: #b83227;
+  font-style: italic;
+  color: #231b14;
   letter-spacing: -0.3px;
-  margin-bottom: 6px;
-  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.08);
+  line-height: 1.22;
+  text-transform: none;
+  margin-bottom: 12px;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.45);
 }
 
-.christmas-subtitle {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #274728;
+.manifesto-divider {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #5d4d19cc 0%, #8c7353 60%, rgba(60, 50, 38, 0.1) 100%);
+  border-radius: 2px;
 }
 
-.christmas-story {
-  text-align: center;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #2c271f;
-  line-height: 1.55;
-  max-width: 760px;
-  margin: 0 auto 24px auto;
-}
-
-.christmas-story strong {
-  color: #b83227;
-  font-weight: 800;
-}
-
-/* Highlights 3 Pillars */
-.christmas-pillars-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.pillar-card {
-  background: #ffffff;
-  border: 2px solid rgba(184, 50, 39, 0.35);
-  border-top: 3px solid #b83227;
-  border-radius: 8px;
-  padding: 16px 14px;
-  text-align: center;
-  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pillar-card:hover {
-  transform: translateY(-3px);
-  border-color: #b83227;
-  box-shadow: 0 6px 14px rgba(184, 50, 39, 0.15);
-}
-
-.pillar-icon {
-  display: inline-block;
-  font-size: 2rem;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-}
-
-.pillar-title {
-  font-size: 1rem;
-  font-weight: 900;
-  color: #b83227;
-  margin-bottom: 6px;
-  letter-spacing: 0.3px;
-}
-
-.pillar-desc {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  line-height: 1.35;
-}
-
-.manifesto-invitation {
+/* Body Text - Lora Serif Lettering */
+.manifesto-body {
+  font-family: var(--font-lora), 'Lora', serif;
   font-size: 1.25rem;
-  font-weight: 800;
-  text-align: center;
-  color: var(--accent-dark);
-  margin: 28px 0 32px 0;
-  line-height: 1.4;
+  font-weight: 500;
+  font-style: normal;
+  color: #2b221a;
+  line-height: 1.68;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.15px;
 }
 
-/* Footer Banner */
-.manifesto-footer-banner {
+.manifesto-body strong {
+  color: #17110a;
+  font-weight: 700;
+  font-style: normal;
+  border-bottom: 1.5px solid #5d4d196b;
+}
+
+.manifesto-closing {
+  font-family: var(--font-lora), 'Lora', serif;
+  font-size: 1.28rem;
+  font-weight: 600;
+  font-style: italic;
+  color: #1e1711;
+  margin-top: 4px;
+}
+
+/* Footer & Santa Sticker */
+.manifesto-footer {
+  margin-top: 26px;
+  border-top: 2px dashed rgba(60, 50, 38, 0.35);
+  padding-top: 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
-  background-color: var(--accent-dark);
-  color: var(--text-light);
-  padding: 18px 24px;
-  border-radius: 6px;
-  border: 1px solid rgba(217, 130, 43, 0.35);
-  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.25);
-  margin-top: 10px;
 }
 
 .slogan-box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  text-align: center;
+  margin-bottom: 14px;
 }
 
-.slogan-primary {
-  font-size: 1.15rem;
-  font-weight: 900;
-  color: var(--accent-gold);
-  letter-spacing: 0.5px;
+.slogan-sub {
+  font-family: var(--font-lora), 'Lora', serif;
+  font-size: clamp(1.12rem, 2.3vw, 1.4rem);
+  font-weight: bolder;
+  font-style: italic;
+  color: #8b3224;
+  line-height: 1.3;
 }
 
-.slogan-secondary {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #f1ede3;
+.manifesto-santa-icon {
+  width: 96px;
+  height: auto;
+  transform: rotate(3deg);
+  filter: drop-shadow(2px 4px 10px rgba(35, 25, 15, 0.22));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
 }
 
-.btn-manifesto {
-  font-size: 1.05rem;
-  padding: 12px 22px;
-  box-shadow: 2px 2px 0px #000;
+.manifesto-santa-icon:hover {
+  transform: scale(1.1) translateY(-3px) rotate(0deg);
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .manifesto-card {
-    padding: 32px 16px 24px 16px;
+  .manifesto-inner-content {
+    padding: 30px 18px 24px 18px;
   }
 
-  .solidary-stamp {
-    display: none;
+  .vintage-seal-stamp {
+    width: 58px;
+    height: 58px;
+    top: 14px;
+    right: 14px;
   }
 
-  .manifesto-headline {
+  .seal-text {
+    font-size: 0.58rem;
+  }
+
+  .manifesto-title {
     font-size: 1.45rem;
+    padding-right: 56px;
   }
 
-  .manifesto-lead {
+  .manifesto-body {
+    font-size: 1.12rem;
+    line-height: 1.55;
+    gap: 14px;
+  }
+
+  .manifesto-closing {
     font-size: 1.15rem;
   }
 
-  .manifesto-paragraph {
-    font-size: 1.02rem;
+  .slogan-sub {
+    font-size: 1.05rem;
   }
 
-  .christmas-box-inner {
-    padding: 20px 14px;
-  }
-
-  .christmas-title {
-    font-size: 1.35rem;
-  }
-
-  .christmas-subtitle {
-    font-size: 0.95rem;
-  }
-
-  .christmas-story {
-    font-size: 1rem;
-  }
-
-  .christmas-pillars-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .pillar-card {
-    padding: 14px 12px;
-  }
-
-  .manifesto-invitation {
-    font-size: 1.1rem;
-  }
-
-  .manifesto-footer-banner {
-    flex-direction: column;
-    text-align: center;
-    gap: 16px;
-    padding: 16px;
-  }
-
-  .btn-manifesto {
-    width: 100%;
-    font-size: 0.95rem;
+  .manifesto-santa-icon {
+    width: 78px;
   }
 }
 </style>

@@ -3,7 +3,6 @@
     <div class="container">
       <!-- Section Header -->
       <div class="section-header text-center">
-        <div class="section-badge font-condensed">TRAJETO OFICIAL • 100% ESTRADA DE TERRA</div>
         <h2 class="section-title">O PERCURSO DA PROVA</h2>
       </div>
 
@@ -172,7 +171,7 @@
           <div v-show="currentView === 'satellite'" class="satellite-map-container">
             <div id="leafletMap" class="leaflet-map-element"></div>
             <div class="satellite-info-overlay">
-              <span class="badge-live">🛰️ SATÉLITE EM TEMPO REAL</span>
+              <span class="badge-live">🛰️ SATÉLITE</span>
               <small>Arraste e dê zoom para explorar o relevo real da Serra da Mantiqueira</small>
             </div>
           </div>
@@ -181,7 +180,6 @@
           <div v-show="currentView === 'elevation'" class="elevation-detailed-container">
             <!-- Hero Header & Stats Ribbon -->
             <div class="elevation-hero-header">
-              <div class="ele-header-badge font-condensed">CIRCUITO 100% ESTRADA DE TERRA • MANTIQUEIRA</div>
               <h3 class="font-slab ele-big-title">PERFIL ALTIMÉTRICO DETALHADO</h3>
               <p class="font-slab ele-big-sub">
                 Acompanhe o relevo real da serra, os pontos de chopp e os desafios de cada quilômetro.
@@ -237,12 +235,18 @@
                 </div>
               </div>
               <div v-else class="hud-idle-content">
-                <span>💡 Passe o mouse sobre o gráfico para inspecionar a altimetria em tempo real</span>
+                <span>💡 Toque ou deslize no gráfico para explorar a altimetria em tempo real</span>
               </div>
             </div>
 
             <!-- Elevation Interactive SVG Area Chart -->
-            <div class="elevation-chart-canvas-wrap" @mousemove="handleChartHover" @mouseleave="scrubbedPoint = null">
+            <div 
+              class="elevation-chart-canvas-wrap" 
+              @mousemove="handleChartHover" 
+              @mouseleave="scrubbedPoint = null"
+              @touchstart.passive="handleChartHover"
+              @touchmove.passive="handleChartHover"
+            >
               <svg class="detailed-ele-svg" viewBox="0 0 940 340">
                 <defs>
                   <linearGradient id="eleGradient" x1="0" y1="0" x2="0" y2="1">
@@ -843,8 +847,9 @@ const scrubbedLandmark = computed(() => {
 
 function handleChartHover(e) {
   const rect = e.currentTarget.getBoundingClientRect()
-  const mouseX = e.clientX - rect.left
-  const pct = Math.max(0, Math.min(1, (mouseX * (940 / rect.width) - chartLeft) / chartWidth))
+  const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX
+  const posX = clientX - rect.left
+  const pct = Math.max(0, Math.min(1, (posX * (940 / rect.width) - chartLeft) / chartWidth))
   const targetDist = pct * trackData.totalDist
 
   const nearWp = mapWaypoints.find(w => Math.abs(w.actualKm - targetDist) < 0.08)
@@ -1612,6 +1617,7 @@ onMounted(() => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  background: #fdfaf3;
 }
 
 .elevation-hero-header {
@@ -1808,6 +1814,10 @@ onMounted(() => {
     width: 580px;
     flex-shrink: 0;
   }
+
+  .waypoints-list-card {
+    width: 92vw;
+  }
 }
 
 .chart-wp-marker-group {
@@ -1828,10 +1838,6 @@ onMounted(() => {
 @media (max-width: 600px) {
   .elevation-detailed-container {
     padding: 16px 10px;
-  }
-
-  .ele-stats-ribbon {
-    grid-template-columns: 1fr;
   }
 }
 

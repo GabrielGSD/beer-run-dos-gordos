@@ -17,6 +17,10 @@
   --font-arvo: 'Arvo', serif;
   --font-condensed: 'Roboto Condensed', sans-serif;
   --font-oswald: 'Oswald', sans-serif;
+  --font-marker: 'Permanent Marker', cursive;
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-garamond: 'EB Garamond', serif;
+  --font-lora: 'Lora', serif;
 }
 
 * {
@@ -61,6 +65,22 @@ body {
 
 .font-oswald {
   font-family: var(--font-oswald);
+}
+
+.font-marker {
+  font-family: var(--font-marker);
+}
+
+.font-montserrat {
+  font-family: var(--font-montserrat);
+}
+
+.font-garamond {
+  font-family: var(--font-garamond);
+}
+
+.font-lora {
+  font-family: var(--font-lora);
 }
 
 h1,

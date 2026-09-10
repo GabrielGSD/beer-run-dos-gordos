@@ -28,18 +28,6 @@
           <div class="card-pill-tag font-condensed">ALTITUDE</div>
         </div>
 
-        <!-- Stat 3 -->
-        <div class="vintage-info-card stat-card">
-          <div class="card-pin pin-tl"></div>
-          <div class="card-pin pin-tr"></div>
-          <div class="card-pin pin-bl"></div>
-          <div class="card-pin pin-br"></div>
-          <i class="fa-solid fa-clock stat-icon"></i>
-          <div class="card-main-text card-text-sm font-slab">SEM CORTE</div>
-          <div class="card-sub-text font-condensed">TEMPO LIVRE PRA CURTIR</div>
-          <div class="card-pill-tag font-condensed">TEMPO</div>
-        </div>
-
         <!-- Stat 4 -->
         <div class="vintage-info-card stat-card">
           <div class="card-pin pin-tl"></div>
@@ -47,9 +35,9 @@
           <div class="card-pin pin-bl"></div>
           <div class="card-pin pin-br"></div>
           <i class="fa-solid fa-person-running stat-icon"></i>
-          <div class="card-main-text card-text-sm font-slab">CORRIDA E CAMINHADA</div>
-          <div class="card-sub-text font-condensed">TODO MUNDO É BEM-VINDO</div>
-          <div class="card-pill-tag font-condensed">MODALIDADE</div>
+          <div class="card-main-text font-slab">10</div>
+          <div class="card-sub-text font-condensed">CONFIRMADOS</div>
+          <div class="card-pill-tag font-condensed">ATLETAS</div>
         </div>
       </div>
     </div>
@@ -63,7 +51,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
@@ -146,8 +134,35 @@
 
 @media (max-width: 900px) {
   .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stats-grid .stat-card:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-card {
+    padding: 16px 10px 14px;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+    margin-bottom: 6px;
+  }
+
+  .card-main-text {
+    font-size: 1.7rem;
+  }
+
+  .card-sub-text {
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+  }
+
+  .card-pill-tag {
+    font-size: 0.72rem;
+    padding: 2px 10px;
   }
 }
 </style>
