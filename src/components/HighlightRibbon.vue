@@ -37,7 +37,7 @@
 <style scoped>
 .ribbon-section {
   padding: 24px 0;
-  margin: 20px 0 40px 0;
+  margin: 20px 0 0 0;
 }
 
 .ribbon-grid {
