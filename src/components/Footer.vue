@@ -43,9 +43,6 @@
         <!-- Right Realization Note -->
         <div class="footer-realization">
           <img src="/logo.png" alt="BEER RUN DOS GORDOS" class="footer-logo" />
-          <div class="realization-tag font-condensed">
-            <i class="fa-solid fa-beer-mug-empty"></i> REALIZAÇÃO EM BREVE
-          </div>
         </div>
       </div>
     </div>
@@ -195,7 +192,7 @@ defineEmits(['open-registration'])
 }
 
 .footer-logo {
-  height: 36px;
+  height: 50px;
   opacity: 0.85;
 }
 

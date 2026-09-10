@@ -12,7 +12,7 @@
             </div>
             <div>
               <h3 class="item-title font-slab">PONTOS DE APOIO</h3>
-              <p class="item-desc font-condensed">COM ÁGUA, CERVEJA GELADA E FRUTAS FRESCAS AO LONGO DO PERCURSO.</p>
+              <p class="item-desc font-condensed">COM ÁGUA, ISOTÔNICO, CERVEJA GELADA E COMIDAS AO LONGO DO PERCURSO.</p>
             </div>
           </div>
 
@@ -28,21 +28,11 @@
 
           <div class="structure-item">
             <div class="structure-icon-box">
-              <i class="fa-solid fa-restroom"></i>
-            </div>
-            <div>
-              <h3 class="item-title font-slab">BANHEIROS</h3>
-              <p class="item-desc font-condensed">ESTRUTURA COMPLETA E HIGIENIZADA NA LARGADA E CHEGADA.</p>
-            </div>
-          </div>
-
-          <div class="structure-item">
-            <div class="structure-icon-box">
               <i class="fa-solid fa-music"></i>
             </div>
             <div>
               <h3 class="item-title font-slab">MÚSICA E RESENHA</h3>
-              <p class="item-desc font-condensed">BANDA AO VIVO, DJ E MUITA RESENHA DO COMEÇO AO FIM DO EVENTO.</p>
+              <p class="item-desc font-condensed">DJ SPOTIFY E MUITA RESENHA DO COMEÇO AO FIM DO EVENTO.</p>
             </div>
           </div>
         </div>

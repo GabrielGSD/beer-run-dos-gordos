@@ -7,10 +7,10 @@
 
       <!-- Desktop Navigation -->
       <nav class="nav-menu-desktop">
-        <a href="#evento" class="nav-link">O EVENTO</a>
+        <a href="#manifesto" class="nav-link">MANIFESTO</a>
         <a href="#percurso" class="nav-link">PERCURSO</a>
-        <a href="#estrutura" class="nav-link">ESTRUTURA</a>
         <a href="#kit" class="nav-link">KIT ATLETA</a>
+        <a href="#atletas" class="nav-link">ATLETAS</a>
         <a href="#inscricoes" class="nav-link">INSCRIÇÕES</a>
         <a href="#contato" class="nav-link">CONTATO</a>
       </nav>
@@ -24,10 +24,10 @@
     <!-- Mobile Navigation Drawer -->
     <transition name="fade">
       <nav v-if="mobileMenuOpen" class="nav-menu-mobile">
-        <a href="#evento" class="mobile-link" @click="mobileMenuOpen = false">O EVENTO</a>
+        <a href="#manifesto" class="mobile-link" @click="mobileMenuOpen = false">MANIFESTO</a>
         <a href="#percurso" class="mobile-link" @click="mobileMenuOpen = false">PERCURSO</a>
-        <a href="#estrutura" class="mobile-link" @click="mobileMenuOpen = false">ESTRUTURA</a>
         <a href="#kit" class="mobile-link" @click="mobileMenuOpen = false">KIT ATLETA</a>
+        <a href="#atletas" class="mobile-link" @click="mobileMenuOpen = false">ATLETAS</a>
         <a href="#inscricoes" class="mobile-link" @click="mobileMenuOpen = false">INSCRIÇÕES</a>
         <a href="#contato" class="mobile-link" @click="mobileMenuOpen = false">CONTATO</a>
       </nav>

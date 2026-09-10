@@ -8,7 +8,8 @@
       <StatsSection />
       <RouteSection />
       <KitSection />
-      <StructureSection />
+      <ManifestoSection @open-registration="openRegistration" />
+      <ConfirmedAthletesSection @open-registration="openRegistration" />
     </main>
 
     <Footer @open-registration="openRegistration" />
@@ -22,10 +23,11 @@ import { ref } from 'vue'
 import Navbar from './components/Navbar.vue'
 import HeroSection from './components/HeroSection.vue'
 import HighlightRibbon from './components/HighlightRibbon.vue'
+import ManifestoSection from './components/ManifestoSection.vue'
 import StatsSection from './components/StatsSection.vue'
 import RouteSection from './components/RouteSection.vue'
 import KitSection from './components/KitSection.vue'
-import StructureSection from './components/StructureSection.vue'
+import ConfirmedAthletesSection from './components/ConfirmedAthletesSection.vue'
 import Footer from './components/Footer.vue'
 import RegistrationModal from './components/RegistrationModal.vue'
 

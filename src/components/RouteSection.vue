@@ -5,9 +5,6 @@
       <div class="section-header text-center">
         <div class="section-badge font-condensed">TRAJETO OFICIAL • 100% ESTRADA DE TERRA</div>
         <h2 class="section-title">O PERCURSO DA PROVA</h2>
-        <p class="section-subtitle font-slab">
-          Explore cada curva, ponto de apoio e atrativo do circuito oficial de <strong>6,37 km</strong> na Serra da Mantiqueira.
-        </p>
       </div>
 
       <!-- Main Navigation Tabs / Controls Bar -->
@@ -450,7 +447,7 @@ const mapWaypoints = [
     posX: 55.0,
     posY: 91.5,
     tooltipPos: 'bottom-right',
-    desc: 'Passagem bucólica ao lado da cachoeira com o som relaxante das águas cristalinas descendo da serra.',
+    desc: 'Passagem bucólica ao lado da cachoeira com o som relaxante das águas de fezes descendo da serra.',
     targetLat: -22.142575,
     targetLon: -45.59794
   },

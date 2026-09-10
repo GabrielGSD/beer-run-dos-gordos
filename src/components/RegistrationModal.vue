@@ -13,12 +13,28 @@
         <form @submit.prevent="handleSubmit" class="modal-form">
           <div class="form-group">
             <label class="font-condensed">NOME COMPLETO</label>
-            <input type="text" v-model="form.name" required placeholder="Ex: João da Cerveja" class="vintage-input font-condensed" />
+            <input type="text" v-model="form.name" required placeholder="Ex: João da Silva" class="vintage-input font-condensed" />
           </div>
 
           <div class="form-group">
-            <label class="font-condensed">E-MAIL</label>
-            <input type="email" v-model="form.email" required placeholder="seuemail@exemplo.com" class="vintage-input font-condensed" />
+            <div class="label-with-hint">
+              <label class="font-condensed">APELIDO / NOME DE GUERRA</label>
+              <span class="optional-hint font-condensed">(OPCIONAL)</span>
+            </div>
+            <input type="text" v-model="form.nickname" placeholder="Ex: Mestre Cervejeiro, Gordo Raiz..." class="vintage-input font-condensed" />
+          </div>
+
+          <div class="form-group">
+            <label class="font-condensed">CELULAR (WHATSAPP)</label>
+            <input
+              type="tel"
+              v-model="form.phone"
+              @input="formatPhone"
+              maxlength="15"
+              required
+              placeholder="(12) 99999-9999"
+              class="vintage-input font-condensed"
+            />
           </div>
 
           <div class="form-row">
@@ -65,7 +81,7 @@
         </div>
         <h3 class="success-title font-slab">PRÉ-INSCRIÇÃO GARANTIDA!</h3>
         <p class="success-desc font-condensed">
-          Parabéns <strong>{{ form.name }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Enviamos os detalhes de pagamento e confirmação para <strong>{{ form.email }}</strong>.
+          Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
         </p>
         <button class="btn-vintage" @click="closeModal">FECHAR</button>
       </div>
@@ -74,7 +90,8 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useAthletes } from '../composables/useAthletes.js'
 
 const props = defineProps({
   isOpen: Boolean
@@ -82,15 +99,43 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const { addAthlete, formatAthleteDisplayName } = useAthletes()
+
 const submitted = ref(false)
 const form = reactive({
   name: '',
-  email: '',
+  nickname: '',
+  phone: '',
   modality: 'corrida',
   drinksBeer: true
 })
 
-function handleSubmit() {
+const confirmedDisplayName = computed(() => {
+  return formatAthleteDisplayName(form.name, form.nickname)
+})
+
+function formatPhone(event) {
+  let value = event.target.value.replace(/\D/g, '')
+  if (value.length > 11) value = value.slice(0, 11)
+
+  if (value.length > 6) {
+    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
+  } else if (value.length > 2) {
+    value = `(${value.slice(0, 2)}) ${value.slice(2)}`
+  } else if (value.length > 0) {
+    value = `(${value}`
+  }
+  form.phone = value
+}
+
+async function handleSubmit() {
+  await addAthlete({
+    name: form.name,
+    nickname: form.nickname,
+    phone: form.phone,
+    modality: form.modality,
+    drinksBeer: form.drinksBeer
+  })
   submitted.value = true
 }
 
@@ -169,6 +214,19 @@ function closeModal() {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.label-with-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.optional-hint {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+  letter-spacing: 0.5px;
 }
 
 .form-group label {
