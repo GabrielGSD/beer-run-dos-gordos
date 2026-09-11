@@ -52,7 +52,15 @@
 
         <!-- Scrollable Athletes List -->
         <div class="athletes-scroll-wrapper">
-          <div v-if="filteredAthletes.length > 0" class="athletes-list">
+          <!-- Loading State -->
+          <div v-if="loading && athletes.length === 0" class="loading-state font-condensed">
+            <i class="fa-solid fa-spinner fa-spin loading-icon"></i>
+            <h4 class="font-slab">Carregando pelotão de atletas...</h4>
+            <p>Conectando ao banco de dados</p>
+          </div>
+
+          <!-- Athletes List -->
+          <div v-else-if="filteredAthletes.length > 0" class="athletes-list">
             <div
               v-for="(athlete, index) in filteredAthletes"
               :key="athlete.id"
@@ -124,13 +132,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAthletes } from '../composables/useAthletes.js'
 
 defineEmits(['open-registration'])
 
-const { athletes, totalAthletes, drinkersCount, nonDrinkersCount } = useAthletes()
+const { athletes, loading, totalAthletes, drinkersCount, nonDrinkersCount, fetchAthletes } = useAthletes()
 const searchQuery = ref('')
+
+onMounted(() => {
+  fetchAthletes()
+})
 
 const filteredAthletes = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -433,13 +445,20 @@ const filteredAthletes = computed(() => {
   letter-spacing: 0.5px;
 }
 
-/* Empty State */
+/* Loading & Empty State */
+.loading-state,
 .empty-state {
   text-align: center;
   padding: 40px 20px;
   background: rgba(255, 255, 255, 0.5);
   border: 2px dashed rgba(44, 39, 31, 0.25);
   border-radius: 6px;
+}
+
+.loading-icon {
+  font-size: 2.2rem;
+  color: var(--accent-gold);
+  margin-bottom: 12px;
 }
 
 .empty-icon {

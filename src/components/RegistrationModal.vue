@@ -11,9 +11,21 @@
         </div>
 
         <form @submit.prevent="handleSubmit" class="modal-form">
+          <div v-if="submitError" class="error-banner font-condensed">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>{{ submitError }}</span>
+          </div>
+
           <div class="form-group">
             <label class="font-condensed">NOME COMPLETO</label>
-            <input type="text" v-model="form.name" required placeholder="Ex: João da Silva" class="vintage-input font-condensed" />
+            <input
+              type="text"
+              v-model="form.name"
+              required
+              placeholder="Ex: João da Silva"
+              class="vintage-input font-condensed"
+              :disabled="isSubmitting"
+            />
           </div>
 
           <div class="form-group">
@@ -21,7 +33,13 @@
               <label class="font-condensed">APELIDO / NOME DE GUERRA</label>
               <span class="optional-hint font-condensed">(OPCIONAL)</span>
             </div>
-            <input type="text" v-model="form.nickname" placeholder="Ex: Mestre Cervejeiro, Gordo Raiz..." class="vintage-input font-condensed" />
+            <input
+              type="text"
+              v-model="form.nickname"
+              placeholder="Ex: Mestre Cervejeiro, Gordo Raiz..."
+              class="vintage-input font-condensed"
+              :disabled="isSubmitting"
+            />
           </div>
 
           <div class="form-group">
@@ -34,13 +52,18 @@
               required
               placeholder="(12) 99999-9999"
               class="vintage-input font-condensed"
+              :disabled="isSubmitting"
             />
           </div>
 
           <div class="form-row">
             <div class="form-group modality-col">
               <label class="font-condensed">MODALIDADE</label>
-              <select v-model="form.modality" class="vintage-input vintage-select font-condensed">
+              <select
+                v-model="form.modality"
+                class="vintage-input vintage-select font-condensed"
+                :disabled="isSubmitting"
+              >
                 <option value="corrida">Corrida 6.37 KM</option>
                 <option value="caminhada">Caminhada 6.37 KM</option>
               </select>
@@ -51,6 +74,7 @@
               <div class="beer-toggle-row">
                 <button
                   type="button"
+                  :disabled="isSubmitting"
                   :class="['toggle-btn', { active: form.drinksBeer === true }]"
                   @click="form.drinksBeer = true"
                 >
@@ -58,6 +82,7 @@
                 </button>
                 <button
                   type="button"
+                  :disabled="isSubmitting"
                   :class="['toggle-btn', { active: form.drinksBeer === false }]"
                   @click="form.drinksBeer = false"
                 >
@@ -67,8 +92,14 @@
             </div>
           </div>
 
-          <button type="submit" class="btn-vintage submit-btn font-slab">
-            <i class="fa-solid fa-check"></i> CONFIRMAR PRÉ-INSCRIÇÃO
+          <button
+            type="submit"
+            class="btn-vintage submit-btn font-slab"
+            :disabled="isSubmitting"
+          >
+            <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
+            <i v-else class="fa-solid fa-check"></i>
+            {{ isSubmitting ? 'CONFIRMANDO...' : 'CONFIRMAR PRÉ-INSCRIÇÃO' }}
           </button>
         </form>
       </div>
@@ -102,6 +133,9 @@ const emit = defineEmits(['close'])
 const { addAthlete, formatAthleteDisplayName } = useAthletes()
 
 const submitted = ref(false)
+const isSubmitting = ref(false)
+const submitError = ref('')
+
 const form = reactive({
   name: '',
   nickname: '',
@@ -129,18 +163,34 @@ function formatPhone(event) {
 }
 
 async function handleSubmit() {
-  await addAthlete({
-    name: form.name,
-    nickname: form.nickname,
-    phone: form.phone,
-    modality: form.modality,
-    drinksBeer: form.drinksBeer
-  })
-  submitted.value = true
+  submitError.value = ''
+  isSubmitting.value = true
+
+  try {
+    await addAthlete({
+      name: form.name,
+      nickname: form.nickname,
+      phone: form.phone,
+      modality: form.modality,
+      drinksBeer: form.drinksBeer
+    })
+    submitted.value = true
+  } catch (err) {
+    console.error('Falha ao processar inscrição:', err)
+    if (err.message) {
+      submitError.value = err.message
+    } else {
+      submitError.value = 'Não foi possível concluir a inscrição. Verifique sua conexão e tente novamente.'
+    }
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 function closeModal() {
   submitted.value = false
+  submitError.value = ''
+  isSubmitting.value = false
   emit('close')
 }
 </script>
@@ -243,6 +293,19 @@ function closeModal() {
   gap: 10px;
 }
 
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffe5e5;
+  border: 1.5px solid #d93838;
+  color: #a01c1c;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -311,8 +374,13 @@ function closeModal() {
   box-shadow: 1px 1px 0px #1c1b18;
 }
 
-.toggle-btn:not(.active):hover {
+.toggle-btn:not(.active):hover:not(:disabled) {
   background-color: #f7eee0;
+}
+
+.toggle-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .vintage-input {
@@ -338,6 +406,11 @@ function closeModal() {
   box-shadow: 0 0 0 2px rgba(216, 129, 42, 0.25);
 }
 
+.vintage-input:disabled {
+  background-color: #eee;
+  cursor: not-allowed;
+}
+
 .submit-btn {
   margin-top: 4px;
   width: 100%;
@@ -347,6 +420,11 @@ function closeModal() {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.submit-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 .modal-btn-close {

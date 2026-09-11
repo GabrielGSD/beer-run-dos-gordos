@@ -28,14 +28,16 @@
           <div class="card-pill-tag font-condensed">ALTITUDE</div>
         </div>
 
-        <!-- Stat 4 -->
+        <!-- Stat 3: Total de Atletas Dinâmico -->
         <div class="vintage-info-card stat-card">
           <div class="card-pin pin-tl"></div>
           <div class="card-pin pin-tr"></div>
           <div class="card-pin pin-bl"></div>
           <div class="card-pin pin-br"></div>
           <i class="fa-solid fa-person-running stat-icon"></i>
-          <div class="card-main-text font-slab">10</div>
+          <div class="card-main-text font-slab">
+            {{ totalAthletes < 10 && totalAthletes > 0 ? '0' + totalAthletes : totalAthletes }}
+          </div>
           <div class="card-sub-text font-condensed">CONFIRMADOS</div>
           <div class="card-pill-tag font-condensed">ATLETAS</div>
         </div>
@@ -43,6 +45,12 @@
     </div>
   </section>
 </template>
+
+<script setup>
+import { useAthletes } from '../composables/useAthletes.js'
+
+const { totalAthletes } = useAthletes()
+</script>
 
 <style scoped>
 .stats-section {
