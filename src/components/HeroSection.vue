@@ -31,7 +31,7 @@
             <div class="card-pin pin-br"></div>
             
             <img src="/icon-data.png" alt="Data" class="card-icon-img" />
-            <div class="card-main-text font-slab">28</div>
+            <div class="card-main-text font-slab">29</div>
             <div class="card-sub-text font-condensed">NOVEMBRO</div>
             <div class="card-pill-tag font-condensed">DATA</div>
           </div>
