@@ -76,6 +76,14 @@ const sponsorsList = ref([
     name: 'Padaria Santa Rita',
     logo: '/images/logo_padaria.png',
   },
+  {
+    name: 'MM Decorações',
+    logo: '/images/logo_mmdecoracoes.png',
+  },
+  {
+    name: 'Felipe Montagens',
+    logo: '/images/logo_gordinho.png',
+  },
 ])
 
 // Multiply the list to ensure a smooth continuous loop marquee
@@ -221,8 +229,9 @@ const displaySponsors = computed(() => {
   width: auto;
   max-width: 220px;
   object-fit: contain;
+  border-radius: 12px;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
-  transition: filter 0.25s ease;
+  transition: filter 0.25s ease, transform 0.25s ease;
 }
 
 .sponsor-logo-item:hover .sponsor-img {
@@ -280,6 +289,7 @@ const displaySponsors = computed(() => {
   .sponsor-img {
     height: 80%;
     max-width: none;
+    border-radius: 8px;
   }
 
   .sponsors-heading {
