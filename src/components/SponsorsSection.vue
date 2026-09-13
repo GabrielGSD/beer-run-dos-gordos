@@ -49,7 +49,7 @@
       <div class="sponsors-footer-cta font-condensed">
         <span>QUER SUA MARCA NA BEER RUN DOS GORDOS?</span>
         <a
-          href="https://wa.me/?text=Ol%C3%A1!%20Tenho%20interesse%20em%20ser%20um%20patrocinador%20da%20Beer%20Run%20dos%20Gordos!"
+          href="https://wa.me/5535997500430?text=Ol%C3%A1!%20Tenho%20interesse%20em%20ser%20um%20patrocinador%20da%20Beer%20Run%20dos%20Gordos!"
           target="_blank"
           rel="noopener noreferrer"
           class="sponsor-link"
@@ -176,7 +176,7 @@ const displaySponsors = computed(() => {
   align-items: center;
   gap: 30px;
   width: max-content;
-  animation: marquee-scroll 24s linear infinite;
+  animation: marquee-scroll 30s linear infinite;
   will-change: transform;
 }
 
@@ -199,7 +199,7 @@ const displaySponsors = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 75px;
+  height: 220px;
   min-width: 120px;
   padding: 4px 16px;
   border-radius: 6px;
@@ -217,9 +217,9 @@ const displaySponsors = computed(() => {
 }
 
 .sponsor-img {
-  height: 60px;
+  height: 80%;
   width: auto;
-  max-width: 160px;
+  max-width: 220px;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
   transition: filter 0.25s ease;
@@ -268,18 +268,18 @@ const displaySponsors = computed(() => {
 
   .marquee-track {
     gap: 10px;
-    animation-duration: 18s;
+    animation-duration: 35s;
   }
 
   .sponsor-logo-item {
-    height: 90px;
+    height: 120px;
     min-width: 100px;
     padding: 4px 12px;
   }
 
   .sponsor-img {
     height: 80%;
-    max-width: auto;
+    max-width: none;
   }
 
   .sponsors-heading {
