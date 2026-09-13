@@ -7,6 +7,7 @@
       <HighlightRibbon />
       <StatsSection />
       <RouteSection />
+      <SponsorsSection />
       <KitSection />
       <ManifestoSection @open-registration="openRegistration" />
       <ConfirmedAthletesSection @open-registration="openRegistration" />
@@ -28,6 +29,7 @@ import StatsSection from './components/StatsSection.vue'
 import RouteSection from './components/RouteSection.vue'
 import KitSection from './components/KitSection.vue'
 import ConfirmedAthletesSection from './components/ConfirmedAthletesSection.vue'
+import SponsorsSection from './components/SponsorsSection.vue'
 import Footer from './components/Footer.vue'
 import RegistrationModal from './components/RegistrationModal.vue'
 
