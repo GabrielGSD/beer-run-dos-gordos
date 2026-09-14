@@ -277,7 +277,7 @@ const displaySponsors = computed(() => {
 
   .marquee-track {
     gap: 10px;
-    animation-duration: 35s;
+    animation-duration: 25s;
   }
 
   .sponsor-logo-item {
