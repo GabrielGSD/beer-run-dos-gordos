@@ -88,6 +88,10 @@ const sponsorsList = ref([
     name: 'Omna Tech',
     logo: '/images/logo_omna.png',
   },
+  {
+    name: 'Omna Tech',
+    logo: '/images/logo_granminas.png',
+  },
 ])
 
 // Multiply the list to ensure a smooth continuous loop marquee
