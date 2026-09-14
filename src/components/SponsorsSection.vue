@@ -89,7 +89,7 @@ const sponsorsList = ref([
     logo: '/images/logo_omna.png',
   },
   {
-    name: 'Omna Tech',
+    name: 'Gran Minas',
     logo: '/images/logo_granminas.png',
   },
 ])
