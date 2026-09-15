@@ -13,9 +13,13 @@
       <div class="marquee-wrapper" @mouseenter="isPaused = true" @mouseleave="isPaused = false">
         <div :class="['marquee-track', { 'is-paused': isPaused }]">
           <!-- First set of logos -->
-          <div
+          <component
+            :is="sponsor.link ? 'a' : 'div'"
             v-for="(sponsor, index) in displaySponsors"
-            :key="'s1-' + index"
+            :key="'s1-' + (sponsor.id || index) + '-' + index"
+            :href="sponsor.link || undefined"
+            :target="sponsor.link ? '_blank' : undefined"
+            :rel="sponsor.link ? 'noopener noreferrer' : undefined"
             class="sponsor-logo-item"
             :title="sponsor.name"
           >
@@ -25,15 +29,20 @@
               class="sponsor-img"
               loading="lazy"
             />
-          </div>
+          </component>
 
           <!-- Duplicate set for seamless infinite loop -->
-          <div
+          <component
+            :is="sponsor.link ? 'a' : 'div'"
             v-for="(sponsor, index) in displaySponsors"
-            :key="'s2-' + index"
+            :key="'s2-' + (sponsor.id || index) + '-' + index"
+            :href="sponsor.link || undefined"
+            :target="sponsor.link ? '_blank' : undefined"
+            :rel="sponsor.link ? 'noopener noreferrer' : undefined"
             class="sponsor-logo-item"
             :title="sponsor.name"
             aria-hidden="true"
+            tabindex="-1"
           >
             <img
               :src="sponsor.logo"
@@ -41,7 +50,7 @@
               class="sponsor-img"
               loading="lazy"
             />
-          </div>
+          </component>
         </div>
       </div>
 
@@ -62,42 +71,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useSponsors } from '../composables/useSponsors.js'
 
 const isPaused = ref(false)
+const { sponsors, fetchSponsors } = useSponsors()
 
-// Sponsor list - Easily add new sponsor logos here
-const sponsorsList = ref([
-  {
-    name: 'Delícias da Vó Cila',
-    logo: '/images/logo_quitanda.png',
-  },
-  {
-    name: 'Padaria Santa Rita',
-    logo: '/images/logo_padaria.png',
-  },
-  {
-    name: 'MM Decorações',
-    logo: '/images/logo_mmdecoracoes.png',
-  },
-  {
-    name: 'Felipe Montagens',
-    logo: '/images/logo_gordinho.png',
-  },
-  {
-    name: 'Omna Tech',
-    logo: '/images/logo_omna.png',
-  },
-  {
-    name: 'Gran Minas',
-    logo: '/images/logo_granminas.png',
-  },
-])
+onMounted(() => {
+  fetchSponsors()
+})
 
 // Multiply the list to ensure a smooth continuous loop marquee
 const displaySponsors = computed(() => {
+  const list = sponsors.value
+  if (!list || list.length === 0) return []
   // If there are few logos (like 2), repeat them to fill the marquee track nicely
-  const list = sponsorsList.value
   if (list.length <= 2) {
     return [...list, ...list, ...list, ...list]
   }
