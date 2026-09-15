@@ -43,6 +43,13 @@
         <!-- Right Realization Note -->
         <div class="footer-realization">
           <img src="/logo.png" alt="BEER RUN DOS GORDOS" class="footer-logo" />
+          <button
+            type="button"
+            class="footer-sponsor-btn font-condensed"
+            @click="$emit('open-sponsorship')"
+          >
+            <i class="fa-solid fa-handshake"></i> Seja um Patrocinador
+          </button>
         </div>
       </div>
     </div>
@@ -50,7 +57,7 @@
 </template>
 
 <script setup>
-defineEmits(['open-registration'])
+defineEmits(['open-registration', 'open-sponsorship'])
 </script>
 
 <style scoped>
@@ -194,6 +201,27 @@ defineEmits(['open-registration'])
 .footer-logo {
   height: 50px;
   opacity: 0.85;
+}
+
+.footer-sponsor-btn {
+  background: rgba(217, 130, 43, 0.15);
+  border: 1.5px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.footer-sponsor-btn:hover {
+  background: var(--accent-gold);
+  color: var(--accent-dark);
+  box-shadow: 0 2px 8px rgba(217, 130, 43, 0.4);
 }
 
 .realization-tag {

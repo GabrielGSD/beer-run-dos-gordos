@@ -57,14 +57,13 @@
       <!-- Discreet CTA for new sponsors -->
       <div class="sponsors-footer-cta font-condensed">
         <span>QUER SUA MARCA NA BEER RUN DOS GORDOS?</span>
-        <a
-          href="https://wa.me/5535997500430?text=Ol%C3%A1!%20Tenho%20interesse%20em%20ser%20um%20patrocinador%20da%20Beer%20Run%20dos%20Gordos!"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="sponsor-link"
+        <button
+          type="button"
+          class="sponsor-link font-condensed"
+          @click="$emit('open-sponsorship')"
         >
           SEJA UM PATROCINADOR <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </a>
+        </button>
       </div>
     </div>
   </section>
@@ -73,6 +72,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useSponsors } from '../composables/useSponsors.js'
+
+defineEmits(['open-sponsorship'])
 
 const isPaused = ref(false)
 const { sponsors, fetchSponsors } = useSponsors()
@@ -249,14 +250,18 @@ const displaySponsors = computed(() => {
 }
 
 .sponsor-link {
+  background: none;
+  border: none;
   color: var(--accent-gold);
   text-decoration: none;
   font-weight: 800;
+  font-size: inherit;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   border-bottom: 1px dashed var(--accent-gold);
-  padding-bottom: 1px;
+  padding: 0 0 1px 0;
   transition: color 0.2s ease, border-color 0.2s ease;
 }
 
