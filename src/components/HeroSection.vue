@@ -65,10 +65,17 @@
 
         <!-- Call to Action -->
         <div class="hero-cta-box">
-          <button class="btn-vintage hero-btn" @click="$emit('open-registration')">
-            INSCREVA-SE AGORA
+          <button
+            :class="['btn-vintage hero-btn', { 'btn-soldout': isSoldOut }]"
+            @click="$emit('open-registration')"
+          >
+            <i v-if="isSoldOut" class="fa-solid fa-lock"></i>
+            <i v-else class="fa-solid fa-beer-mug-empty"></i>
+            {{ isSoldOut ? 'ESGOTADO' : 'INSCREVA-SE AGORA' }}
           </button>
-          <span class="cta-subtag font-condensed">VAGAS LIMITADAS!</span>
+          <span :class="['cta-subtag font-condensed', { 'subtag-soldout': isSoldOut }]">
+            {{ isSoldOut ? '★ INSCRIÇÕES ESGOTADAS (LISTA DE ESPERA) ★' : 'VAGAS LIMITADAS!' }}
+          </span>
         </div>
       </div>
     </div>
@@ -76,7 +83,11 @@
 </template>
 
 <script setup>
+import { useAthletes } from '../composables/useAthletes.js'
+
 defineEmits(['open-registration'])
+
+const { isSoldOut } = useAthletes()
 </script>
 
 <style scoped>
@@ -248,12 +259,27 @@ defineEmits(['open-registration'])
   padding: 16px 36px;
 }
 
+.btn-soldout {
+  background-color: #8c2323;
+  color: #fff;
+  border-color: #1c1b18;
+}
+
+.btn-soldout:hover {
+  background-color: #a82e2e;
+}
+
 .cta-subtag {
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 1px;
   color: var(--text-dark);
   align-self: center;
+}
+
+.subtag-soldout {
+  color: #8c2323;
+  font-weight: 900;
 }
 
 @media (max-width: 900px) {

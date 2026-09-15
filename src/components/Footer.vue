@@ -9,10 +9,17 @@
         </div>
 
         <div class="cta-action-box">
-          <button class="btn-vintage footer-btn" @click="$emit('open-registration')">
-            <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
+          <button
+            :class="['btn-vintage footer-btn', { 'btn-soldout': isSoldOut }]"
+            @click="$emit('open-registration')"
+          >
+            <i v-if="isSoldOut" class="fa-solid fa-lock"></i>
+            <i v-else class="fa-solid fa-beer-mug-empty"></i>
+            {{ isSoldOut ? 'INSCRIÇÕES ENCERRADAS' : 'INSCREVA-SE AGORA' }}
           </button>
-          <span class="footer-subtag font-condensed">VAGAS LIMITADAS!</span>
+          <span :class="['footer-subtag font-condensed', { 'subtag-soldout': isSoldOut }]">
+            {{ isSoldOut ? `★ ${maxAthletes}/${maxAthletes} VAGAS ESGOTADAS ★` : `VAGAS LIMITADAS! (${totalAthletes}/${maxAthletes})` }}
+          </span>
         </div>
       </div>
     </div>
@@ -57,7 +64,11 @@
 </template>
 
 <script setup>
+import { useAthletes } from '../composables/useAthletes.js'
+
 defineEmits(['open-registration', 'open-sponsorship'])
+
+const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
 </script>
 
 <style scoped>
@@ -107,11 +118,26 @@ defineEmits(['open-registration', 'open-sponsorship'])
   padding: 12px 28px;
 }
 
+.btn-soldout {
+  background-color: #8c2323 !important;
+  color: #fff !important;
+  border-color: #1c1b18 !important;
+}
+
+.btn-soldout:hover {
+  background-color: #a82e2e !important;
+}
+
 .footer-subtag {
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--text-light);
   letter-spacing: 1px;
+}
+
+.subtag-soldout {
+  color: #ffb3b3 !important;
+  font-weight: 900;
 }
 
 .footer-main {

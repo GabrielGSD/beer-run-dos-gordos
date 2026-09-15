@@ -3,7 +3,52 @@
     <div class="vintage-card modal-box">
       <button class="close-btn" @click="closeModal" aria-label="Fechar">&times;</button>
 
-      <div v-if="!submitted" class="modal-content">
+      <!-- 1. Estado de Sucesso -->
+      <div v-if="submitted" class="success-box">
+        <div class="stamp-circle">
+          <span>APROVADO</span>
+          <i class="fa-solid fa-beer-mug-empty"></i>
+        </div>
+        <h3 class="success-title font-slab">PRÉ-INSCRIÇÃO GARANTIDA!</h3>
+        <p class="success-desc font-condensed">
+          Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
+        </p>
+        <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
+      </div>
+
+      <!-- 2. Estado de Vagas Esgotadas -->
+      <div v-else-if="isSoldOut" class="soldout-box">
+        <div class="stamp-circle soldout-stamp">
+          <span>★ ESGOTADO ★</span>
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 class="soldout-title font-slab">INSCRIÇÕES ESGOTADAS!</h3>
+        <p class="soldout-desc font-condensed">
+          As vagas para a <strong>Beer Run dos Gordos</strong> estão esgotadas no momento! Agradecemos a todos pela incrível adesão e carinho.
+        </p>
+
+        <div class="waitlist-card font-condensed">
+          <p>
+            📋 <strong>Deseja entrar na Lista de Espera?</strong> Caso haja alguma desistência ou abertura de novo lote, avisaremos você com prioridade!
+          </p>
+        </div>
+
+        <div class="soldout-actions">
+          <a
+            href="https://wa.me/5535997500430?text=Ol%C3%A1!%20Gostaria%20de%20entrar%20na%20lista%20de%20espera%20da%20Beer%20Run%20dos%20Gordos%20caso%20abra%20alguma%20vaga!"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-vintage waitlist-btn font-slab"
+          >
+            <i class="fa-brands fa-whatsapp"></i> ENTRAR NA LISTA DE ESPERA
+          </a>
+
+          <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
+        </div>
+      </div>
+
+      <!-- 3. Formulário de Inscrição Ativo -->
+      <div v-else class="modal-content">
         <div class="modal-header">
           <img src="/logo.png" alt="Logo" class="modal-logo" />
           <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
@@ -103,19 +148,6 @@
           </button>
         </form>
       </div>
-
-      <!-- Success Confirmation State -->
-      <div v-else class="success-box">
-        <div class="stamp-circle">
-          <span>APROVADO</span>
-          <i class="fa-solid fa-beer-mug-empty"></i>
-        </div>
-        <h3 class="success-title font-slab">PRÉ-INSCRIÇÃO GARANTIDA!</h3>
-        <p class="success-desc font-condensed">
-          Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
-        </p>
-        <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
-      </div>
     </div>
   </div>
 </template>
@@ -130,7 +162,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const { addAthlete, formatAthleteDisplayName } = useAthletes()
+const {
+  addAthlete,
+  formatAthleteDisplayName,
+  isSoldOut,
+  remainingSpots,
+  maxAthletes
+} = useAthletes()
 
 const submitted = ref(false)
 const isSubmitting = ref(false)
@@ -285,6 +323,25 @@ function closeModal() {
   font-weight: 700;
   color: #354c23;
   line-height: 1.2;
+}
+
+.spots-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #ffe8d1;
+  border: 1.5px solid #d8812a;
+  color: #9c4b05;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 3px 10px;
+  border-radius: 14px;
+  margin-top: 6px;
+  letter-spacing: 0.3px;
+}
+
+.spots-badge i {
+  color: #e65100;
 }
 
 .modal-form {
@@ -473,6 +530,77 @@ function closeModal() {
   margin-bottom: 18px;
   color: #4a453e;
   line-height: 1.35;
+}
+
+/* Sold Out State Styles */
+.soldout-box {
+  text-align: center;
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.soldout-stamp {
+  border-color: #b71c1c;
+  color: #b71c1c;
+  background: rgba(183, 28, 28, 0.08);
+}
+
+.soldout-stamp span {
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+}
+
+.soldout-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  margin-bottom: 6px;
+  color: #b71c1c;
+}
+
+.soldout-desc {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: #3b352b;
+  line-height: 1.35;
+}
+
+.waitlist-card {
+  background-color: #fff;
+  border: 2px dashed #1c1b18;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  color: #1c1b18;
+  text-align: left;
+}
+
+.soldout-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.waitlist-btn {
+  background-color: #25d366;
+  border-color: #1c1b18;
+  color: #1c1b18;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  box-shadow: 3px 3px 0px #1c1b18;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.waitlist-btn:hover {
+  background-color: #1ebd5a;
 }
 
 @media (max-width: 480px) {

@@ -16,6 +16,9 @@ export function formatAthleteDisplayName(name, nickname) {
   return `${name.trim()} "${cleanNick}"`
 }
 
+// Limite máximo de participantes da prova
+export const MAX_ATHLETES = 70
+
 // Mock inicial de fallback caso o Supabase não esteja configurado ainda
 const INITIAL_ATHLETES = [
   { id: 1, name: 'Gabriel Silva', nickname: 'Fundador', displayName: 'Gabriel "Fundador" Silva', modality: 'corrida', drinksBeer: true, createdAt: '2026-09-01' },
@@ -75,6 +78,8 @@ export function useAthletes() {
   const totalAthletes = computed(() => athletes.value.length)
   const drinkersCount = computed(() => athletes.value.filter(a => a.drinksBeer).length)
   const nonDrinkersCount = computed(() => athletes.value.filter(a => !a.drinksBeer).length)
+  const isSoldOut = computed(() => athletes.value.length >= MAX_ATHLETES)
+  const remainingSpots = computed(() => Math.max(0, MAX_ATHLETES - athletes.value.length))
 
   // Configura a escuta em tempo real (Realtime) do Supabase
   function setupRealtimeListener() {
@@ -139,7 +144,7 @@ export function useAthletes() {
     }
   }
 
-  // Cadastra um novo atleta garantindo número de celular único
+  // Cadastra um novo atleta garantindo limite de 80 e número de celular único
   async function addAthlete({ name, nickname, phone, modality, drinksBeer }) {
     error.value = null
     const cleanInputPhone = (phone || '').trim()
@@ -151,8 +156,26 @@ export function useAthletes() {
       throw err
     }
 
+    // 1. Verificação de limite máximo de 80 pessoas
+    if (athletes.value.length >= MAX_ATHLETES) {
+      const limitErr = new Error(`Inscrições encerradas! Atingimos o limite máximo de ${MAX_ATHLETES} participantes.`)
+      error.value = limitErr.message
+      throw limitErr
+    }
+
     if (isSupabaseConfigured && supabase) {
-      // 1. Verificação prévia no Supabase para evitar duplicidade
+      // 2. Verificação de contagem no Supabase para evitar ultrapassar 80 participantes
+      const { count, error: countError } = await supabase
+        .from('athletes')
+        .select('*', { count: 'exact', head: true })
+
+      if (!countError && count !== null && count >= MAX_ATHLETES) {
+        const limitErr = new Error(`Inscrições encerradas! O limite de ${MAX_ATHLETES} atletas foi atingido agora.`)
+        error.value = limitErr.message
+        throw limitErr
+      }
+
+      // 3. Verificação prévia no Supabase para evitar duplicidade
       const { data: existingAthlete, error: checkError } = await supabase
         .from('athletes')
         .select('id')
@@ -170,7 +193,7 @@ export function useAthletes() {
         throw duplicateErr
       }
 
-      // 2. Inserção no banco
+      // 4. Inserção no banco
       const { data, error: sbError } = await supabase
         .from('athletes')
         .insert([{
@@ -245,6 +268,9 @@ export function useAthletes() {
     totalAthletes,
     drinkersCount,
     nonDrinkersCount,
+    isSoldOut,
+    remainingSpots,
+    maxAthletes: MAX_ATHLETES,
     fetchAthletes,
     addAthlete,
     formatAthleteDisplayName

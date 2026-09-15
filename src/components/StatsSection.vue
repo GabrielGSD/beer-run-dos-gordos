@@ -38,7 +38,7 @@
           <div class="card-main-text font-slab">
             {{ totalAthletes < 10 && totalAthletes > 0 ? '0' + totalAthletes : totalAthletes }}
           </div>
-          <div class="card-sub-text font-condensed">CONFIRMADOS</div>
+          <div class="card-sub-text font-condensed">{{ isSoldOut ? 'INSCRIÇÕES ESGOTADAS' : 'CONFIRMADOS' }}</div>
           <div class="card-pill-tag font-condensed">ATLETAS</div>
         </div>
       </div>
@@ -49,7 +49,7 @@
 <script setup>
 import { useAthletes } from '../composables/useAthletes.js'
 
-const { totalAthletes } = useAthletes()
+const { totalAthletes, maxAthletes, isSoldOut } = useAthletes()
 </script>
 
 <style scoped>
@@ -111,6 +111,13 @@ const { totalAthletes } = useAthletes()
   color: #1c1b18;
   line-height: 1.0;
   margin-bottom: 4px;
+}
+
+.stat-max-sub {
+  font-size: 1.2rem;
+  font-weight: 800;
+  opacity: 0.65;
+  margin-left: 2px;
 }
 
 .card-text-sm {

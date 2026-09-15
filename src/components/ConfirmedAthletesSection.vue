@@ -8,8 +8,10 @@
         <div class="athletes-header">
           <div class="athletes-stats-block">
             <div class="counter-badge font-slab">
-              <span class="counter-number">{{ totalAthletes < 10 ? '0' + totalAthletes : totalAthletes }}</span>
-              <span class="counter-label">ATLETAS CONFIRMADOS</span>
+              <span class="counter-number">
+                {{ totalAthletes < 10 ? '0' + totalAthletes : totalAthletes }}
+              </span>
+              <span class="counter-label">{{ isSoldOut ? 'INSCRIÇÕES ESGOTADAS' : 'ATLETAS CONFIRMADOS' }}</span>
             </div>
 
             <div class="stats-pills font-condensed">
@@ -43,9 +45,11 @@
 
             <button
               @click="$emit('open-registration')"
-              class="btn-vintage btn-register-quick font-slab"
+              :class="['btn-vintage btn-register-quick font-slab', { 'btn-soldout-quick': isSoldOut }]"
             >
-              <i class="fa-solid fa-plus"></i> QUERO MEU NOME NA LISTA
+              <i v-if="isSoldOut" class="fa-solid fa-lock"></i>
+              <i v-else class="fa-solid fa-plus"></i>
+              {{ isSoldOut ? 'ESGOTADO' : 'QUERO MEU NOME NA LISTA' }}
             </button>
           </div>
         </div>
@@ -117,13 +121,23 @@
         <!-- Section Footer CTA Banner -->
         <div class="athletes-footer-ribbon">
           <div class="footer-cta-text font-condensed">
-            <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!
+            <template v-if="isSoldOut">
+              <strong>INSCRIÇÕES ESGOTADAS!</strong> Entre na lista de espera caso abra alguma vaga.
+            </template>
+            <template v-else>
+              <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!
+            </template>
           </div>
           <button
             @click="$emit('open-registration')"
-            class="btn-vintage btn-footer-cta font-slab"
+            :class="['btn-vintage btn-footer-cta font-slab', { 'btn-soldout-quick': isSoldOut }]"
           >
-            INSCREVER-SE AGORA <i class="fa-solid fa-arrow-right"></i>
+            <template v-if="isSoldOut">
+              <i class="fa-solid fa-lock"></i> ESGOTADO (LISTA DE ESPERA)
+            </template>
+            <template v-else>
+              INSCREVER-SE AGORA <i class="fa-solid fa-arrow-right"></i>
+            </template>
           </button>
         </div>
       </div>
@@ -137,7 +151,16 @@ import { useAthletes } from '../composables/useAthletes.js'
 
 defineEmits(['open-registration'])
 
-const { athletes, loading, totalAthletes, drinkersCount, nonDrinkersCount, fetchAthletes } = useAthletes()
+const {
+  athletes,
+  loading,
+  totalAthletes,
+  drinkersCount,
+  nonDrinkersCount,
+  isSoldOut,
+  maxAthletes,
+  fetchAthletes
+} = useAthletes()
 const searchQuery = ref('')
 
 onMounted(() => {
@@ -201,6 +224,23 @@ const filteredAthletes = computed(() => {
   font-size: 1.8rem;
   font-weight: 900;
   line-height: 1;
+}
+
+.max-badge-sub {
+  font-size: 1.1rem;
+  font-weight: 800;
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+.btn-soldout-quick {
+  background-color: #8c2323 !important;
+  color: #fff !important;
+  border-color: #1c1b18 !important;
+}
+
+.btn-soldout-quick:hover {
+  background-color: #a82e2e !important;
 }
 
 .counter-label {
