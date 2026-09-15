@@ -117,7 +117,7 @@
         <!-- Section Footer CTA Banner -->
         <div class="athletes-footer-ribbon">
           <div class="footer-cta-text font-condensed">
-            <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha 3D, copo, chopp gelado e churrasco!
+            <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!
           </div>
           <button
             @click="$emit('open-registration')"
