@@ -1,5 +1,12 @@
 <template>
-  <div class="app-wrapper">
+  <!-- Tela Dedicada da Staff (Tela Cheia / Mobile Native) -->
+  <StaffDashboard
+    v-if="isStaffMode"
+    @exit-staff="exitStaffMode"
+  />
+
+  <!-- Site Público Oficial -->
+  <div v-else class="app-wrapper">
     <Navbar />
 
     <main>
@@ -13,7 +20,11 @@
       <ConfirmedAthletesSection @open-registration="openRegistration" />
     </main>
 
-    <Footer @open-registration="openRegistration" @open-sponsorship="openSponsorship" />
+    <Footer
+      @open-registration="openRegistration"
+      @open-sponsorship="openSponsorship"
+      @open-staff="enterStaffMode"
+    />
 
     <RegistrationModal :is-open="isRegistrationOpen" @close="isRegistrationOpen = false" />
     <SponsorshipModal :is-open="isSponsorshipOpen" @close="isSponsorshipOpen = false" />
@@ -21,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Navbar from './components/Navbar.vue'
 import HeroSection from './components/HeroSection.vue'
 import HighlightRibbon from './components/HighlightRibbon.vue'
@@ -34,9 +45,11 @@ import SponsorsSection from './components/SponsorsSection.vue'
 import Footer from './components/Footer.vue'
 import RegistrationModal from './components/RegistrationModal.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
+import StaffDashboard from './components/StaffDashboard.vue'
 
 const isRegistrationOpen = ref(false)
 const isSponsorshipOpen = ref(false)
+const isStaffMode = ref(false)
 
 function openRegistration() {
   isRegistrationOpen.value = true
@@ -45,6 +58,37 @@ function openRegistration() {
 function openSponsorship() {
   isSponsorshipOpen.value = true
 }
+
+function enterStaffMode() {
+  isStaffMode.value = true
+  if (window.location.hash !== '#staff') {
+    window.location.hash = '#staff'
+  }
+}
+
+function exitStaffMode() {
+  isStaffMode.value = false
+  if (window.location.hash === '#staff') {
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+  }
+}
+
+function handleHashCheck() {
+  if (window.location.hash === '#staff') {
+    isStaffMode.value = true
+  } else {
+    isStaffMode.value = false
+  }
+}
+
+onMounted(() => {
+  handleHashCheck()
+  window.addEventListener('hashchange', handleHashCheck)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('hashchange', handleHashCheck)
+})
 </script>
 
 <style>

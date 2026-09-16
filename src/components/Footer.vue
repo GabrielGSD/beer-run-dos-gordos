@@ -57,6 +57,14 @@
           >
             <i class="fa-solid fa-handshake"></i> Seja um Patrocinador
           </button>
+          <button
+            type="button"
+            class="footer-staff-btn font-condensed"
+            @click="$emit('open-staff')"
+            title="Painel restrito dos organizadores"
+          >
+            <i class="fa-solid fa-lock"></i> Painel da Staff
+          </button>
         </div>
       </div>
     </div>
@@ -66,7 +74,7 @@
 <script setup>
 import { useAthletes } from '../composables/useAthletes.js'
 
-defineEmits(['open-registration', 'open-sponsorship'])
+defineEmits(['open-registration', 'open-sponsorship', 'open-staff'])
 
 const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
 </script>
@@ -251,6 +259,27 @@ const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
   background: var(--accent-gold);
   color: var(--accent-dark);
   box-shadow: 0 2px 8px rgba(217, 130, 43, 0.4);
+}
+
+.footer-staff-btn {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #a89a80;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.footer-staff-btn:hover {
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  background: rgba(217, 130, 43, 0.1);
 }
 
 .realization-tag {
