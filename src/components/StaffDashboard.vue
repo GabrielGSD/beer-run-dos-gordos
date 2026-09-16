@@ -374,7 +374,7 @@
                       <td>
                         <div class="athlete-name-cell">
                           <div class="font-slab athlete-name">{{ athlete.name }}</div>
-                          <div v-if="athlete.nickname" class="athlete-nick font-marker">"{{ athlete.nickname }}"</div>
+                          <div v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</div>
                         </div>
                       </td>
                       <td>
@@ -489,7 +489,7 @@
                       <td>
                         <div class="athlete-name-cell">
                           <div class="font-slab athlete-name">{{ item.name }}</div>
-                          <div v-if="item.nickname" class="athlete-nick font-marker">"{{ item.nickname }}"</div>
+                          <div v-if="item.nickname" class="athlete-nick font-condensed">"{{ item.nickname }}"</div>
                         </div>
                       </td>
                       <td>
@@ -565,164 +565,313 @@
             </div>
           </section>
 
-          <!-- TAB 4: PATROCÍNIOS -->
+          <!-- TAB 4: PATROCÍNIOS & MARCAS NO SITE -->
           <section v-if="activeTab === 'sponsors'" class="tab-pane animate-fade-in">
-            <div class="pane-toolbar">
-              <div class="sponsor-filters font-condensed">
-                <span class="filter-label">Filtrar por Status:</span>
-                <button
-                  class="pill-btn"
-                  :class="{ active: sponsorFilterStatus === 'all' }"
-                  @click="sponsorFilterStatus = 'all'"
-                >
-                  Todos ({{ proposals.length }})
-                </button>
-                <button
-                  class="pill-btn pill-pending"
-                  :class="{ active: sponsorFilterStatus === 'pending' }"
-                  @click="sponsorFilterStatus = 'pending'"
-                >
-                  Pendente ({{ proposalsPendingCount }})
-                </button>
-                <button
-                  class="pill-btn pill-approved"
-                  :class="{ active: sponsorFilterStatus === 'approved' }"
-                  @click="sponsorFilterStatus = 'approved'"
-                >
-                  Aprovado / Wait Payment ({{ proposalsApprovedCount }})
-                </button>
-                <button
-                  class="pill-btn pill-finished"
-                  :class="{ active: sponsorFilterStatus === 'finished' }"
-                  @click="sponsorFilterStatus = 'finished'"
-                >
-                  Concluído ({{ proposalsFinishedCount }})
-                </button>
-                <button
-                  class="pill-btn pill-rejected"
-                  :class="{ active: sponsorFilterStatus === 'rejected' }"
-                  @click="sponsorFilterStatus = 'rejected'"
-                >
-                  Recusado ({{ proposalsRejectedCount }})
-                </button>
+            <!-- Sub-tab switcher -->
+            <div class="sponsor-sub-nav font-slab">
+              <button
+                type="button"
+                class="sub-tab-btn"
+                :class="{ active: sponsorSubTab === 'proposals' }"
+                @click="sponsorSubTab = 'proposals'"
+              >
+                <i class="fa-solid fa-file-invoice-dollar"></i> Propostas Recebidas ({{ proposals.length }})
+              </button>
+              <button
+                type="button"
+                class="sub-tab-btn"
+                :class="{ active: sponsorSubTab === 'official' }"
+                @click="sponsorSubTab = 'official'"
+              >
+                <i class="fa-solid fa-globe"></i> Patrocinadores no Site Oficial ({{ allSponsors.length }})
+              </button>
+            </div>
+
+            <!-- Toast de publicação automática -->
+            <div v-if="publishToastMessage" class="publish-toast font-condensed animate-slide-up">
+              <div class="toast-content">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>{{ publishToastMessage }}</span>
+              </div>
+              <button class="toast-close-btn" @click="publishToastMessage = ''">✕</button>
+            </div>
+
+            <!-- SUB-VIEW 1: PROPOSTAS RECEBIDAS (PIPELINE) -->
+            <div v-if="sponsorSubTab === 'proposals'" class="tab-subpane">
+              <div class="pane-toolbar">
+                <div class="sponsor-filters font-condensed">
+                  <span class="filter-label">Filtrar por Status:</span>
+                  <button
+                    class="pill-btn"
+                    :class="{ active: sponsorFilterStatus === 'all' }"
+                    @click="sponsorFilterStatus = 'all'"
+                  >
+                    Todos ({{ proposals.length }})
+                  </button>
+                  <button
+                    class="pill-btn pill-pending"
+                    :class="{ active: sponsorFilterStatus === 'pending' }"
+                    @click="sponsorFilterStatus = 'pending'"
+                  >
+                    Pendente ({{ proposalsPendingCount }})
+                  </button>
+                  <button
+                    class="pill-btn pill-approved"
+                    :class="{ active: sponsorFilterStatus === 'approved' }"
+                    @click="sponsorFilterStatus = 'approved'"
+                  >
+                    Aprovado / Wait Payment ({{ proposalsApprovedCount }})
+                  </button>
+                  <button
+                    class="pill-btn pill-finished"
+                    :class="{ active: sponsorFilterStatus === 'finished' }"
+                    @click="sponsorFilterStatus = 'finished'"
+                  >
+                    Concluído ({{ proposalsFinishedCount }})
+                  </button>
+                  <button
+                    class="pill-btn pill-rejected"
+                    :class="{ active: sponsorFilterStatus === 'rejected' }"
+                    @click="sponsorFilterStatus = 'rejected'"
+                  >
+                    Recusado ({{ proposalsRejectedCount }})
+                  </button>
+                </div>
+
+                <div class="toolbar-actions">
+                  <button class="btn-vintage btn-sm btn-export font-slab" @click="exportProposalsCSV">
+                    <i class="fa-solid fa-file-csv"></i> Exportar Relatório
+                  </button>
+                </div>
               </div>
 
-              <div class="toolbar-actions">
-                <button class="btn-vintage btn-sm btn-export font-slab" @click="exportProposalsCSV">
-                  <i class="fa-solid fa-file-csv"></i> Exportar Relatório
-                </button>
+              <!-- Cards Grid for Sponsorship Proposals -->
+              <div class="sponsors-grid">
+                <div v-if="filteredProposals.length === 0" class="empty-box vintage-card span-all font-condensed">
+                  Nenhuma proposta de patrocínio encontrada para o filtro selecionado.
+                </div>
+
+                <div
+                  v-for="prop in filteredProposals"
+                  :key="prop.id"
+                  class="sponsor-card vintage-card"
+                  :class="'border-' + prop.status"
+                >
+                  <!-- Card Header -->
+                  <div class="sponsor-card-top">
+                    <div class="sponsor-brand-box">
+                      <img
+                        v-if="prop.logoUrl"
+                        :src="prop.logoUrl"
+                        :alt="prop.companyName"
+                        class="sponsor-card-logo"
+                      />
+                      <div v-else class="sponsor-logo-placeholder">
+                        <i class="fa-solid fa-building"></i>
+                      </div>
+                      <div>
+                        <h3 class="font-slab sponsor-company">{{ prop.companyName }}</h3>
+                        <div class="font-condensed sponsor-contact">
+                          <i class="fa-solid fa-user-tie"></i> {{ prop.contactName }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Status Selector -->
+                    <div class="sponsor-status-box">
+                      <label class="status-lbl font-condensed">Status:</label>
+                      <select
+                        v-model="prop.status"
+                        @change="handleProposalStatusChange(prop, prop.status)"
+                        class="sponsor-status-select font-condensed"
+                        :class="'status-' + prop.status"
+                      >
+                        <option value="pending">⏳ Pendente / Em Análise</option>
+                        <option value="approved">💵 Aprovado (Wait Payment)</option>
+                        <option value="finished">✅ Concluído / Fechado</option>
+                        <option value="rejected">❌ Recusado</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Card Body -->
+                  <div class="sponsor-details-list font-condensed">
+                    <div class="detail-row">
+                      <span class="detail-name">Formato:</span>
+                      <span class="detail-val font-bold">{{ formatSponsorshipType(prop.sponsorshipType) }}</span>
+                    </div>
+
+                    <div v-if="prop.amount" class="detail-row">
+                      <span class="detail-name">Valor:</span>
+                      <span class="detail-val text-green font-bold">{{ prop.amount }}</span>
+                    </div>
+
+                    <div v-if="prop.itemsDescription" class="detail-row">
+                      <span class="detail-name">Itens / Brindes / Estrutura:</span>
+                      <span class="detail-val">{{ prop.itemsDescription }}</span>
+                    </div>
+
+                    <div v-if="prop.activations && prop.activations.length > 0" class="detail-row">
+                      <span class="detail-name">Ativações:</span>
+                      <div class="activations-tags">
+                        <span v-for="act in prop.activations" :key="act" class="act-tag">
+                          • {{ act }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div v-if="prop.notes" class="detail-notes">
+                      <span class="detail-name">Observações:</span>
+                      <p class="notes-text">"{{ prop.notes }}"</p>
+                    </div>
+
+                    <div v-if="prop.websiteInstagram" class="detail-row">
+                      <span class="detail-name">Link / Perfil:</span>
+                      <span class="detail-val">{{ prop.websiteInstagram }}</span>
+                    </div>
+
+                    <!-- Live Site Status Badge -->
+                    <div v-if="prop.status === 'finished'" class="published-site-badge font-condensed">
+                      <i class="fa-solid fa-circle-check"></i>
+                      <span>Publicado no carrossel de patrocinadores da Landing Page</span>
+                    </div>
+                  </div>
+
+                  <!-- Card Footer -->
+                  <div class="sponsor-card-footer">
+                    <span class="sponsor-date font-condensed text-muted">
+                      Recebido em: {{ formatDate(prop.createdAt) }}
+                    </span>
+
+                    <div class="sponsor-footer-actions">
+                      <button
+                        v-if="prop.status === 'finished' || prop.status === 'approved'"
+                        class="btn-vintage btn-sm btn-sync-site font-condensed"
+                        @click="handleManualPublishToSite(prop)"
+                        title="Enviar ou sincronizar esta marca no carrossel da Landing Page"
+                      >
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Sincronizar Site
+                      </button>
+
+                      <a
+                        :href="getSponsorWhatsAppLink(prop)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn-vintage btn-sm btn-wa-full font-condensed"
+                      >
+                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                      </a>
+                      <button
+                        class="btn-row-action btn-delete"
+                        @click="promptDeleteProposal(prop)"
+                        title="Excluir proposta (requer senha)"
+                      >
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Cards Grid for Sponsorship Proposals -->
-            <div class="sponsors-grid">
-              <div v-if="filteredProposals.length === 0" class="empty-box vintage-card span-all font-condensed">
-                Nenhuma proposta de patrocínio encontrada para o filtro selecionado.
+            <!-- SUB-VIEW 2: PATROCINADORES OFICIAIS NO SITE (TABELA SPONSORS) -->
+            <div v-else class="tab-subpane animate-fade-in">
+              <div class="pane-toolbar">
+                <div class="official-sponsors-info font-condensed">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>
+                    Marcas atualmente configuradas na tabela <strong>sponsors</strong> exibidas no carrossel oficial da Landing Page.
+                  </span>
+                </div>
+
+                <div class="toolbar-actions">
+                  <button class="btn-vintage btn-sm font-slab" @click="openAddOfficialSponsorModal">
+                    <i class="fa-solid fa-plus"></i> Nova Marca no Site
+                  </button>
+                </div>
               </div>
 
-              <div
-                v-for="prop in filteredProposals"
-                :key="prop.id"
-                class="sponsor-card vintage-card"
-                :class="'border-' + prop.status"
-              >
-                <!-- Card Header -->
-                <div class="sponsor-card-top">
-                  <div class="sponsor-brand-box">
-                    <img
-                      v-if="prop.logoUrl"
-                      :src="prop.logoUrl"
-                      :alt="prop.companyName"
-                      class="sponsor-card-logo"
-                    />
-                    <div v-else class="sponsor-logo-placeholder">
-                      <i class="fa-solid fa-building"></i>
-                    </div>
-                    <div>
-                      <h3 class="font-slab sponsor-company">{{ prop.companyName }}</h3>
-                      <div class="font-condensed sponsor-contact">
-                        <i class="fa-solid fa-user-tie"></i> {{ prop.contactName }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Status Selector -->
-                  <div class="sponsor-status-box">
-                    <label class="status-lbl font-condensed">Status:</label>
-                    <select
-                      v-model="prop.status"
-                      @change="updateProposalStatus(prop.id, prop.status)"
-                      class="sponsor-status-select font-condensed"
-                      :class="'status-' + prop.status"
-                    >
-                      <option value="pending">⏳ Pendente / Em Análise</option>
-                      <option value="approved">💵 Aprovado (Wait Payment)</option>
-                      <option value="finished">✅ Concluído / Fechado</option>
-                      <option value="rejected">❌ Recusado</option>
-                    </select>
-                  </div>
+              <!-- Official Sponsors Table -->
+              <div class="table-container vintage-card">
+                <div class="table-summary-bar font-condensed">
+                  <span>Total de marcas cadastradas: <strong>{{ allSponsors.length }}</strong> (<strong>{{ activeSponsorsCount }}</strong> ativas no site)</span>
                 </div>
 
-                <!-- Card Body -->
-                <div class="sponsor-details-list font-condensed">
-                  <div class="detail-row">
-                    <span class="detail-name">Formato:</span>
-                    <span class="detail-val font-bold">{{ formatSponsorshipType(prop.sponsorshipType) }}</span>
-                  </div>
-
-                  <div v-if="prop.amount" class="detail-row">
-                    <span class="detail-name">Valor:</span>
-                    <span class="detail-val text-green font-bold">{{ prop.amount }}</span>
-                  </div>
-
-                  <div v-if="prop.itemsDescription" class="detail-row">
-                    <span class="detail-name">Itens / Brindes / Estrutura:</span>
-                    <span class="detail-val">{{ prop.itemsDescription }}</span>
-                  </div>
-
-                  <div v-if="prop.activations && prop.activations.length > 0" class="detail-row">
-                    <span class="detail-name">Ativações:</span>
-                    <div class="activations-tags">
-                      <span v-for="act in prop.activations" :key="act" class="act-tag">
-                        • {{ act }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div v-if="prop.notes" class="detail-notes">
-                    <span class="detail-name">Observações:</span>
-                    <p class="notes-text">"{{ prop.notes }}"</p>
-                  </div>
-
-                  <div v-if="prop.websiteInstagram" class="detail-row">
-                    <span class="detail-name">Link / Perfil:</span>
-                    <span class="detail-val">{{ prop.websiteInstagram }}</span>
-                  </div>
-                </div>
-
-                <!-- Card Footer -->
-                <div class="sponsor-card-footer">
-                  <span class="sponsor-date font-condensed text-muted">
-                    Recebido em: {{ formatDate(prop.createdAt) }}
-                  </span>
-
-                  <div class="sponsor-footer-actions">
-                    <a
-                      :href="getSponsorWhatsAppLink(prop)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn-vintage btn-sm btn-wa-full font-condensed"
-                    >
-                      <i class="fa-brands fa-whatsapp"></i> Chamar WhatsApp
-                    </a>
-                    <button
-                      class="btn-row-action btn-delete"
-                      @click="promptDeleteProposal(prop)"
-                      title="Excluir proposta (requer senha)"
-                    >
-                      <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                  </div>
+                <div class="table-responsive-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr class="font-slab">
+                        <th style="width: 50px;">Ordem</th>
+                        <th>Logo</th>
+                        <th>Nome da Empresa</th>
+                        <th>Link / Site</th>
+                        <th>Exibição no Carrossel</th>
+                        <th style="text-align: right;">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-if="allSponsors.length === 0">
+                        <td colspan="6" class="table-empty font-condensed">
+                          Nenhum patrocinador cadastrado na tabela ainda.
+                        </td>
+                      </tr>
+                      <tr v-for="(sponsor, sIdx) in allSponsors" :key="sponsor.id || sIdx">
+                        <td class="cell-num font-slab">#{{ sponsor.displayOrder || sIdx + 1 }}</td>
+                        <td>
+                          <div class="sponsor-thumb-wrap">
+                            <img
+                              v-if="sponsor.logo"
+                              :src="sponsor.logo"
+                              :alt="sponsor.name"
+                              class="sponsor-table-thumb"
+                            />
+                            <div v-else class="sponsor-table-placeholder">
+                              <i class="fa-solid fa-image"></i>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="font-slab font-bold text-dark">{{ sponsor.name }}</span>
+                        </td>
+                        <td>
+                          <a
+                            v-if="sponsor.link"
+                            :href="sponsor.link.startsWith('http') ? sponsor.link : 'https://' + sponsor.link"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="sponsor-web-link font-condensed"
+                          >
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            {{ sponsor.link }}
+                          </a>
+                          <span v-else class="text-muted font-condensed">-</span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            class="checkin-badge-btn font-condensed"
+                            :class="{ 'is-checked': sponsor.isActive }"
+                            @click="toggleSponsorActive(sponsor.id, !sponsor.isActive)"
+                            :title="sponsor.isActive ? 'Clique para ocultar do carrossel' : 'Clique para exibir no carrossel'"
+                          >
+                            <i :class="sponsor.isActive ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
+                            {{ sponsor.isActive ? 'Exibindo no Site' : 'Oculto / Pausado' }}
+                          </button>
+                        </td>
+                        <td style="text-align: right;">
+                          <div class="action-buttons-cell">
+                            <button
+                              class="btn-row-action btn-delete"
+                              @click="promptDeleteOfficialSponsor(sponsor)"
+                              title="Remover marca da Landing Page (requer senha)"
+                            >
+                              <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -767,7 +916,7 @@
                 <div class="checkin-athlete-info">
                   <div class="checkin-name-line">
                     <span class="font-slab athlete-name">{{ athlete.name }}</span>
-                    <span v-if="athlete.nickname" class="athlete-nick font-marker">"{{ athlete.nickname }}"</span>
+                    <span v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</span>
                   </div>
                   <div class="checkin-meta-line font-condensed">
                     <span>{{ athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}</span>
@@ -930,6 +1079,53 @@
         </div>
       </div>
     </div>
+
+    <!-- SUB-MODAL 4: CADASTRO MANUAL DE PATROCINADOR NO SITE -->
+    <div v-if="showAddSponsorModal" class="modal-backdrop-inner" @click.self="showAddSponsorModal = false">
+      <div class="sub-modal-card vintage-card animate-slide-up">
+        <h3 class="font-slab sub-modal-title">
+          <i class="fa-solid fa-handshake text-amber"></i> ADICIONAR MARCA NO SITE
+        </h3>
+        <p class="font-condensed text-muted sub-modal-desc">
+          Cadastre o patrocinador para exibição no carrossel oficial da Landing Page.
+        </p>
+
+        <form @submit.prevent="handleAddOfficialSponsor" class="sub-modal-form font-condensed">
+          <div class="form-group">
+            <label class="form-label font-slab">NOME DA EMPRESA / MARCA *</label>
+            <input type="text" v-model="newOfficialSponsor.name" required placeholder="Ex: Padaria Santa Rita" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label font-slab">URL DA LOGO (IMAGEM)</label>
+            <input type="text" v-model="newOfficialSponsor.logo" placeholder="https://... ou caminho do logo" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label font-slab">LINK DO SITE OU INSTAGRAM</label>
+            <input type="text" v-model="newOfficialSponsor.link" placeholder="https://instagram.com/marca" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label font-slab">ORDEM DE EXIBIÇÃO</label>
+            <input type="number" v-model.number="newOfficialSponsor.displayOrder" placeholder="1" class="form-input" />
+          </div>
+
+          <div v-if="addSponsorError" class="modal-error font-condensed">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ addSponsorError }}
+          </div>
+
+          <div class="sub-modal-actions">
+            <button type="button" class="btn-cancel font-condensed" @click="showAddSponsorModal = false">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-vintage font-slab" :disabled="isSubmittingSponsor">
+              <i class="fa-solid fa-check"></i> Salvar no Site
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -937,6 +1133,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useStaff } from '../composables/useStaff.js'
 import { useAthletes } from '../composables/useAthletes.js'
+import { useSponsors } from '../composables/useSponsors.js'
 import { isSupabaseConfigured } from '../lib/supabase.js'
 
 defineEmits(['exit-staff'])
@@ -945,6 +1142,15 @@ const {
   athletes,
   fetchAthletes
 } = useAthletes()
+
+const {
+  allSponsors,
+  fetchSponsors,
+  publishProposalToSponsors,
+  toggleSponsorActive,
+  deleteSponsor: removeSponsorFromSite,
+  addSponsor: addOfficialSponsor
+} = useSponsors()
 
 const {
   isAuthenticated,
@@ -971,6 +1177,78 @@ const {
   exportWaitlistCSV,
   exportProposalsCSV
 } = useStaff()
+
+// Estado da aba de Patrocínios & Sponsors
+const sponsorSubTab = ref('proposals')
+const publishToastMessage = ref('')
+const activeSponsorsCount = computed(() => allSponsors.value.filter(s => s.isActive).length)
+
+async function handleProposalStatusChange(prop, newStatus) {
+  await updateProposalStatus(prop.id, newStatus)
+  if (newStatus === 'finished') {
+    try {
+      await publishProposalToSponsors(prop)
+      publishToastMessage.value = `🎉 Proposta da marca "${prop.companyName}" foi concluída e adicionada automaticamente aos Patrocinadores da Landing Page!`
+      setTimeout(() => { publishToastMessage.value = '' }, 6000)
+    } catch (e) {
+      console.warn('Aviso ao publicar patrocinador:', e)
+    }
+  }
+}
+
+async function handleManualPublishToSite(prop) {
+  try {
+    await publishProposalToSponsors(prop)
+    publishToastMessage.value = `✓ Marca "${prop.companyName}" sincronizada com sucesso na tabela de Patrocinadores da Landing Page!`
+    setTimeout(() => { publishToastMessage.value = '' }, 5000)
+  } catch (e) {
+    alert('Erro ao publicar patrocinador: ' + (e.message || e))
+  }
+}
+
+const showAddSponsorModal = ref(false)
+const isSubmittingSponsor = ref(false)
+const addSponsorError = ref('')
+const newOfficialSponsor = ref({
+  name: '',
+  logo: '',
+  link: '',
+  displayOrder: 1
+})
+
+function openAddOfficialSponsorModal() {
+  newOfficialSponsor.value = {
+    name: '',
+    logo: '',
+    link: '',
+    displayOrder: allSponsors.value.length + 1
+  }
+  addSponsorError.value = ''
+  showAddSponsorModal.value = true
+}
+
+async function handleAddOfficialSponsor() {
+  addSponsorError.value = ''
+  isSubmittingSponsor.value = true
+  try {
+    await addOfficialSponsor(newOfficialSponsor.value)
+    showAddSponsorModal.value = false
+  } catch (e) {
+    addSponsorError.value = e.message || 'Erro ao adicionar patrocinador'
+  } finally {
+    isSubmittingSponsor.value = false
+  }
+}
+
+function promptDeleteOfficialSponsor(sponsor) {
+  targetDeleteType.value = 'Patrocinador Oficial do Site'
+  targetDeleteId.value = sponsor.id
+  targetDeleteName.value = sponsor.name
+  deleteConfirmPassword.value = ''
+  deleteError.value = ''
+  showDeleteModal.value = true
+  nextTick(() => deletePasswordInputRef.value?.focus())
+}
 
 // ----------------------------------------------------------------------------
 // LOGIN STATE
@@ -1162,6 +1440,8 @@ async function executeDeletion() {
       await deleteWaitlist(targetDeleteId.value, deleteConfirmPassword.value)
     } else if (targetDeleteType.value === 'Proposta de Patrocínio') {
       await deleteProposal(targetDeleteId.value, deleteConfirmPassword.value)
+    } else if (targetDeleteType.value === 'Patrocinador Oficial do Site') {
+      await removeSponsorFromSite(targetDeleteId.value)
     }
     showDeleteModal.value = false
   } catch (err) {
@@ -1202,7 +1482,8 @@ async function refreshAll() {
   await Promise.all([
     fetchAthletes(),
     fetchWaitlist(),
-    fetchProposals()
+    fetchProposals(),
+    fetchSponsors()
   ])
 }
 
@@ -1898,8 +2179,12 @@ onMounted(() => {
 }
 
 .athlete-nick {
-  font-size: 0.85rem;
-  color: var(--accent-gold, #d9822b);
+  font-family: var(--font-condensed);
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #c46d1b;
+  letter-spacing: 0.3px;
 }
 
 .whatsapp-link {
@@ -2096,6 +2381,141 @@ onMounted(() => {
 
 .span-all {
   grid-column: 1 / -1;
+}
+
+.sponsor-sub-nav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.sub-tab-btn {
+  background: var(--bg-parchment-light, #fbf7ee);
+  border: 2px solid var(--accent-border, #2c271f);
+  color: var(--text-muted, #4e483d);
+  padding: 10px 18px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.sub-tab-btn:hover {
+  background: #f0e6d2;
+  color: var(--text-dark, #1c1b18);
+}
+
+.sub-tab-btn.active {
+  background: var(--accent-dark, #191714);
+  color: #fff;
+  border-color: var(--accent-dark, #191714);
+}
+
+.publish-toast {
+  background: #e8f5e9;
+  border: 2px solid #2e7d32;
+  color: #1b5e20;
+  padding: 12px 18px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+}
+
+.publish-toast .toast-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast-close-btn {
+  background: none;
+  border: none;
+  color: #1b5e20;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.published-site-badge {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.btn-sync-site {
+  background: #2e7d32;
+  color: #fff;
+  border: 1px solid #1b5e20;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-sync-site:hover {
+  background: #1b5e20;
+}
+
+.official-sponsors-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted, #4e483d);
+  font-size: 0.9rem;
+}
+
+.sponsor-thumb-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.sponsor-table-thumb {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.sponsor-table-placeholder {
+  font-size: 1.3rem;
+  color: #aaa;
+}
+
+.sponsor-web-link {
+  color: #1e88e5;
+  text-decoration: none;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sponsor-web-link:hover {
+  text-decoration: underline;
 }
 
 .empty-box {
