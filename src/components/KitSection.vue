@@ -18,7 +18,7 @@
             </div>
             <h4 class="kit-item-title font-slab">MEDALHA DE CONCLUSÃO</h4>
             <p class="kit-item-desc font-condensed">
-              Pesada, colecionável e em relevo 3D da Mantiqueira, com fita temática oficial.
+              Pesada, colecionável e em relevo 3D. Apenas para os sobreviventes que cruzarem a linha de chegada.
             </p>
           </div>
 

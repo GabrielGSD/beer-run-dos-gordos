@@ -437,7 +437,7 @@ const mapWaypoints = [
     posX: 24.2,
     posY: 88.7,
     tooltipPos: 'bottom-left',
-    desc: 'Local de concentração, largada oficial, hidratação de boas-vindas e chegada triunfal com churrasco e chopp liberado.',
+    desc: 'Local de concentração, largada oficial, hidratação de boas-vindas e chegada triunfal com churrasco e cerveja no final.',
     targetLat: -22.14189,
     targetLon: -45.60297
   },
