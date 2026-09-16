@@ -11,7 +11,7 @@
               <span class="counter-number">
                 {{ totalAthletes < 10 ? '0' + totalAthletes : totalAthletes }}
               </span>
-              <span class="counter-label">{{ isSoldOut ? 'INSCRIÇÕES ESGOTADAS' : 'ATLETAS CONFIRMADOS' }}</span>
+              <span class="counter-label">{{ isSoldOut ? 'VAGAS PREENCHIDAS' : 'ATLETAS CONFIRMADOS' }}</span>
             </div>
 
             <div class="stats-pills font-condensed">
@@ -20,6 +20,9 @@
               </span>
               <span class="pill pill-soft" title="Participantes sem bebida alcoólica">
                 <i class="fa-solid fa-bottle-water"></i> {{ nonDrinkersCount }} NÃO BEBEM
+              </span>
+              <span v-if="isSoldOut && waitlistCount > 0" class="pill pill-waitlist" title="Atletas na lista de espera">
+                <i class="fa-solid fa-clipboard-list"></i> {{ waitlistCount }} NA FILA DE ESPERA
               </span>
             </div>
           </div>
@@ -45,11 +48,10 @@
 
             <button
               @click="$emit('open-registration')"
-              :class="['btn-vintage btn-register-quick font-slab', { 'btn-soldout-quick': isSoldOut }]"
+              class="btn-vintage btn-register-quick font-slab"
             >
-              <i v-if="isSoldOut" class="fa-solid fa-lock"></i>
-              <i v-else class="fa-solid fa-plus"></i>
-              {{ isSoldOut ? 'ESGOTADO' : 'QUERO MEU NOME NA LISTA' }}
+              <i :class="isSoldOut ? 'fa-solid fa-clipboard-list' : 'fa-solid fa-plus'"></i>
+              {{ isSoldOut ? 'LISTA DE ESPERA' : 'QUERO MEU NOME NA LISTA' }}
             </button>
           </div>
         </div>
@@ -98,7 +100,7 @@
 
                 <span class="confirmed-badge font-condensed">
                   <i :class="athlete.modality === 'caminhada' ? 'fa-solid fa-person-walking' : 'fa-solid fa-person-running'"></i>
-                    {{ athlete.modality === 'caminhada' ? 'Caminhada' : 'Corrida' }}
+                  {{ athlete.modality === 'caminhada' ? 'Caminhada' : 'Corrida' }}
                 </span>
               </div>
             </div>
@@ -113,7 +115,7 @@
               @click="$emit('open-registration')"
               class="btn-vintage btn-empty-cta font-slab"
             >
-              GARANTIR MINHA VAGA AGORA
+              {{ isSoldOut ? 'ENTRAR NA LISTA DE ESPERA' : 'GARANTIR MINHA VAGA AGORA' }}
             </button>
           </div>
         </div>
@@ -122,7 +124,7 @@
         <div class="athletes-footer-ribbon">
           <div class="footer-cta-text font-condensed">
             <template v-if="isSoldOut">
-              <strong>INSCRIÇÕES ESGOTADAS!</strong> Entre na lista de espera caso abra alguma vaga.
+              <strong>VAGAS PRINCIPAIS PREENCHIDAS!</strong> Cadastre-se na lista de espera para ser chamado em caso de desistências.
             </template>
             <template v-else>
               <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!
@@ -130,10 +132,10 @@
           </div>
           <button
             @click="$emit('open-registration')"
-            :class="['btn-vintage btn-footer-cta font-slab', { 'btn-soldout-quick': isSoldOut }]"
+            class="btn-vintage btn-footer-cta font-slab"
           >
             <template v-if="isSoldOut">
-              <i class="fa-solid fa-lock"></i> ESGOTADO (LISTA DE ESPERA)
+              <i class="fa-solid fa-clipboard-list"></i> LISTA DE ESPERA
             </template>
             <template v-else>
               INSCREVER-SE AGORA <i class="fa-solid fa-arrow-right"></i>
@@ -158,6 +160,7 @@ const {
   drinkersCount,
   nonDrinkersCount,
   isSoldOut,
+  waitlistCount,
   maxAthletes,
   fetchAthletes
 } = useAthletes()
@@ -278,6 +281,12 @@ const filteredAthletes = computed(() => {
   background-color: rgba(56, 75, 40, 0.15);
   color: var(--accent-green);
   border-color: var(--accent-green);
+}
+
+.pill-waitlist {
+  background-color: rgba(140, 35, 35, 0.12);
+  color: #8c2323;
+  border-color: #8c2323;
 }
 
 .athletes-actions {

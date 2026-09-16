@@ -17,7 +17,7 @@ export function formatAthleteDisplayName(name, nickname) {
 }
 
 // Limite máximo de participantes da prova
-export const MAX_ATHLETES = 70
+export const MAX_ATHLETES = 60
 
 // Mock inicial de fallback caso o Supabase não esteja configurado ainda
 const INITIAL_ATHLETES = [
@@ -70,9 +70,20 @@ function mapDatabaseAthlete(row) {
 
 // Estado singleton compartilhado
 const athletes = ref(isSupabaseConfigured ? [] : loadSavedLocalAthletes())
+const waitlistCount = ref(0)
 const loading = ref(false)
 const error = ref(null)
 let realtimeChannel = null
+let waitlistRealtimeChannel = null
+
+function loadLocalWaitlistCount() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('beer_run_athlete_waitlist') || '[]')
+    return Array.isArray(saved) ? saved.length : 0
+  } catch (e) {
+    return 0
+  }
+}
 
 export function useAthletes() {
   const totalAthletes = computed(() => athletes.value.length)
@@ -81,38 +92,81 @@ export function useAthletes() {
   const isSoldOut = computed(() => athletes.value.length >= MAX_ATHLETES)
   const remainingSpots = computed(() => Math.max(0, MAX_ATHLETES - athletes.value.length))
 
-  // Configura a escuta em tempo real (Realtime) do Supabase
+  // Configura a escuta em tempo real (Realtime) do Supabase para atletas e lista de espera
   function setupRealtimeListener() {
-    if (!supabase || realtimeChannel) return
+    if (!supabase) return
 
-    realtimeChannel = supabase
-      .channel('public:athletes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'athletes' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newAthlete = mapDatabaseAthlete(payload.new)
-            const exists = athletes.value.some(a => a.id === newAthlete.id)
-            if (!exists) {
-              athletes.value.unshift(newAthlete)
-            }
-          } else if (payload.eventType === 'DELETE') {
-            athletes.value = athletes.value.filter(a => a.id !== payload.old.id)
-          } else if (payload.eventType === 'UPDATE') {
-            const updated = mapDatabaseAthlete(payload.new)
-            const index = athletes.value.findIndex(a => a.id === updated.id)
-            if (index !== -1) {
-              athletes.value[index] = updated
+    if (!realtimeChannel) {
+      realtimeChannel = supabase
+        .channel('public:athletes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'athletes' },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const newAthlete = mapDatabaseAthlete(payload.new)
+              const exists = athletes.value.some(a => a.id === newAthlete.id)
+              if (!exists) {
+                athletes.value.unshift(newAthlete)
+              }
+            } else if (payload.eventType === 'DELETE') {
+              athletes.value = athletes.value.filter(a => a.id !== payload.old.id)
+            } else if (payload.eventType === 'UPDATE') {
+              const updated = mapDatabaseAthlete(payload.new)
+              const index = athletes.value.findIndex(a => a.id === updated.id)
+              if (index !== -1) {
+                athletes.value[index] = updated
+              }
             }
           }
-        }
-      )
-      .subscribe()
+        )
+        .subscribe()
+    }
+
+    if (!waitlistRealtimeChannel) {
+      waitlistRealtimeChannel = supabase
+        .channel('public:athlete_waitlist')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'athlete_waitlist' },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              waitlistCount.value++
+            } else if (payload.eventType === 'DELETE') {
+              waitlistCount.value = Math.max(0, waitlistCount.value - 1)
+            }
+          }
+        )
+        .subscribe()
+    }
+  }
+
+  // Busca contagem da lista de espera
+  async function fetchWaitlistCount() {
+    if (!isSupabaseConfigured || !supabase) {
+      waitlistCount.value = loadLocalWaitlistCount()
+      return
+    }
+
+    try {
+      const { count, error: countErr } = await supabase
+        .from('athlete_waitlist')
+        .select('*', { count: 'exact', head: true })
+
+      if (!countErr && count !== null) {
+        waitlistCount.value = count
+      } else {
+        waitlistCount.value = loadLocalWaitlistCount()
+      }
+    } catch (e) {
+      waitlistCount.value = loadLocalWaitlistCount()
+    }
   }
 
   // Busca a lista de atletas do Supabase
   async function fetchAthletes() {
+    fetchWaitlistCount()
+
     if (!isSupabaseConfigured) {
       if (athletes.value.length === 0) {
         athletes.value = loadSavedLocalAthletes()
@@ -260,6 +314,79 @@ export function useAthletes() {
     return newAthlete
   }
 
+  // Cadastra um atleta na lista de espera (quando as 70 vagas estiverem esgotadas)
+  async function addToWaitlist({ name, nickname, phone, modality, drinksBeer }) {
+    error.value = null
+    const cleanInputPhone = (phone || '').trim()
+    const cleanDigits = cleanInputPhone.replace(/\D/g, '')
+
+    if (!cleanDigits || cleanDigits.length < 10) {
+      const err = new Error('Por favor, informe um número de celular/WhatsApp válido com DDD.')
+      error.value = err.message
+      throw err
+    }
+
+    const waitlistRecord = {
+      name: name.trim(),
+      nickname: nickname?.trim() || null,
+      phone: cleanInputPhone,
+      modality: modality || 'corrida',
+      drinks_beer: Boolean(drinksBeer),
+      status: 'waiting',
+      created_at: new Date().toISOString()
+    }
+
+    let position = waitlistCount.value + 1
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error: sbError } = await supabase
+        .from('athlete_waitlist')
+        .insert([waitlistRecord])
+        .select()
+        .single()
+
+      if (sbError) {
+        console.warn('Aviso no Supabase athlete_waitlist, salvando localmente:', sbError.message)
+      } else {
+        const { count } = await supabase
+          .from('athlete_waitlist')
+          .select('*', { count: 'exact', head: true })
+        if (count !== null) {
+          waitlistCount.value = count
+          position = count
+        } else {
+          waitlistCount.value++
+          position = waitlistCount.value
+        }
+      }
+    }
+
+    // Fallback de segurança no localStorage
+    const WAITLIST_STORAGE_KEY = 'beer_run_athlete_waitlist'
+    try {
+      const saved = JSON.parse(localStorage.getItem(WAITLIST_STORAGE_KEY) || '[]')
+      saved.push({
+        id: Date.now(),
+        ...waitlistRecord,
+        displayName: formatAthleteDisplayName(name, nickname)
+      })
+      localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(saved))
+      if (!isSupabaseConfigured || !supabase) {
+        waitlistCount.value = saved.length
+        position = saved.length
+      }
+    } catch (e) {
+      console.warn('Aviso ao salvar waitlist localmente:', e)
+    }
+
+    return {
+      success: true,
+      name: name.trim(),
+      phone: cleanInputPhone,
+      position: position
+    }
+  }
+
   return {
     athletes,
     loading,
@@ -270,9 +397,12 @@ export function useAthletes() {
     nonDrinkersCount,
     isSoldOut,
     remainingSpots,
+    waitlistCount,
     maxAthletes: MAX_ATHLETES,
     fetchAthletes,
+    fetchWaitlistCount,
     addAthlete,
+    addToWaitlist,
     formatAthleteDisplayName
   }
 }

@@ -64,18 +64,43 @@
         </div>
 
         <!-- Call to Action -->
-        <div class="hero-cta-box">
+        <!-- Caso 1: Vagas Esgotadas (Card de Comunicado Vintage Oficial) -->
+        <div v-if="isSoldOut" class="hero-waitlist-announcement">
+          <div class="announcement-header">
+            <span class="announcement-tag font-slab">
+              <i class="fa-solid fa-bullhorn"></i> COMUNICADO OFICIAL
+            </span>
+            <div class="announcement-stamp font-slab">
+              <span>★ 100% ESGOTADO ★</span>
+            </div>
+          </div>
+
+          <h3 class="announcement-title font-slab">
+            AS VAGAS PRINCIPAIS FORAM PREENCHIDAS!
+          </h3>
+          
+          <p class="announcement-desc font-condensed">
+            A procura pela Beer Run foi gigante! Não desanime: cadastre-se na <strong>Lista de Espera Oficial</strong> para ser o primeiro a ser chamado se alguém desistir.
+          </p>
+
           <button
-            :class="['btn-vintage hero-btn', { 'btn-soldout': isSoldOut }]"
+            class="btn-vintage hero-waitlist-btn font-slab"
             @click="$emit('open-registration')"
           >
-            <i v-if="isSoldOut" class="fa-solid fa-lock"></i>
-            <i v-else class="fa-solid fa-beer-mug-empty"></i>
-            {{ isSoldOut ? 'ESGOTADO' : 'INSCREVA-SE AGORA' }}
+            <i class="fa-solid fa-clipboard-list"></i> ENTRAR NA LISTA DE ESPERA <i class="fa-solid fa-arrow-right"></i>
           </button>
-          <span :class="['cta-subtag font-condensed', { 'subtag-soldout': isSoldOut }]">
-            {{ isSoldOut ? '★ INSCRIÇÕES ESGOTADAS (LISTA DE ESPERA) ★' : 'VAGAS LIMITADAS!' }}
-          </span>
+
+          <div class="announcement-footer font-condensed">
+            <i class="fa-solid fa-hourglass-half"></i> Chamada por ordem de inscrição via WhatsApp
+          </div>
+        </div>
+
+        <!-- Caso 2: Inscrições Abertas -->
+        <div v-else class="hero-cta-box">
+          <button class="btn-vintage hero-btn" @click="$emit('open-registration')">
+            <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
+          </button>
+          <span class="cta-subtag font-condensed">VAGAS LIMITADAS!</span>
         </div>
       </div>
     </div>
@@ -247,6 +272,109 @@ const { isSoldOut } = useAthletes()
   box-shadow: 1px 1px 0px #1c1b18;
 }
 
+/* Hero Waitlist Announcement Card */
+.hero-waitlist-announcement {
+  background: #f4e8d0;
+  border: 2.5px solid #1c1b18;
+  border-radius: 10px;
+  box-shadow: 5px 5px 0px #1c1b18;
+  padding: 20px 22px 18px;
+  margin-top: 4px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.announcement-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.announcement-tag {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #1c1b18;
+  background: rgba(216, 129, 42, 0.25);
+  border: 1.5px solid #1c1b18;
+  padding: 3px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.announcement-tag i {
+  color: #c4711e;
+}
+
+.announcement-stamp {
+  background: #b71c1c;
+  color: #ffffff;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  border: 1.5px dashed #ffffff;
+  transform: rotate(-3deg);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.3);
+}
+
+.announcement-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #8c2323;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.announcement-desc {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3b352b;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.hero-waitlist-btn {
+  font-size: 1.15rem;
+  padding: 13px 20px;
+  width: 100%;
+  margin-top: 4px;
+  background-color: #d8812a;
+  color: #1c1b18;
+  border: 2.5px solid #1c1b18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 3px 3px 0px #1c1b18;
+}
+
+.hero-waitlist-btn:hover {
+  background-color: #e69128;
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0px #1c1b18;
+}
+
+.announcement-footer {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #635848;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  letter-spacing: 0.3px;
+}
+
 .hero-cta-box {
   display: flex;
   flex-direction: column;
@@ -259,27 +387,12 @@ const { isSoldOut } = useAthletes()
   padding: 16px 36px;
 }
 
-.btn-soldout {
-  background-color: #8c2323;
-  color: #fff;
-  border-color: #1c1b18;
-}
-
-.btn-soldout:hover {
-  background-color: #a82e2e;
-}
-
 .cta-subtag {
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 1px;
   color: var(--text-dark);
   align-self: center;
-}
-
-.subtag-soldout {
-  color: #8c2323;
-  font-weight: 900;
 }
 
 @media (max-width: 900px) {

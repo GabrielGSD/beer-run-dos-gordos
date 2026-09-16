@@ -10,15 +10,15 @@
 
         <div class="cta-action-box">
           <button
-            :class="['btn-vintage footer-btn', { 'btn-soldout': isSoldOut }]"
+            :class="['btn-vintage footer-btn', { 'btn-waitlist': isSoldOut }]"
             @click="$emit('open-registration')"
           >
-            <i v-if="isSoldOut" class="fa-solid fa-lock"></i>
+            <i v-if="isSoldOut" class="fa-solid fa-clipboard-list"></i>
             <i v-else class="fa-solid fa-beer-mug-empty"></i>
-            {{ isSoldOut ? 'INSCRIÇÕES ENCERRADAS' : 'INSCREVA-SE AGORA' }}
+            {{ isSoldOut ? 'LISTA DE ESPERA' : 'INSCREVA-SE AGORA' }}
           </button>
-          <span :class="['footer-subtag font-condensed', { 'subtag-soldout': isSoldOut }]">
-            {{ isSoldOut ? `★ ${maxAthletes}/${maxAthletes} VAGAS ESGOTADAS ★` : `VAGAS LIMITADAS! (${totalAthletes}/${maxAthletes})` }}
+          <span :class="['footer-subtag font-condensed', { 'subtag-waitlist': isSoldOut }]">
+            {{ isSoldOut ? '★ LISTA DE ESPERA OFICIAL ★' : 'VAGAS LIMITADAS!' }}
           </span>
         </div>
       </div>
@@ -118,14 +118,16 @@ const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
   padding: 12px 28px;
 }
 
-.btn-soldout {
-  background-color: #8c2323 !important;
-  color: #fff !important;
+.btn-soldout,
+.btn-waitlist {
+  background-color: var(--accent-gold) !important;
+  color: #1c1b18 !important;
   border-color: #1c1b18 !important;
 }
 
-.btn-soldout:hover {
-  background-color: #a82e2e !important;
+.btn-soldout:hover,
+.btn-waitlist:hover {
+  background-color: var(--accent-amber) !important;
 }
 
 .footer-subtag {
@@ -135,8 +137,9 @@ const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
   letter-spacing: 1px;
 }
 
-.subtag-soldout {
-  color: #ffb3b3 !important;
+.subtag-soldout,
+.subtag-waitlist {
+  color: var(--accent-gold) !important;
   font-weight: 900;
 }
 

@@ -3,56 +3,77 @@
     <div class="vintage-card modal-box">
       <button class="close-btn" @click="closeModal" aria-label="Fechar">&times;</button>
 
-      <!-- 1. Estado de Sucesso -->
+      <!-- 1. Estado de Sucesso (Inscrição Normal ou Lista de Espera) -->
       <div v-if="submitted" class="success-box">
-        <div class="stamp-circle">
-          <span>APROVADO</span>
-          <i class="fa-solid fa-beer-mug-empty"></i>
-        </div>
-        <h3 class="success-title font-slab">PRÉ-INSCRIÇÃO GARANTIDA!</h3>
-        <p class="success-desc font-condensed">
-          Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
-        </p>
-        <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
-      </div>
+        <template v-if="wasWaitlistSubmission">
+          <div class="waitlist-ticket-card">
+            <div class="ticket-header font-condensed">
+              <span class="ticket-tag">★ LISTA DE ESPERA OFICIAL ★</span>
+            </div>
+            
+            <div class="ticket-body">
+              <span class="ticket-position-label font-condensed">SUA POSIÇÃO NA FILA</span>
+              <div class="ticket-number font-slab">
+                <span class="ticket-number-prefix font-condensed">Nº</span>{{ waitlistPosition }}
+              </div>
+              <div class="ticket-athlete-name font-slab">
+                {{ confirmedDisplayName }}
+              </div>
+            </div>
 
-      <!-- 2. Estado de Vagas Esgotadas -->
-      <div v-else-if="isSoldOut" class="soldout-box">
-        <div class="stamp-circle soldout-stamp">
-          <span>★ ESGOTADO ★</span>
-          <i class="fa-solid fa-lock"></i>
-        </div>
-        <h3 class="soldout-title font-slab">INSCRIÇÕES ESGOTADAS!</h3>
-        <p class="soldout-desc font-condensed">
-          As vagas para a <strong>Beer Run dos Gordos</strong> estão esgotadas no momento! Agradecemos a todos pela incrível adesão e carinho.
-        </p>
+            <div class="ticket-footer font-condensed">
+              <span class="ticket-status-pill">
+                <i class="fa-solid fa-hourglass-half"></i> AGUARDANDO LIBERAÇÃO DE VAGA
+              </span>
+            </div>
+          </div>
 
-        <div class="waitlist-card font-condensed">
-          <p>
-            📋 <strong>Deseja entrar na Lista de Espera?</strong> Caso haja alguma desistência ou abertura de novo lote, avisaremos você com prioridade!
+          <p class="waitlist-info-note font-condensed">
+            Recebemos seus dados! Havendo qualquer desistência, chamaremos você com prioridade no WhatsApp <strong>{{ form.phone }}</strong>.
           </p>
-        </div>
 
-        <div class="soldout-actions">
-          <a
-            href="https://wa.me/5535997500430?text=Ol%C3%A1!%20Gostaria%20de%20entrar%20na%20lista%20de%20espera%20da%20Beer%20Run%20dos%20Gordos%20caso%20abra%20alguma%20vaga!"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn-vintage waitlist-btn font-slab"
-          >
-            <i class="fa-brands fa-whatsapp"></i> ENTRAR NA LISTA DE ESPERA
-          </a>
+          <div class="soldout-actions">
+            <a
+              :href="waitlistWhatsAppUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-vintage waitlist-btn font-slab"
+            >
+              <i class="fa-brands fa-whatsapp"></i> AVISAR ORGANIZAÇÃO NO WHATSAPP
+            </a>
+            <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
+          </div>
+        </template>
 
+        <template v-else>
+          <div class="stamp-circle">
+            <span>APROVADO</span>
+            <i class="fa-solid fa-beer-mug-empty"></i>
+          </div>
+          <h3 class="success-title font-slab">PRÉ-INSCRIÇÃO GARANTIDA!</h3>
+          <p class="success-desc font-condensed">
+            Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
+          </p>
           <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
-        </div>
+        </template>
       </div>
 
-      <!-- 3. Formulário de Inscrição Ativo -->
+      <!-- 2. Formulário de Inscrição (Ativo ou Lista de Espera) -->
       <div v-else class="modal-content">
         <div class="modal-header">
           <img src="/logo.png" alt="Logo" class="modal-logo" />
-          <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
-          <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e diversão!</p>
+          
+          <template v-if="isSoldOut">
+            <h3 class="modal-title font-slab">LISTA DE ESPERA</h3>
+            <p class="modal-subtitle waitlist-subtitle font-condensed">
+              Vagas principais preenchidas. Cadastre-se para ser chamado em caso de desistência!
+            </p>
+          </template>
+
+          <template v-else>
+            <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
+            <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e diversão!</p>
+          </template>
         </div>
 
         <form @submit.prevent="handleSubmit" class="modal-form">
@@ -139,12 +160,12 @@
 
           <button
             type="submit"
-            class="btn-vintage submit-btn font-slab"
+            :class="['btn-vintage submit-btn font-slab', { 'btn-waitlist-submit': isSoldOut }]"
             :disabled="isSubmitting"
           >
             <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-            <i v-else class="fa-solid fa-check"></i>
-            {{ isSubmitting ? 'CONFIRMANDO...' : 'CONFIRMAR PRÉ-INSCRIÇÃO' }}
+            <i v-else :class="isSoldOut ? 'fa-solid fa-clipboard-list' : 'fa-solid fa-check'"></i>
+            {{ isSubmitting ? 'PROCESSANDO...' : (isSoldOut ? 'ENTRAR NA LISTA DE ESPERA' : 'CONFIRMAR PRÉ-INSCRIÇÃO') }}
           </button>
         </form>
       </div>
@@ -164,6 +185,7 @@ const emit = defineEmits(['close'])
 
 const {
   addAthlete,
+  addToWaitlist,
   formatAthleteDisplayName,
   isSoldOut,
   remainingSpots,
@@ -171,6 +193,8 @@ const {
 } = useAthletes()
 
 const submitted = ref(false)
+const wasWaitlistSubmission = ref(false)
+const waitlistPosition = ref(1)
 const isSubmitting = ref(false)
 const submitError = ref('')
 
@@ -184,6 +208,19 @@ const form = reactive({
 
 const confirmedDisplayName = computed(() => {
   return formatAthleteDisplayName(form.name, form.nickname)
+})
+
+const waitlistWhatsAppUrl = computed(() => {
+  const text = encodeURIComponent(
+    `🍻 *LISTA DE ESPERA - BEER RUN DOS GORDOS* 🏃‍♂️\n\n` +
+    `👤 *Atleta:* ${confirmedDisplayName.value}\n` +
+    `📋 *Posição na Fila:* nº ${waitlistPosition.value}\n` +
+    `📱 *WhatsApp:* ${form.phone}\n` +
+    `🏃 *Modalidade:* ${form.modality === 'caminhada' ? 'Caminhada' : 'Corrida 6.37 KM'}\n` +
+    `🍺 *Chopp:* ${form.drinksBeer ? 'Sim' : 'Não'}\n\n` +
+    `_Acabei de me cadastrar na lista de espera pelo site oficial!_`
+  )
+  return `https://wa.me/5535997500430?text=${text}`
 })
 
 function formatPhone(event) {
@@ -205,20 +242,36 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
-    await addAthlete({
-      name: form.name,
-      nickname: form.nickname,
-      phone: form.phone,
-      modality: form.modality,
-      drinksBeer: form.drinksBeer
-    })
-    submitted.value = true
+    if (isSoldOut.value) {
+      const res = await addToWaitlist({
+        name: form.name,
+        nickname: form.nickname,
+        phone: form.phone,
+        modality: form.modality,
+        drinksBeer: form.drinksBeer
+      })
+      if (res && res.position) {
+        waitlistPosition.value = res.position
+      }
+      wasWaitlistSubmission.value = true
+      submitted.value = true
+    } else {
+      await addAthlete({
+        name: form.name,
+        nickname: form.nickname,
+        phone: form.phone,
+        modality: form.modality,
+        drinksBeer: form.drinksBeer
+      })
+      wasWaitlistSubmission.value = false
+      submitted.value = true
+    }
   } catch (err) {
-    console.error('Falha ao processar inscrição:', err)
+    console.error('Falha ao processar inscrição / lista de espera:', err)
     if (err.message) {
       submitError.value = err.message
     } else {
-      submitError.value = 'Não foi possível concluir a inscrição. Verifique sua conexão e tente novamente.'
+      submitError.value = 'Não foi possível concluir o cadastro. Verifique sua conexão e tente novamente.'
     }
   } finally {
     isSubmitting.value = false
@@ -227,6 +280,7 @@ async function handleSubmit() {
 
 function closeModal() {
   submitted.value = false
+  wasWaitlistSubmission.value = false
   submitError.value = ''
   isSubmitting.value = false
   emit('close')
@@ -492,10 +546,11 @@ function closeModal() {
 
 .success-box {
   text-align: center;
-  padding: 12px 0;
+  padding: 6px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 .stamp-circle {
@@ -509,12 +564,125 @@ function closeModal() {
   justify-content: center;
   color: #354c23;
   font-weight: 900;
-  margin-bottom: 12px;
-  transform: rotate(-8deg);
+  margin-bottom: 10px;
+  transform: rotate(-6deg);
+  background: rgba(53, 76, 35, 0.08);
+  box-sizing: border-box;
+}
+
+.stamp-circle span {
+  font-size: 0.72rem;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  line-height: 1;
+  margin-bottom: 2px;
 }
 
 .stamp-circle i {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
+}
+
+/* Waitlist Ticket Card in Modal */
+.waitlist-ticket-card {
+  width: 100%;
+  background-color: #fffaf0;
+  border: 2px dashed #1c1b18;
+  border-radius: 8px;
+  padding: 16px 14px;
+  margin: 6px 0 16px 0;
+  text-align: center;
+  position: relative;
+  box-sizing: border-box;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.08);
+}
+
+.ticket-header {
+  margin-bottom: 8px;
+}
+
+.ticket-tag {
+  display: inline-block;
+  background-color: #1c1b18;
+  color: #d8812a;
+  font-size: 0.86rem;
+  font-weight: 900;
+  padding: 4px 14px;
+  border-radius: 14px;
+  letter-spacing: 0.8px;
+}
+
+.ticket-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.ticket-position-label {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #3b362f;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.ticket-number {
+  font-size: 3.6rem;
+  font-weight: 900;
+  color: #d8812a;
+  line-height: 1;
+  text-shadow: 2px 2px 0px #1c1b18;
+  margin: 4px 0 6px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ticket-number-prefix {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #1c1b18;
+  text-shadow: none;
+}
+
+.ticket-athlete-name {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #1c1b18;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.ticket-footer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(28, 27, 24, 0.2);
+  display: flex;
+  justify-content: center;
+}
+
+.ticket-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(216, 129, 42, 0.15);
+  color: #8c4202;
+  border: 1px solid rgba(216, 129, 42, 0.4);
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 5px 14px;
+  border-radius: 14px;
+}
+
+.waitlist-info-note {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #26221c;
+  line-height: 1.45;
+  margin-bottom: 18px;
+  text-align: center;
 }
 
 .success-title {
@@ -530,6 +698,31 @@ function closeModal() {
   margin-bottom: 18px;
   color: #4a453e;
   line-height: 1.35;
+}
+
+.waitlist-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #1c1b18;
+  color: #d8812a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.waitlist-subtitle {
+  color: #8c2323 !important;
+  font-size: 0.88rem;
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.btn-waitlist-submit {
+  background-color: #d8812a;
 }
 
 /* Sold Out State Styles */
@@ -632,6 +825,34 @@ function closeModal() {
 
   .toggle-btn {
     font-size: 0.76rem;
+  }
+
+  .ticket-tag {
+    font-size: 0.8rem;
+  }
+
+  .ticket-position-label {
+    font-size: 0.88rem;
+  }
+
+  .ticket-number {
+    font-size: 3.0rem;
+  }
+
+  .ticket-number-prefix {
+    font-size: 1.35rem;
+  }
+
+  .ticket-athlete-name {
+    font-size: 1.18rem;
+  }
+
+  .ticket-status-pill {
+    font-size: 0.82rem;
+  }
+
+  .waitlist-info-note {
+    font-size: 0.98rem;
   }
 }
 </style>
