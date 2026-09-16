@@ -117,7 +117,7 @@
             <div class="map-canvas-frame">
               <!-- Illustrated Map Base Art -->
               <img 
-                src="/images/route/illustrated_map.jpg" 
+                src="/images/route/illustrated_map_atualizado.jpg" 
                 alt="Mapa Ilustrado do Percurso Beer Run dos Gordos" 
                 class="map-art-image" 
               />
@@ -352,7 +352,7 @@
           ★ MAPA OFICIAL DO CIRCUITO BEER RUN DOS GORDOS (6,37 KM) ★
         </div>
         <div class="lightbox-image-wrap">
-          <img src="/images/route/illustrated_map.jpg" alt="Mapa Ilustrado em Alta Resolução" class="lightbox-img" />
+          <img src="/images/route/illustrated_map_atualizado.jpg" alt="Mapa Ilustrado em Alta Resolução" class="lightbox-img" />
         </div>
       </div>
     </div>
