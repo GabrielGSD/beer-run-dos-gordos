@@ -10,15 +10,14 @@
 
         <div class="cta-action-box">
           <button
-            :class="['btn-vintage footer-btn', { 'btn-waitlist': isSoldOut }]"
+            class="btn-vintage footer-btn"
             @click="$emit('open-registration', 'rodape_banner')"
           >
-            <i v-if="isSoldOut" class="fa-solid fa-clipboard-list"></i>
-            <i v-else class="fa-solid fa-beer-mug-empty"></i>
-            {{ isSoldOut ? 'LISTA DE ESPERA' : 'INSCREVA-SE AGORA' }}
+            <i class="fa-solid fa-beer-mug-empty"></i>
+            INSCREVA-SE AGORA
           </button>
-          <span :class="['footer-subtag font-condensed', { 'subtag-waitlist': isSoldOut }]">
-            {{ isSoldOut ? '★ LISTA DE ESPERA OFICIAL ★' : 'VAGAS LIMITADAS!' }}
+          <span class="footer-subtag font-condensed">
+            {{ isSoldOut ? '🔥 ÚLTIMAS VAGAS EM REMANEJAMENTO!' : 'VAGAS LIMITADAS!' }}
           </span>
         </div>
       </div>

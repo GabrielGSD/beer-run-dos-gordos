@@ -38,7 +38,7 @@
           <div class="card-main-text font-slab">
             {{ totalAthletes < 10 && totalAthletes > 0 ? '0' + totalAthletes : totalAthletes }}
           </div>
-          <div class="card-sub-text font-condensed">{{ isSoldOut ? 'INSCRIÇÕES ESGOTADAS' : 'CONFIRMADOS' }}</div>
+          <div class="card-sub-text font-condensed">CONFIRMADOS NO PELOTÃO</div>
           <div class="card-pill-tag font-condensed">ATLETAS</div>
         </div>
       </div>

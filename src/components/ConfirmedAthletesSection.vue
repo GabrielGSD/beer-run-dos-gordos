@@ -50,8 +50,8 @@
               @click="$emit('open-registration', 'atletas_topo_rapido')"
               class="btn-vintage btn-register-quick font-slab"
             >
-              <i :class="isSoldOut ? 'fa-solid fa-clipboard-list' : 'fa-solid fa-plus'"></i>
-              {{ isSoldOut ? 'LISTA DE ESPERA' : 'QUERO MEU NOME NA LISTA' }}
+              <i class="fa-solid fa-plus"></i>
+              QUERO MEU NOME NA LISTA
             </button>
           </div>
         </div>
@@ -115,7 +115,7 @@
               @click="$emit('open-registration', 'atletas_busca_vazia')"
               class="btn-vintage btn-empty-cta font-slab"
             >
-              {{ isSoldOut ? 'ENTRAR NA LISTA DE ESPERA' : 'GARANTIR MINHA VAGA AGORA' }}
+              GARANTIR MINHA VAGA AGORA
             </button>
           </div>
         </div>
@@ -123,23 +123,13 @@
         <!-- Section Footer CTA Banner -->
         <div class="athletes-footer-ribbon">
           <div class="footer-cta-text font-condensed">
-            <template v-if="isSoldOut">
-              <strong>VAGAS PRINCIPAIS PREENCHIDAS!</strong> Cadastre-se na lista de espera para ser chamado em caso de desistências.
-            </template>
-            <template v-else>
-              <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!
-            </template>
+            <strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!
           </div>
           <button
             @click="$emit('open-registration', 'atletas_faixa_rodape')"
             class="btn-vintage btn-footer-cta font-slab"
           >
-            <template v-if="isSoldOut">
-              <i class="fa-solid fa-clipboard-list"></i> LISTA DE ESPERA
-            </template>
-            <template v-else>
-              INSCREVER-SE AGORA <i class="fa-solid fa-arrow-right"></i>
-            </template>
+            INSCREVER-SE AGORA <i class="fa-solid fa-arrow-right"></i>
           </button>
         </div>
       </div>

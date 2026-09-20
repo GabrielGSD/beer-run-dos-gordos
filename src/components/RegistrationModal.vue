@@ -8,11 +8,11 @@
         <template v-if="wasWaitlistSubmission">
           <div class="waitlist-ticket-card">
             <div class="ticket-header font-condensed">
-              <span class="ticket-tag">★ LISTA DE ESPERA OFICIAL ★</span>
+              <span class="ticket-tag">★ PRÉ-INSCRIÇÃO RECEBIDA COM SUCESSO ★</span>
             </div>
             
             <div class="ticket-body">
-              <span class="ticket-position-label font-condensed">SUA POSIÇÃO NA FILA</span>
+              <span class="ticket-position-label font-condensed">SUA POSIÇÃO NA FILA PRIORITÁRIA</span>
               <div class="ticket-number font-slab">
                 <span class="ticket-number-prefix font-condensed">Nº</span>{{ waitlistPosition }}
               </div>
@@ -23,13 +23,13 @@
 
             <div class="ticket-footer font-condensed">
               <span class="ticket-status-pill">
-                <i class="fa-solid fa-hourglass-half"></i> AGUARDANDO LIBERAÇÃO DE VAGA
+                <i class="fa-solid fa-circle-check"></i> CADASTRO REGISTRADO NA COMISSÃO
               </span>
             </div>
           </div>
 
           <p class="waitlist-info-note font-condensed">
-            Recebemos seus dados! Havendo qualquer desistência, chamaremos você com prioridade no WhatsApp <strong>{{ form.phone }}</strong>.
+            Recebemos sua pré-inscrição! Como as vagas do 1º lote foram preenchidas, você já garantiu sua posição prioritária. Havendo qualquer desistência ou remanejamento de kit, chamaremos você com prioridade no WhatsApp <strong>{{ form.phone }}</strong>!
           </p>
 
           <div class="soldout-actions">
@@ -62,18 +62,8 @@
       <div v-else class="modal-content">
         <div class="modal-header">
           <img src="/logo.png" alt="Logo" class="modal-logo" />
-          
-          <template v-if="isSoldOut">
-            <h3 class="modal-title font-slab">LISTA DE ESPERA</h3>
-            <p class="modal-subtitle waitlist-subtitle font-condensed">
-              Vagas principais preenchidas. Cadastre-se para ser chamado em caso de desistência!
-            </p>
-          </template>
-
-          <template v-else>
-            <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
-            <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e diversão!</p>
-          </template>
+          <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
+          <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e diversão!</p>
         </div>
 
         <form @submit.prevent="handleSubmit" class="modal-form">
@@ -160,12 +150,12 @@
 
           <button
             type="submit"
-            :class="['btn-vintage submit-btn font-slab', { 'btn-waitlist-submit': isSoldOut }]"
+            class="btn-vintage submit-btn font-slab"
             :disabled="isSubmitting"
           >
             <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-            <i v-else :class="isSoldOut ? 'fa-solid fa-clipboard-list' : 'fa-solid fa-check'"></i>
-            {{ isSubmitting ? 'PROCESSANDO...' : (isSoldOut ? 'ENTRAR NA LISTA DE ESPERA' : 'CONFIRMAR PRÉ-INSCRIÇÃO') }}
+            <i v-else class="fa-solid fa-check"></i>
+            {{ isSubmitting ? 'PROCESSANDO...' : 'CONFIRMAR PRÉ-INSCRIÇÃO' }}
           </button>
         </form>
       </div>

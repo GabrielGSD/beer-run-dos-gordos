@@ -64,43 +64,14 @@
         </div>
 
         <!-- Call to Action -->
-        <!-- Caso 1: Vagas Esgotadas (Card de Comunicado Vintage Oficial) -->
-        <div v-if="isSoldOut" class="hero-waitlist-announcement">
-          <div class="announcement-header">
-            <span class="announcement-tag font-slab">
-              <i class="fa-solid fa-bullhorn"></i> COMUNICADO OFICIAL
-            </span>
-            <div class="announcement-stamp font-slab">
-              <span>★ 100% ESGOTADO ★</span>
-            </div>
-          </div>
-
-          <h3 class="announcement-title font-slab">
-            AS VAGAS PRINCIPAIS FORAM PREENCHIDAS!
-          </h3>
-          
-          <p class="announcement-desc font-condensed">
-            A procura pela Beer Run foi gigante! Não desanime: cadastre-se na <strong>Lista de Espera Oficial</strong> para ser o primeiro a ser chamado se alguém desistir.
-          </p>
-
-          <button
-            class="btn-vintage hero-waitlist-btn font-slab"
-            @click="$emit('open-registration', 'hero_lista_espera')"
-          >
-            <i class="fa-solid fa-clipboard-list"></i> ENTRAR NA LISTA DE ESPERA <i class="fa-solid fa-arrow-right"></i>
-          </button>
-
-          <div class="announcement-footer font-condensed">
-            <i class="fa-solid fa-hourglass-half"></i> Chamada por ordem de inscrição via WhatsApp
-          </div>
-        </div>
-
-        <!-- Caso 2: Inscrições Abertas -->
-        <div v-else class="hero-cta-box">
-          <button class="btn-vintage hero-btn" @click="$emit('open-registration', 'hero_inscricao')">
+        <!-- Call to Action -->
+        <div class="hero-cta-box">
+          <button class="btn-vintage hero-btn font-slab" @click="$emit('open-registration', 'hero_inscricao')">
             <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
           </button>
-          <span class="cta-subtag font-condensed">VAGAS LIMITADAS!</span>
+          <span class="cta-subtag font-condensed">
+            {{ isSoldOut ? '🔥 ÚLTIMAS VAGAS EM REMANEJAMENTO!' : 'VAGAS LIMITADAS!' }}
+          </span>
         </div>
       </div>
     </div>
