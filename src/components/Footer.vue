@@ -11,7 +11,7 @@
         <div class="cta-action-box">
           <button
             :class="['btn-vintage footer-btn', { 'btn-waitlist': isSoldOut }]"
-            @click="$emit('open-registration')"
+            @click="$emit('open-registration', 'rodape_banner')"
           >
             <i v-if="isSoldOut" class="fa-solid fa-clipboard-list"></i>
             <i v-else class="fa-solid fa-beer-mug-empty"></i>

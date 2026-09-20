@@ -12,7 +12,7 @@
         <a href="#kit" class="nav-link">KIT ATLETA</a>
         <a href="#atletas" class="nav-link">ATLETAS</a>
         <a href="#patrocinadores" class="nav-link">PATROCINADORES</a>
-        <a href="#inscricoes" class="nav-link">INSCRIÇÕES</a>
+        <a href="#inscricoes" class="nav-link" @click="trackRegistrationClick('menu_superior_desktop', isSoldOut)">INSCRIÇÕES</a>
         <a href="#contato" class="nav-link">CONTATO</a>
       </nav>
 
@@ -30,7 +30,7 @@
         <a href="#kit" class="mobile-link" @click="mobileMenuOpen = false">KIT ATLETA</a>
         <a href="#atletas" class="mobile-link" @click="mobileMenuOpen = false">ATLETAS</a>
         <a href="#patrocinadores" class="mobile-link" @click="mobileMenuOpen = false">PATROCINADORES</a>
-        <a href="#inscricoes" class="mobile-link" @click="mobileMenuOpen = false">INSCRIÇÕES</a>
+        <a href="#inscricoes" class="mobile-link" @click="mobileMenuOpen = false; trackRegistrationClick('menu_superior_mobile', isSoldOut)">INSCRIÇÕES</a>
         <a href="#contato" class="mobile-link" @click="mobileMenuOpen = false">CONTATO</a>
       </nav>
     </transition>
@@ -39,7 +39,10 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useAthletes } from '../composables/useAthletes.js'
+import { trackRegistrationClick } from '../services/analytics.js'
 
+const { isSoldOut } = useAthletes()
 const mobileMenuOpen = ref(false)
 </script>
 

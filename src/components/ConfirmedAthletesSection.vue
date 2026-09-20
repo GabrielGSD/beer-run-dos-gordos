@@ -47,7 +47,7 @@
             </div>
 
             <button
-              @click="$emit('open-registration')"
+              @click="$emit('open-registration', 'atletas_topo_rapido')"
               class="btn-vintage btn-register-quick font-slab"
             >
               <i :class="isSoldOut ? 'fa-solid fa-clipboard-list' : 'fa-solid fa-plus'"></i>
@@ -112,7 +112,7 @@
             <h4 class="font-slab">Nenhum atleta encontrado com "{{ searchQuery }}"</h4>
             <p>Seja o primeiro a se inscrever ou confira se o nome foi digitado corretamente!</p>
             <button
-              @click="$emit('open-registration')"
+              @click="$emit('open-registration', 'atletas_busca_vazia')"
               class="btn-vintage btn-empty-cta font-slab"
             >
               {{ isSoldOut ? 'ENTRAR NA LISTA DE ESPERA' : 'GARANTIR MINHA VAGA AGORA' }}
@@ -131,7 +131,7 @@
             </template>
           </div>
           <button
-            @click="$emit('open-registration')"
+            @click="$emit('open-registration', 'atletas_faixa_rodape')"
             class="btn-vintage btn-footer-cta font-slab"
           >
             <template v-if="isSoldOut">

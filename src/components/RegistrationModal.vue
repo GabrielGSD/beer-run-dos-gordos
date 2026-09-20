@@ -176,6 +176,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useAthletes } from '../composables/useAthletes.js'
+import { trackRegistrationSubmit, trackRegistrationSuccess } from '../services/analytics.js'
 
 const props = defineProps({
   isOpen: Boolean
@@ -241,6 +242,9 @@ async function handleSubmit() {
   submitError.value = ''
   isSubmitting.value = true
 
+  // Rastreia início da tentativa de envio do formulário
+  trackRegistrationSubmit(form.modality, isSoldOut.value)
+
   try {
     if (isSoldOut.value) {
       const res = await addToWaitlist({
@@ -255,6 +259,7 @@ async function handleSubmit() {
       }
       wasWaitlistSubmission.value = true
       submitted.value = true
+      trackRegistrationSuccess(form, true)
     } else {
       await addAthlete({
         name: form.name,
@@ -265,6 +270,7 @@ async function handleSubmit() {
       })
       wasWaitlistSubmission.value = false
       submitted.value = true
+      trackRegistrationSuccess(form, false)
     }
   } catch (err) {
     console.error('Falha ao processar inscrição / lista de espera:', err)

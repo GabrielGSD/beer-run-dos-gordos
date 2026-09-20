@@ -85,7 +85,7 @@
 
           <button
             class="btn-vintage hero-waitlist-btn font-slab"
-            @click="$emit('open-registration')"
+            @click="$emit('open-registration', 'hero_lista_espera')"
           >
             <i class="fa-solid fa-clipboard-list"></i> ENTRAR NA LISTA DE ESPERA <i class="fa-solid fa-arrow-right"></i>
           </button>
@@ -97,7 +97,7 @@
 
         <!-- Caso 2: Inscrições Abertas -->
         <div v-else class="hero-cta-box">
-          <button class="btn-vintage hero-btn" @click="$emit('open-registration')">
+          <button class="btn-vintage hero-btn" @click="$emit('open-registration', 'hero_inscricao')">
             <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
           </button>
           <span class="cta-subtag font-condensed">VAGAS LIMITADAS!</span>

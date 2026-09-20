@@ -46,17 +46,23 @@ import Footer from './components/Footer.vue'
 import RegistrationModal from './components/RegistrationModal.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
 import StaffDashboard from './components/StaffDashboard.vue'
+import { useAthletes } from './composables/useAthletes.js'
+import { trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
+
+const { isSoldOut } = useAthletes()
 
 const isRegistrationOpen = ref(false)
 const isSponsorshipOpen = ref(false)
 const isStaffMode = ref(false)
 
-function openRegistration() {
+function openRegistration(source = 'geral') {
   isRegistrationOpen.value = true
+  trackRegistrationClick(source, isSoldOut.value)
 }
 
-function openSponsorship() {
+function openSponsorship(source = 'geral') {
   isSponsorshipOpen.value = true
+  trackSponsorshipClick(source)
 }
 
 function enterStaffMode() {
