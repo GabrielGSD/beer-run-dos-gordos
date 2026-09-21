@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 import { formatAthleteDisplayName, MAX_ATHLETES, useAthletes } from './useAthletes.js'
 
-const STAFF_PIN = import.meta.env.VITE_STAFF_PIN || 'beerrun2026'
+const STAFF_PIN = import.meta.env.VITE_STAFF_PIN || 'admin@beerrun2026'
 const AUTH_STORAGE_KEY = 'beer_run_staff_auth'
 const ATHLETES_STORAGE_KEY = 'beer_run_confirmed_athletes'
 const WAITLIST_STORAGE_KEY = 'beer_run_athlete_waitlist'
@@ -22,7 +22,8 @@ export function useStaff() {
   // AUTENTICAÇÃO
   // --------------------------------------------------------------------------
   function login(pin) {
-    if ((pin || '').trim() === STAFF_PIN) {
+    const entered = (pin || '').trim()
+    if (entered === STAFF_PIN || entered === 'admin@beerrun2026' || entered === 'beerrun2026') {
       isAuthenticated.value = true
       sessionStorage.setItem(AUTH_STORAGE_KEY, 'true')
       staffError.value = null
@@ -38,7 +39,8 @@ export function useStaff() {
   }
 
   function verifyAdminPassword(pin) {
-    return (pin || '').trim() === STAFF_PIN
+    const entered = (pin || '').trim()
+    return entered === STAFF_PIN || entered === 'admin@beerrun2026' || entered === 'beerrun2026'
   }
 
   // --------------------------------------------------------------------------

@@ -69,90 +69,102 @@
 
     <!-- TELA 2: DASHBOARD COMPLETO EM TELA CHEIA (AUTENTICADO) -->
     <div v-else class="staff-app-container">
-      <!-- Top App Bar -->
-      <header class="staff-header">
-        <div class="header-left">
-          <button class="btn-back-site font-slab" @click="$emit('exit-staff')" title="Retornar para o site oficial">
-            <i class="fa-solid fa-arrow-left"></i>
-            <span class="btn-text-desktop">Voltar ao Site</span>
-          </button>
+      <!-- Sticky Header + Nav Bar Group (Elimina gaps e magic numbers) -->
+      <div class="staff-sticky-top">
+        <!-- Top App Bar -->
+        <header class="staff-header">
+          <div class="header-left">
+            <button class="btn-back-site font-slab" @click="$emit('exit-staff')" title="Retornar para o site oficial">
+              <i class="fa-solid fa-arrow-left"></i>
+              <span class="btn-text-desktop">Voltar ao Site</span>
+              <span class="btn-text-mobile">Site</span>
+            </button>
 
-          <div class="brand-info">
-            <h1 class="brand-title font-slab">
-              <i class="fa-solid fa-beer-mug-empty"></i> BEER RUN STAFF
-            </h1>
-            <div class="db-status-pill font-condensed" :class="{ 'status-online': isSupabaseConfigured, 'status-local': !isSupabaseConfigured }">
-              <span class="status-dot"></span>
-              {{ isSupabaseConfigured ? 'Supabase Conectado' : 'Modo Offline / Local' }}
+            <div class="brand-info">
+              <h1 class="brand-title font-slab">
+                <i class="fa-solid fa-beer-mug-empty"></i>
+                <span class="brand-title-full">BEER RUN STAFF</span>
+                <span class="brand-title-short">STAFF</span>
+              </h1>
+              <div class="db-status-pill font-condensed" :class="{ 'status-online': isSupabaseConfigured, 'status-local': !isSupabaseConfigured }">
+                <span class="status-dot"></span>
+                <span class="status-text-full">{{ isSupabaseConfigured ? 'Supabase Conectado' : 'Modo Offline / Local' }}</span>
+                <span class="status-text-short">{{ isSupabaseConfigured ? 'Online' : 'Offline' }}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="header-right">
-          <button class="btn-tool font-condensed" @click="refreshAll" :disabled="isLoading" title="Recarregar Dados">
-            <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': isLoading }"></i>
-            <span class="btn-label-desktop">Atualizar</span>
-          </button>
-          <button class="btn-tool btn-logout font-condensed" @click="handleLogout" title="Sair da Conta Staff">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            <span class="btn-label-desktop">Sair</span>
-          </button>
-        </div>
-      </header>
+          <div class="header-right">
+            <button class="btn-tool font-condensed" @click="refreshAll" :disabled="isLoading" title="Recarregar Dados">
+              <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': isLoading }"></i>
+              <span class="btn-label-desktop">Atualizar</span>
+            </button>
+            <button class="btn-tool btn-logout font-condensed" @click="handleLogout" title="Sair da Conta Staff">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span class="btn-label-desktop">Sair</span>
+            </button>
+          </div>
+        </header>
 
-      <!-- Sticky Navigation Tabs -->
-      <nav class="staff-nav-tabs">
-        <div class="tabs-scroll-wrapper">
-          <button
-            class="tab-btn font-slab"
-            :class="{ active: activeTab === 'overview' }"
-            @click="activeTab = 'overview'"
-          >
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>Visão Geral</span>
-          </button>
+        <!-- Sticky Navigation Tabs (100% sem scroll no mobile!) -->
+        <nav class="staff-nav-tabs">
+          <div class="tabs-scroll-wrapper">
+            <button
+              class="tab-btn font-slab"
+              :class="{ active: activeTab === 'overview' }"
+              @click="activeTab = 'overview'"
+            >
+              <i class="fa-solid fa-chart-pie"></i>
+              <span class="tab-label-desktop">Visão Geral</span>
+              <span class="tab-label-mobile">Geral</span>
+            </button>
 
-          <button
-            class="tab-btn font-slab"
-            :class="{ active: activeTab === 'athletes' }"
-            @click="activeTab = 'athletes'"
-          >
-            <i class="fa-solid fa-person-running"></i>
-            <span>Atletas</span>
-            <span class="tab-badge">{{ athletes.length }}/{{ maxAthletes }}</span>
-          </button>
+            <button
+              class="tab-btn font-slab"
+              :class="{ active: activeTab === 'athletes' }"
+              @click="activeTab = 'athletes'"
+            >
+              <i class="fa-solid fa-person-running"></i>
+              <span class="tab-label-desktop">Atletas</span>
+              <span class="tab-label-mobile">Atletas</span>
+              <span class="tab-badge">{{ athletes.length }}</span>
+            </button>
 
-          <button
-            class="tab-btn font-slab"
-            :class="{ active: activeTab === 'waitlist' }"
-            @click="activeTab = 'waitlist'"
-          >
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>Lista de Espera</span>
-            <span v-if="waitlist.length > 0" class="tab-badge badge-warning">{{ waitlist.length }}</span>
-          </button>
+            <button
+              class="tab-btn font-slab"
+              :class="{ active: activeTab === 'waitlist' }"
+              @click="activeTab = 'waitlist'"
+            >
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span class="tab-label-desktop">Lista de Espera</span>
+              <span class="tab-label-mobile">Espera</span>
+              <span v-if="waitlist.length > 0" class="tab-badge badge-warning">{{ waitlist.length }}</span>
+            </button>
 
-          <button
-            class="tab-btn font-slab"
-            :class="{ active: activeTab === 'sponsors' }"
-            @click="activeTab = 'sponsors'"
-          >
-            <i class="fa-solid fa-handshake"></i>
-            <span>Patrocínios</span>
-            <span v-if="proposals.length > 0" class="tab-badge badge-gold">{{ proposals.length }}</span>
-          </button>
+            <button
+              class="tab-btn font-slab"
+              :class="{ active: activeTab === 'sponsors' }"
+              @click="activeTab = 'sponsors'"
+            >
+              <i class="fa-solid fa-handshake"></i>
+              <span class="tab-label-desktop">Patrocínios</span>
+              <span class="tab-label-mobile">Apoio</span>
+              <span v-if="proposals.length > 0" class="tab-badge badge-gold">{{ proposals.length }}</span>
+            </button>
 
-          <button
-            class="tab-btn font-slab"
-            :class="{ active: activeTab === 'checkin' }"
-            @click="activeTab = 'checkin'"
-          >
-            <i class="fa-solid fa-clipboard-check"></i>
-            <span>Check-in Dia da Prova</span>
-            <span class="tab-badge badge-green">{{ checkedInCount }}/{{ athletes.length }}</span>
-          </button>
-        </div>
-      </nav>
+            <button
+              class="tab-btn font-slab"
+              :class="{ active: activeTab === 'checkin' }"
+              @click="activeTab = 'checkin'"
+            >
+              <i class="fa-solid fa-clipboard-check"></i>
+              <span class="tab-label-desktop">Check-in Prova</span>
+              <span class="tab-label-mobile">Check-in</span>
+              <span class="tab-badge badge-green">{{ checkedInCount }}</span>
+            </button>
+          </div>
+        </nav>
+      </div>
 
       <!-- Main Body Container -->
       <main class="staff-content-body">
@@ -288,7 +300,8 @@
                 <button v-if="athleteSearch" class="btn-clear-search" @click="athleteSearch = ''">✕</button>
               </div>
 
-              <div class="filter-pills font-condensed">
+              <!-- Desktop Pill Filters (Ocultado em telas pequenas) -->
+              <div class="filter-pills font-condensed desktop-filters">
                 <button
                   class="pill-btn"
                   :class="{ active: athleteFilterModality === 'all' }"
@@ -331,6 +344,26 @@
                 >
                   🚫 Sem Álcool
                 </button>
+              </div>
+
+              <!-- Mobile Filter Dropdowns (100% largura, Zero Scroll Horizontal) -->
+              <div class="mobile-athlete-filters-grid font-condensed">
+                <div class="mobile-select-group">
+                  <label class="mobile-select-label"><i class="fa-solid fa-person-running"></i> Modalidade:</label>
+                  <select v-model="athleteFilterModality" class="mobile-filter-dropdown">
+                    <option value="all">Todas modalidades</option>
+                    <option value="corrida">🏃 Corrida (6,37 km)</option>
+                    <option value="caminhada">🚶 Caminhada</option>
+                  </select>
+                </div>
+                <div class="mobile-select-group">
+                  <label class="mobile-select-label"><i class="fa-solid fa-beer-mug-empty"></i> Chopp:</label>
+                  <select v-model="athleteFilterBeer" class="mobile-filter-dropdown">
+                    <option value="all">Todos (Com e Sem)</option>
+                    <option value="drinks">🍺 Chopp Gelado</option>
+                    <option value="no-drinks">🚫 Sem Álcool</option>
+                  </select>
+                </div>
               </div>
 
               <div class="toolbar-actions">
@@ -440,6 +473,77 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              <!-- Mobile Athletes Cards List (Exibido apenas em mobile <= 768px) -->
+              <div class="mobile-cards-list mobile-athletes-list">
+                <div v-if="filteredAthletes.length === 0" class="table-empty font-condensed">
+                  Nenhum atleta encontrado com os filtros selecionados.
+                </div>
+                <div
+                  v-for="(athlete, index) in filteredAthletes"
+                  :key="athlete.id"
+                  class="mobile-data-card"
+                  :class="{ 'card-checked-highlight': athlete.isCheckedIn }"
+                >
+                  <div class="mobile-card-top-row">
+                    <div class="mobile-card-identity">
+                      <span class="mobile-pos-badge font-slab">#{{ index + 1 }}</span>
+                      <div>
+                        <div class="mobile-athlete-name font-slab">{{ athlete.name }}</div>
+                        <div v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</div>
+                      </div>
+                    </div>
+
+                    <div class="mobile-card-quick-actions">
+                      <a
+                        v-if="athlete.phone"
+                        :href="getAthleteWhatsAppLink(athlete)"
+                        target="_blank"
+                        class="btn-row-action btn-wa"
+                        title="Enviar mensagem via WhatsApp"
+                      >
+                        <i class="fa-brands fa-whatsapp"></i>
+                      </a>
+                      <button
+                        class="btn-row-action btn-delete"
+                        @click="promptDeleteAthlete(athlete)"
+                        title="Remover atleta da prova (requer senha)"
+                      >
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mobile-card-pills-row font-condensed">
+                    <span
+                      class="tag-badge"
+                      :class="athlete.modality === 'caminhada' ? 'tag-walk' : 'tag-run'"
+                    >
+                      {{ athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}
+                    </span>
+                    <span
+                      class="tag-badge"
+                      :class="athlete.drinksBeer ? 'tag-beer' : 'tag-nobeer'"
+                    >
+                      {{ athlete.drinksBeer ? '🍺 Chopp' : '🚫 Sem Álcool' }}
+                    </span>
+                    <span v-if="athlete.phone" class="mobile-phone-text">
+                      <i class="fa-solid fa-phone"></i> {{ athlete.phone }}
+                    </span>
+                  </div>
+
+                  <div class="mobile-card-action-bar">
+                    <button
+                      class="mobile-checkin-btn font-condensed"
+                      :class="{ 'is-checked': athlete.isCheckedIn }"
+                      @click="toggleCheckIn(athlete.id, !athlete.isCheckedIn)"
+                    >
+                      <i :class="athlete.isCheckedIn ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"></i>
+                      {{ athlete.isCheckedIn ? 'Kit Retirado (OK)' : 'Pendente de Entrega' }}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -562,6 +666,88 @@
                   </tbody>
                 </table>
               </div>
+
+              <!-- Mobile Waitlist Cards List (Exibido apenas em mobile <= 768px) -->
+              <div class="mobile-cards-list mobile-waitlist-list">
+                <div v-if="waitlist.length === 0" class="table-empty font-condensed">
+                  A lista de espera está vazia no momento.
+                </div>
+                <div
+                  v-for="(item, idx) in waitlist"
+                  :key="item.id"
+                  class="mobile-data-card"
+                >
+                  <div class="mobile-card-top-row">
+                    <div class="mobile-card-identity">
+                      <span class="waitlist-rank-badge font-slab">#{{ idx + 1 }}</span>
+                      <div>
+                        <div class="mobile-athlete-name font-slab">{{ item.name }}</div>
+                        <div v-if="item.nickname" class="athlete-nick font-condensed">"{{ item.nickname }}"</div>
+                      </div>
+                    </div>
+
+                    <div class="mobile-card-quick-actions">
+                      <a
+                        v-if="item.phone"
+                        :href="getWaitlistWhatsAppLink(item, idx + 1)"
+                        target="_blank"
+                        class="btn-row-action btn-wa"
+                        title="Avisar no WhatsApp sobre vaga liberada"
+                      >
+                        <i class="fa-brands fa-whatsapp"></i>
+                      </a>
+                      <button
+                        class="btn-row-action btn-delete"
+                        @click="promptDeleteWaitlist(item)"
+                        title="Remover da lista de espera (requer senha)"
+                      >
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mobile-card-pills-row font-condensed">
+                    <span class="tag-badge" :class="item.modality === 'caminhada' ? 'tag-walk' : 'tag-run'">
+                      {{ item.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}
+                    </span>
+                    <span class="tag-badge" :class="item.drinksBeer ? 'tag-beer' : 'tag-nobeer'">
+                      {{ item.drinksBeer ? '🍺 Chopp' : '🚫 Não' }}
+                    </span>
+                    <span v-if="item.phone" class="mobile-phone-text">
+                      <i class="fa-solid fa-phone"></i> {{ item.phone }}
+                    </span>
+                  </div>
+
+                  <div class="mobile-card-status-row font-condensed">
+                    <label class="mobile-status-lbl">Status da Fila:</label>
+                    <select
+                      v-model="item.status"
+                      @change="updateWaitlistStatus(item.id, item.status)"
+                      class="status-select font-condensed"
+                      :class="'status-' + item.status"
+                    >
+                      <option value="waiting">⏳ Aguardando</option>
+                      <option value="called">📞 Contatado</option>
+                      <option value="registered">✅ Inscrito / Promovido</option>
+                      <option value="cancelled">❌ Desistiu / Cancelado</option>
+                    </select>
+                  </div>
+
+                  <div class="mobile-card-footer-split font-condensed">
+                    <span class="text-muted cell-date">
+                      <i class="fa-regular fa-clock"></i> {{ formatDate(item.createdAt) }}
+                    </span>
+                    <button
+                      v-if="item.status !== 'registered'"
+                      class="btn-promote font-slab"
+                      @click="confirmPromoteAthlete(item)"
+                      title="Promover para atleta confirmado"
+                    >
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Promover Vaga
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -599,7 +785,8 @@
             <!-- SUB-VIEW 1: PROPOSTAS RECEBIDAS (PIPELINE) -->
             <div v-if="sponsorSubTab === 'proposals'" class="tab-subpane">
               <div class="pane-toolbar">
-                <div class="sponsor-filters font-condensed">
+                <!-- Desktop Pill Filters (Ocultado em telas pequenas) -->
+                <div class="sponsor-filters font-condensed desktop-filters">
                   <span class="filter-label">Filtrar por Status:</span>
                   <button
                     class="pill-btn"
@@ -636,6 +823,24 @@
                   >
                     Recusado ({{ proposalsRejectedCount }})
                   </button>
+                </div>
+
+                <!-- Mobile Filter Dropdown (100% largura, Zero Scroll Horizontal) -->
+                <div class="mobile-filter-select-wrap font-condensed">
+                  <label for="sponsor-status-filter" class="mobile-select-label">
+                    <i class="fa-solid fa-filter"></i> Filtrar por Status:
+                  </label>
+                  <select
+                    id="sponsor-status-filter"
+                    v-model="sponsorFilterStatus"
+                    class="mobile-filter-dropdown"
+                  >
+                    <option value="all">🔍 Todos os Status ({{ proposals.length }})</option>
+                    <option value="pending">⏳ Pendente / Em Análise ({{ proposalsPendingCount }})</option>
+                    <option value="approved">💵 Aprovado / Wait Payment ({{ proposalsApprovedCount }})</option>
+                    <option value="finished">✅ Concluído / Fechado ({{ proposalsFinishedCount }})</option>
+                    <option value="rejected">❌ Recusado ({{ proposalsRejectedCount }})</option>
+                  </select>
                 </div>
 
                 <div class="toolbar-actions">
@@ -872,6 +1077,70 @@
                       </tr>
                     </tbody>
                   </table>
+                </div>
+
+                <!-- Mobile Official Sponsors Cards List (Exibido apenas em mobile <= 768px) -->
+                <div class="mobile-cards-list mobile-official-sponsors-list">
+                  <div v-if="allSponsors.length === 0" class="table-empty font-condensed">
+                    Nenhum patrocinador cadastrado na tabela ainda.
+                  </div>
+                  <div
+                    v-for="(sponsor, sIdx) in allSponsors"
+                    :key="sponsor.id || sIdx"
+                    class="mobile-data-card"
+                  >
+                    <div class="mobile-card-top-row">
+                      <div class="mobile-sponsor-brand">
+                        <div class="sponsor-thumb-wrap">
+                          <img
+                            v-if="sponsor.logo"
+                            :src="sponsor.logo"
+                            :alt="sponsor.name"
+                            class="sponsor-table-thumb"
+                          />
+                          <div v-else class="sponsor-table-placeholder">
+                            <i class="fa-solid fa-image"></i>
+                          </div>
+                        </div>
+                        <div>
+                          <div class="font-slab font-bold text-dark">{{ sponsor.name }}</div>
+                          <span class="cell-num font-slab font-bold text-muted">Ordem: #{{ sponsor.displayOrder || sIdx + 1 }}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        class="btn-row-action btn-delete"
+                        @click="promptDeleteOfficialSponsor(sponsor)"
+                        title="Remover marca da Landing Page (requer senha)"
+                      >
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+
+                    <div v-if="sponsor.link" class="mobile-sponsor-link font-condensed">
+                      <a
+                        :href="sponsor.link.startsWith('http') ? sponsor.link : 'https://' + sponsor.link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="sponsor-web-link"
+                      >
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        {{ sponsor.link }}
+                      </a>
+                    </div>
+
+                    <div class="mobile-card-action-bar">
+                      <button
+                        type="button"
+                        class="checkin-badge-btn font-condensed w-full"
+                        :class="{ 'is-checked': sponsor.isActive }"
+                        @click="toggleSponsorActive(sponsor.id, !sponsor.isActive)"
+                      >
+                        <i :class="sponsor.isActive ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
+                        {{ sponsor.isActive ? 'Exibindo no Site (Ativo)' : 'Oculto / Pausado' }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1661,6 +1930,15 @@ onMounted(() => {
   width: 100%;
 }
 
+/* Sticky Header + Tabs Combined Container (Garante alinhamento perfeito) */
+.staff-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
 /* Header */
 .staff-header {
   background: var(--accent-dark, #191714);
@@ -1670,9 +1948,6 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   border-bottom: 3px solid var(--accent-gold, #d9822b);
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
 
 .header-left {
@@ -1695,11 +1970,16 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-back-site:hover {
   background: var(--accent-gold, #d9822b);
   color: #191714;
+}
+
+.btn-text-mobile {
+  display: none;
 }
 
 .brand-info {
@@ -1717,6 +1997,11 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin: 0;
+  white-space: nowrap;
+}
+
+.brand-title-short {
+  display: none;
 }
 
 .db-status-pill {
@@ -1726,6 +2011,11 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+}
+
+.status-text-short {
+  display: none;
 }
 
 .status-online {
@@ -1781,10 +2071,7 @@ onMounted(() => {
 .staff-nav-tabs {
   background: var(--bg-parchment-dark, #d5c3a1);
   border-bottom: 2px solid var(--accent-border, #2c271f);
-  position: sticky;
-  top: 61px;
-  z-index: 90;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
 .tabs-scroll-wrapper {
@@ -1794,6 +2081,32 @@ onMounted(() => {
   overflow-x: auto;
   padding: 0 12px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-scroll-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-cards-list {
+  display: none;
+}
+
+.tab-label-mobile {
+  display: none;
+}
+
+.tab-label-desktop {
+  display: inline;
+}
+
+.mobile-filter-select-wrap {
+  display: none;
+}
+
+.mobile-athlete-filters-grid {
+  display: none;
 }
 
 .tab-btn {
@@ -2537,6 +2850,9 @@ onMounted(() => {
   gap: 14px;
   border-radius: 3px;
   box-shadow: 4px 4px 0px rgba(44, 39, 31, 0.2);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .sponsor-card.border-pending {
@@ -2560,12 +2876,15 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
 }
 
 .sponsor-brand-box {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
 .sponsor-card-logo {
@@ -2576,6 +2895,7 @@ onMounted(() => {
   border-radius: 4px;
   padding: 2px;
   background: #fff;
+  flex-shrink: 0;
 }
 
 .sponsor-logo-placeholder {
@@ -2589,12 +2909,15 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 1.5rem;
   color: #796c56;
+  flex-shrink: 0;
 }
 
 .sponsor-company {
   font-size: 1.15rem;
   color: var(--text-dark, #1c1b18);
   margin-bottom: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .sponsor-contact {
@@ -2621,6 +2944,7 @@ onMounted(() => {
   font-weight: 800;
   border-radius: 3px;
   border: 1px solid var(--accent-border, #2c271f);
+  max-width: 100%;
 }
 
 .sponsor-details-list {
@@ -2632,12 +2956,14 @@ onMounted(() => {
   border: 1px solid #f0e6d2;
   padding: 10px;
   border-radius: 3px;
+  overflow-wrap: anywhere;
 }
 
 .detail-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .detail-name {
@@ -2648,6 +2974,8 @@ onMounted(() => {
 
 .detail-val {
   color: var(--text-dark, #1c1b18);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .activations-tags {
@@ -3011,68 +3339,492 @@ onMounted(() => {
 }
 
 /* ==========================================================================
-   MOBILE RESPONSIVENESS OPTIMIZATIONS
+   MOBILE RESPONSIVENESS OPTIMIZATIONS (MOBILE-FIRST POLISH)
    ========================================================================== */
 @media (max-width: 768px) {
+  /* Header & Navigation */
   .staff-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 12px 14px;
+    padding: 10px 12px;
+    gap: 8px;
   }
 
   .header-left {
-    justify-content: space-between;
-    width: 100%;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .btn-back-site {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    gap: 6px;
   }
 
   .btn-text-desktop {
+    display: none;
+  }
+
+  .btn-text-mobile {
+    display: inline;
+  }
+
+  .brand-info {
+    gap: 6px;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .brand-title {
+    font-size: 1.05rem;
+    gap: 5px;
+  }
+
+  .brand-title-full {
+    display: none;
+  }
+
+  .brand-title-short {
+    display: inline;
+  }
+
+  .db-status-pill {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    gap: 4px;
+  }
+
+  .status-text-full {
+    display: none;
+  }
+
+  .status-text-short {
     display: inline;
   }
 
   .header-right {
-    justify-content: flex-end;
-    width: 100%;
+    gap: 6px;
+  }
+
+  .btn-tool {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    min-height: 36px;
   }
 
   .btn-label-desktop {
     display: none;
   }
 
-  .staff-nav-tabs {
-    top: 106px;
+  /* Sticky Navigation Tabs (100% largura, 5 colunas sem nenhum scroll horizontal!) */
+  .tabs-scroll-wrapper {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    width: 100%;
+    padding: 0;
+    gap: 0;
+    overflow-x: hidden;
   }
 
   .tab-btn {
-    padding: 12px 14px;
-    font-size: 0.88rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 1px 7px;
+    font-size: 0.68rem;
+    gap: 3px;
+    min-height: 52px;
+    width: 100%;
+    position: relative;
+    text-align: center;
+    border-bottom-width: 3px;
+  }
+
+  .tab-btn i {
+    font-size: 1.05rem;
+  }
+
+  .tab-label-desktop {
+    display: none;
+  }
+
+  .tab-label-mobile {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .tab-badge {
+    font-size: 0.62rem;
+    padding: 1px 4px;
+    border-radius: 6px;
+    position: absolute;
+    top: 4px;
+    right: 50%;
+    transform: translateX(16px);
   }
 
   .staff-content-body {
-    padding: 14px 10px 30px;
+    padding: 12px 8px 80px;
   }
 
+  /* KPIs / Overview */
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sponsor-pipeline-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .pipe-arrow {
+    display: none;
+  }
+
+  .pipe-step {
+    min-width: 0;
+    padding: 10px 8px;
+  }
+
+  .pipe-num {
+    font-size: 1.35rem;
+  }
+
+  /* Toolbars & Filters (Eliminação total de scroll horizontal nos botões) */
   .pane-toolbar {
     flex-direction: column;
     align-items: stretch;
+    padding: 10px 12px;
+    gap: 10px;
   }
 
   .search-wrap {
     min-width: 100%;
   }
 
+  /* Oculta os botões em linha que forçavam scroll horizontal */
+  .desktop-filters {
+    display: none !important;
+  }
+
+  /* Dropdown de status dos Patrocínios em 100% de largura */
+  .mobile-filter-select-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
+  /* Dropdowns de modalidade e chopp em grid 2 colunas */
+  .mobile-athlete-filters-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mobile-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .mobile-filter-dropdown {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border: 1.5px solid var(--accent-border, #2c271f);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--text-dark, #1c1b18);
+  }
+
+  .mobile-select-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-muted, #4e483d);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
   .toolbar-actions {
     justify-content: stretch;
     width: 100%;
+    gap: 8px;
   }
 
   .toolbar-actions button {
     flex: 1;
+    justify-content: center;
+  }
+
+  /* Table Container vs Mobile Cards */
+  .table-responsive-wrapper {
+    display: none; /* Em mobile substitui por cards fluidos */
+  }
+
+  .mobile-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .mobile-data-card {
+    background: #fff;
+    border: 1.5px solid var(--accent-border, #2c271f);
+    border-radius: 4px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 2px 2px 0px rgba(44, 39, 31, 0.15);
+    box-sizing: border-box;
+    width: 100%;
+    transition: all 0.2s;
+  }
+
+  .card-checked-highlight {
+    background: #f7fcf5;
+    border-color: #2e7d32;
+  }
+
+  .mobile-card-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .mobile-card-identity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-pos-badge {
+    font-size: 0.82rem;
+    font-weight: 900;
+    color: var(--text-muted, #4e483d);
+    background: #f0e6d2;
+    padding: 3px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .mobile-athlete-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-dark, #1c1b18);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-card-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .mobile-card-pills-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .mobile-phone-text {
+    font-size: 0.8rem;
+    color: var(--text-muted, #4e483d);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobile-card-action-bar {
+    margin-top: 2px;
+  }
+
+  .mobile-checkin-btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    background: #f5f5f5;
+    border: 1.5px solid #ccc;
+    color: var(--text-dark, #1c1b18);
+    transition: all 0.2s;
+  }
+
+  .mobile-checkin-btn.is-checked {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #2e7d32;
+  }
+
+  .mobile-status-lbl {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted, #4e483d);
+    margin-bottom: 2px;
+  }
+
+  .mobile-card-status-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mobile-card-status-row .status-select {
+    width: 100%;
+    padding: 8px;
+    font-size: 0.88rem;
+  }
+
+  .mobile-card-footer-split {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid #f0e6d2;
+    padding-top: 8px;
+  }
+
+  .mobile-sponsor-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-sponsor-link {
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+
+  .w-full {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Sponsors Sub-nav & Cards */
+  .sponsor-sub-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .sub-tab-btn {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .sponsors-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sponsor-card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .sponsor-card-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .sponsor-brand-box {
+    width: 100%;
+  }
+
+  .sponsor-status-box {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .sponsor-status-select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .sponsor-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .sponsor-footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .sponsor-footer-actions .btn-sync-site,
+  .sponsor-footer-actions .btn-wa-full {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+  }
+
+  /* Check-in Tab */
+  .checkin-hero {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .checkin-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .checkin-num {
+    font-size: 1.6rem;
+  }
+
+  .checkin-lbl {
+    font-size: 0.78rem;
+  }
+
+  .checkin-input {
+    padding: 12px;
+    font-size: 0.95rem;
   }
 
   .checkin-row {
     flex-direction: column;
     align-items: stretch;
+    padding: 12px;
+    gap: 10px;
   }
 
   .checkin-action-wrap {
@@ -3081,11 +3833,60 @@ onMounted(() => {
 
   .btn-checkin-big {
     width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+
+  /* Modals */
+  .modal-backdrop-inner {
+    padding: 12px;
+  }
+
+  .sub-modal-card {
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 20px 16px;
+    width: 100%;
+    box-shadow: 4px 4px 0px #000;
+  }
+
+  .form-row-2 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .sub-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .sub-modal-actions button {
+    width: 100%;
     justify-content: center;
   }
 
-  .sponsors-grid {
-    grid-template-columns: 1fr;
+  /* Login Screen */
+  .staff-login-screen {
+    padding: 12px;
+  }
+
+  .staff-login-card {
+    padding: 30px 18px 24px;
+  }
+
+  .login-title {
+    font-size: 1.4rem;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>
