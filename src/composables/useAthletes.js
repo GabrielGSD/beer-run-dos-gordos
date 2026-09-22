@@ -56,12 +56,28 @@ function loadSavedLocalAthletes() {
 }
 
 function mapDatabaseAthlete(row) {
+  const isOfficial = Boolean(row.accepted_terms_at && (row.shirt_size || row.cpf))
   return {
     id: row.id,
     name: row.name,
     nickname: row.nickname || '',
     displayName: formatAthleteDisplayName(row.name, row.nickname),
     phone: row.phone || '',
+    cpf: row.cpf || '',
+    birthDate: row.birth_date || '',
+    gender: row.gender || '',
+    email: row.email || '',
+    cityState: row.city_state || '',
+    emergencyContactName: row.emergency_contact_name || '',
+    emergencyContactPhone: row.emergency_contact_phone || '',
+    shirtSize: row.shirt_size || '',
+    skewerChoice: (row.shirt_size && !row.shirt_size.toLowerCase().includes('tradicional') && !row.shirt_size.toLowerCase().includes('baby look')) ? row.shirt_size : '1 Carne + 1 Frango',
+    medicalNotes: row.medical_notes || '',
+    acceptedTermsAt: row.accepted_terms_at || null,
+    registrationType: isOfficial ? (row.registration_type || 'official') : 'pre_registration',
+    paymentStatus: row.payment_status || (row.accepted_terms_at ? 'pending_payment' : null),
+    isCheckedIn: Boolean(row.is_checked_in),
+    checkedInAt: row.checked_in_at || null,
     modality: row.modality || 'corrida',
     drinksBeer: Boolean(row.drinks_beer),
     createdAt: row.created_at || new Date().toISOString()
@@ -387,6 +403,491 @@ export function useAthletes() {
     }
   }
 
+  // Inscrição Oficial Completa (para atletas chamados da lista de espera e inscrições definitivas)
+  async function registerOfficialAthlete({
+    id,
+    name,
+    nickname,
+    cpf,
+    birthDate,
+    gender,
+    phone,
+    email,
+    cityState,
+    emergencyContactName,
+    emergencyContactPhone,
+    modality,
+    drinksBeer,
+    skewerChoice,
+    shirtSize,
+    medicalNotes,
+    acceptedTerms
+  }) {
+    error.value = null
+
+    if (!name || !name.trim()) {
+      throw new Error('Por favor, preencha o seu nome completo.')
+    }
+
+    const cleanCpfDigits = (cpf || '').replace(/\D/g, '')
+    if (cleanCpfDigits.length !== 11) {
+      throw new Error('Por favor, informe um CPF válido com 11 dígitos.')
+    }
+
+    const cleanPhone = (phone || '').trim()
+    const cleanPhoneDigits = cleanPhone.replace(/\D/g, '')
+    if (!cleanPhoneDigits || cleanPhoneDigits.length < 10) {
+      throw new Error('Por favor, informe um número de celular/WhatsApp válido com DDD.')
+    }
+
+    if (!emergencyContactName || !emergencyContactName.trim()) {
+      throw new Error('Por favor, informe o nome do contato de emergência.')
+    }
+
+    const cleanEmergPhoneDigits = (emergencyContactPhone || '').replace(/\D/g, '')
+    if (!cleanEmergPhoneDigits || cleanEmergPhoneDigits.length < 10) {
+      throw new Error('Por favor, informe o telefone/WhatsApp do contato de emergência com DDD.')
+    }
+
+    const finalSkewer = (skewerChoice || shirtSize || '1 Carne + 1 Frango').trim()
+    if (!finalSkewer) {
+      throw new Error('Por favor, selecione sua preferência para os 2 espetinhos da chegada.')
+    }
+
+    if (!acceptedTerms) {
+      throw new Error('É obrigatório ler e concordar com os termos do regulamento da prova para prosseguir.')
+    }
+
+    const acceptedTermsAt = new Date().toISOString()
+    const formattedDisplay = formatAthleteDisplayName(name, nickname)
+
+    const fullPayload = {
+      name: name.trim(),
+      nickname: nickname?.trim() || null,
+      cpf: cleanCpfDigits,
+      birth_date: birthDate || null,
+      gender: gender || null,
+      phone: cleanPhone,
+      email: email?.trim() || null,
+      city_state: cityState?.trim() || null,
+      emergency_contact_name: emergencyContactName.trim(),
+      emergency_contact_phone: emergencyContactPhone.trim(),
+      modality: modality || 'corrida',
+      drinks_beer: Boolean(drinksBeer),
+      shirt_size: finalSkewer,
+      medical_notes: medicalNotes?.trim() || null,
+      accepted_terms_at: acceptedTermsAt,
+      registration_type: 'official',
+      payment_status: 'pending_payment'
+    }
+
+    let savedAthlete = null
+    let targetAthleteId = id || null
+
+    if (isSupabaseConfigured && supabase) {
+      // 1. Se não recebeu ID direto, busca pelo telefone exato ou dígitos
+      if (!targetAthleteId) {
+        try {
+          const { data: athletesData } = await supabase
+            .from('athletes')
+            .select('id, phone, name')
+
+          if (athletesData && athletesData.length > 0) {
+            const found = athletesData.find(a => {
+              const digits = (a.phone || '').replace(/\D/g, '')
+              return digits === cleanPhoneDigits || digits.slice(-9) === cleanPhoneDigits.slice(-9)
+            })
+            if (found) {
+              targetAthleteId = found.id
+            }
+          }
+        } catch (e) {
+          console.warn('Erro ao buscar atleta existente:', e)
+        }
+      }
+
+      try {
+        if (targetAthleteId) {
+          // Atualiza o registro existente com os dados oficiais completos
+          const { data, error: updateErr } = await supabase
+            .from('athletes')
+            .update(fullPayload)
+            .eq('id', targetAthleteId)
+            .select()
+            .single()
+
+          if (!updateErr && data) {
+            savedAthlete = mapDatabaseAthlete(data)
+          } else {
+            console.warn('Falha no update completo, tentando update básico:', updateErr)
+            // Tenta fallback com colunas base caso o Supabase não tenha as novas colunas ainda
+            const { data: basicData } = await supabase
+              .from('athletes')
+              .update({
+                name: fullPayload.name,
+                nickname: fullPayload.nickname,
+                phone: fullPayload.phone,
+                modality: fullPayload.modality,
+                drinks_beer: fullPayload.drinks_beer
+              })
+              .eq('id', targetAthleteId)
+              .select()
+              .single()
+            if (basicData) {
+              savedAthlete = {
+                ...mapDatabaseAthlete(basicData),
+                id: targetAthleteId,
+                cpf: cleanCpfDigits,
+                birthDate,
+                gender,
+                email,
+                cityState,
+                emergencyContactName,
+                emergencyContactPhone,
+                shirtSize: finalSkewer,
+                skewerChoice: finalSkewer,
+                medicalNotes,
+                acceptedTermsAt,
+                registrationType: 'official',
+                paymentStatus: 'pending_payment'
+              }
+            }
+          }
+        } else {
+          // Insere novo atleta oficial
+          const { data, error: insertErr } = await supabase
+            .from('athletes')
+            .insert([fullPayload])
+            .select()
+            .single()
+
+          if (!insertErr && data) {
+            savedAthlete = mapDatabaseAthlete(data)
+          } else {
+            console.warn('Aviso no insert completo do Supabase, tentando com colunas básicas:', insertErr)
+            // Fallback de colunas básicas
+            const { data: basicData, error: basicErr } = await supabase
+              .from('athletes')
+              .insert([{
+                name: fullPayload.name,
+                nickname: fullPayload.nickname,
+                phone: fullPayload.phone,
+                modality: fullPayload.modality,
+                drinks_beer: fullPayload.drinks_beer
+              }])
+              .select()
+              .single()
+
+            if (basicErr) throw basicErr
+            savedAthlete = {
+              ...mapDatabaseAthlete(basicData),
+              cpf: cleanCpfDigits,
+              birthDate,
+              gender,
+              email,
+              cityState,
+              emergencyContactName,
+              emergencyContactPhone,
+              shirtSize: finalSkewer,
+              skewerChoice: finalSkewer,
+              medicalNotes,
+              acceptedTermsAt,
+              registrationType: 'official',
+              paymentStatus: 'pending_payment'
+            }
+          }
+        }
+
+        // 2. Se o atleta estava na lista de espera, atualiza o status para 'registered'
+        try {
+          await supabase
+            .from('athlete_waitlist')
+            .update({ status: 'registered' })
+            .eq('phone', cleanPhone)
+        } catch (wErr) {
+          console.warn('Aviso ao atualizar lista de espera:', wErr)
+        }
+      } catch (sbErr) {
+        console.error('Erro na gravação oficial do Supabase:', sbErr)
+        // Se der erro no Supabase, continua para garantir salvamento local
+      }
+    }
+
+    // Se o Supabase não estiver configurado ou falhou, constrói o objeto local preservando o ID se existente
+    if (!savedAthlete) {
+      savedAthlete = {
+        id: targetAthleteId || id || Date.now(),
+        name: name.trim(),
+        nickname: nickname?.trim() || '',
+        displayName: formattedDisplay,
+        cpf: cleanCpfDigits,
+        birthDate: birthDate || '',
+        gender: gender || '',
+        phone: cleanPhone,
+        email: email?.trim() || '',
+        cityState: cityState?.trim() || '',
+        emergencyContactName: emergencyContactName.trim(),
+        emergencyContactPhone: emergencyContactPhone.trim(),
+        modality: modality || 'corrida',
+        drinksBeer: Boolean(drinksBeer),
+        shirtSize: finalSkewer,
+        skewerChoice: finalSkewer,
+        medicalNotes: medicalNotes?.trim() || '',
+        acceptedTermsAt,
+        registrationType: 'official',
+        paymentStatus: 'pending_payment',
+        createdAt: new Date().toISOString()
+      }
+    }
+
+    // Atualiza a lista reativa em memória
+    const existingIdx = athletes.value.findIndex(a => a.id === savedAthlete.id || (a.phone && a.phone.replace(/\D/g, '') === cleanPhoneDigits))
+    if (existingIdx !== -1) {
+      athletes.value[existingIdx] = { ...athletes.value[existingIdx], ...savedAthlete }
+    } else {
+      athletes.value.unshift(savedAthlete)
+    }
+
+    // Salva localmente com segurança
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(athletes.value))
+    } catch (e) {
+      console.warn('Erro ao salvar no localStorage:', e)
+    }
+
+    // Atualiza waitlist local se houver
+    try {
+      const waitlistLocal = JSON.parse(localStorage.getItem('beer_run_athlete_waitlist') || '[]')
+      const waitItem = waitlistLocal.find(w => (w.phone || '').replace(/\D/g, '') === cleanPhoneDigits)
+      if (waitItem) {
+        waitItem.status = 'registered'
+        localStorage.setItem('beer_run_athlete_waitlist', JSON.stringify(waitlistLocal))
+      }
+    } catch (e) {}
+
+    return savedAthlete
+  }
+
+  // Atualiza o status de pagamento do atleta (ex: Staff aprovando para 'completed')
+  async function updateAthletePaymentStatus(athleteId, paymentStatus) {
+    const athlete = athletes.value.find(a => a.id === athleteId)
+    if (athlete) {
+      athlete.paymentStatus = paymentStatus
+      if (paymentStatus === 'completed') {
+        athlete.registrationType = 'official'
+      }
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const updateData = {
+          payment_status: paymentStatus
+        }
+        if (paymentStatus === 'completed') {
+          updateData.registration_type = 'official'
+        }
+        const { error: sbErr } = await supabase
+          .from('athletes')
+          .update(updateData)
+          .eq('id', athleteId)
+
+        if (sbErr) {
+          console.warn('Aviso no Supabase ao atualizar payment_status:', sbErr)
+          if (paymentStatus === 'completed') {
+            await supabase.from('athletes').update({ registration_type: 'official' }).eq('id', athleteId)
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao atualizar payment_status no Supabase:', e)
+      }
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(athletes.value))
+    } catch (e) {}
+
+    return athlete
+  }
+
+  // Busca e valida um atleta na base pelo número de celular (na tabela athletes ou athlete_waitlist)
+  async function findAthleteByPhone(inputPhone) {
+    if (!inputPhone) return null
+    let cleanDigits = inputPhone.replace(/\D/g, '')
+    if (cleanDigits.startsWith('55') && cleanDigits.length > 11) {
+      cleanDigits = cleanDigits.slice(2)
+    }
+    if (cleanDigits.length < 10) return null
+
+    // 1. Tenta buscar no Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        // Busca na tabela athletes
+        const { data: athletesData } = await supabase
+          .from('athletes')
+          .select('*')
+
+        if (athletesData && athletesData.length > 0) {
+          const matched = athletesData.find(a => {
+            const digits = (a.phone || '').replace(/\D/g, '')
+            return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+          })
+          if (matched) {
+            const mapped = mapDatabaseAthlete(matched)
+            // É considerado oficial APENAS se realmente aceitou os termos da prova
+            const hasAcceptedTerms = Boolean(matched.accepted_terms_at)
+            const isAlreadyOfficial = Boolean(hasAcceptedTerms && (matched.payment_status || matched.shirt_size || matched.cpf))
+            return {
+              ...mapped,
+              isAlreadyOfficial,
+              paymentStatus: mapped.paymentStatus || (isAlreadyOfficial ? 'pending_payment' : null)
+            }
+          }
+        }
+
+        // Busca na tabela athlete_waitlist
+        const { data: waitlistData } = await supabase
+          .from('athlete_waitlist')
+          .select('*')
+
+        if (waitlistData && waitlistData.length > 0) {
+          const matchedW = waitlistData.find(w => {
+            const digits = (w.phone || '').replace(/\D/g, '')
+            return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+          })
+          if (matchedW) {
+            return {
+              id: matchedW.id,
+              name: matchedW.name,
+              nickname: matchedW.nickname || '',
+              displayName: formatAthleteDisplayName(matchedW.name, matchedW.nickname),
+              phone: matchedW.phone,
+              modality: matchedW.modality || 'corrida',
+              drinksBeer: Boolean(matchedW.drinks_beer),
+              isAlreadyOfficial: false,
+              fromWaitlist: true
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao consultar atleta no Supabase, verificando local:', err)
+      }
+    }
+
+    // 2. Fallback no estado local e localStorage
+    const localMatch = athletes.value.find(a => {
+      const digits = (a.phone || '').replace(/\D/g, '')
+      return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+    })
+    if (localMatch) {
+      const hasAcceptedTerms = Boolean(localMatch.acceptedTermsAt)
+      const isAlreadyOfficial = Boolean(hasAcceptedTerms && (localMatch.paymentStatus || localMatch.shirtSize || localMatch.cpf))
+      return {
+        ...localMatch,
+        isAlreadyOfficial,
+        paymentStatus: localMatch.paymentStatus || (isAlreadyOfficial ? 'pending_payment' : null)
+      }
+    }
+
+    try {
+      const waitlistLocal = JSON.parse(localStorage.getItem('beer_run_athlete_waitlist') || '[]')
+      const matchedW = waitlistLocal.find(w => {
+        const digits = (w.phone || '').replace(/\D/g, '')
+        return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+      })
+      if (matchedW) {
+        return {
+          id: matchedW.id,
+          name: matchedW.name,
+          nickname: matchedW.nickname || '',
+          displayName: formatAthleteDisplayName(matchedW.name, matchedW.nickname),
+          phone: matchedW.phone,
+          modality: matchedW.modality || 'corrida',
+          drinksBeer: Boolean(matchedW.drinks_beer || matchedW.drinksBeer),
+          isAlreadyOfficial: false,
+          fromWaitlist: true
+        }
+      }
+    } catch (e) {}
+
+    return null
+  }
+
+  // Salva dados parciais em cache local (localStorage) e no Supabase (para continuar de onde parou)
+  async function saveAthleteDraft(athleteId, phone, draftData) {
+    if (!phone) return
+    const cleanPhoneDigits = phone.replace(/\D/g, '')
+    const draftKey = `beer_run_draft_${cleanPhoneDigits}`
+
+    // 1. Salva no cache local com timestamp
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          currentStep: draftData.currentStep || 1,
+          form: draftData.form || {},
+          updatedAt: new Date().toISOString()
+        })
+      )
+    } catch (e) {
+      console.warn('Erro ao salvar rascunho no localStorage:', e)
+    }
+
+    // 2. Se o atleta já possui registro no Supabase, atualiza os dados parciais na tabela athletes
+    if (isSupabaseConfigured && supabase && athleteId) {
+      try {
+        const formData = draftData.form || {}
+        const partialPayload = {}
+
+        if (formData.cpf) {
+          const cleanCpf = formData.cpf.replace(/\D/g, '')
+          if (cleanCpf.length === 11) partialPayload.cpf = cleanCpf
+        }
+        if (formData.birthDate) partialPayload.birth_date = formData.birthDate
+        if (formData.gender) partialPayload.gender = formData.gender
+        if (formData.cityState) partialPayload.city_state = formData.cityState.trim()
+        if (formData.email) partialPayload.email = formData.email.trim()
+        if (formData.emergencyContactName) partialPayload.emergency_contact_name = formData.emergencyContactName.trim()
+        if (formData.emergencyContactPhone) partialPayload.emergency_contact_phone = formData.emergencyContactPhone.trim()
+        if (formData.skewerChoice || formData.shirtSize) {
+          partialPayload.shirt_size = (formData.skewerChoice || formData.shirtSize).trim()
+        }
+        if (formData.medicalNotes !== undefined) partialPayload.medical_notes = formData.medicalNotes ? formData.medicalNotes.trim() : null
+        if (formData.modality) partialPayload.modality = formData.modality
+        if (formData.drinksBeer !== undefined) partialPayload.drinks_beer = Boolean(formData.drinksBeer)
+
+        if (Object.keys(partialPayload).length > 0) {
+          await supabase
+            .from('athletes')
+            .update(partialPayload)
+            .eq('id', athleteId)
+        }
+      } catch (sbErr) {
+        console.warn('Aviso ao persistir rascunho no Supabase:', sbErr)
+      }
+    }
+  }
+
+  // Carrega rascunho do atleta do localStorage
+  function loadAthleteDraft(phone) {
+    if (!phone) return null
+    const cleanPhoneDigits = phone.replace(/\D/g, '')
+    try {
+      const item = localStorage.getItem(`beer_run_draft_${cleanPhoneDigits}`)
+      return item ? JSON.parse(item) : null
+    } catch (e) {
+      return null
+    }
+  }
+
+  // Limpa o rascunho do atleta após finalização
+  function clearAthleteDraft(phone) {
+    if (!phone) return
+    const cleanPhoneDigits = phone.replace(/\D/g, '')
+    try {
+      localStorage.removeItem(`beer_run_draft_${cleanPhoneDigits}`)
+    } catch (e) {}
+  }
+
   return {
     athletes,
     loading,
@@ -403,6 +904,13 @@ export function useAthletes() {
     fetchWaitlistCount,
     addAthlete,
     addToWaitlist,
-    formatAthleteDisplayName
+    registerOfficialAthlete,
+    updateAthletePaymentStatus,
+    findAthleteByPhone,
+    formatAthleteDisplayName,
+    saveAthleteDraft,
+    loadAthleteDraft,
+    clearAthleteDraft
   }
 }
+

@@ -5,9 +5,15 @@
     @exit-staff="exitStaffMode"
   />
 
+  <!-- Tela Dedicada de Inscrição Oficial (para lista de espera e links diretos) -->
+  <OfficialRegistrationPage
+    v-else-if="isOfficialRegistrationMode"
+    @go-home="exitOfficialRegistrationMode"
+  />
+
   <!-- Site Público Oficial -->
   <div v-else class="app-wrapper">
-    <Navbar />
+    <Navbar @open-official-registration="enterOfficialRegistrationMode" />
 
     <main>
       <HeroSection @open-registration="openRegistration" />
@@ -24,6 +30,7 @@
       @open-registration="openRegistration"
       @open-sponsorship="openSponsorship"
       @open-staff="enterStaffMode"
+      @open-official-registration="enterOfficialRegistrationMode"
     />
 
     <RegistrationModal :is-open="isRegistrationOpen" @close="isRegistrationOpen = false" />
@@ -46,6 +53,7 @@ import Footer from './components/Footer.vue'
 import RegistrationModal from './components/RegistrationModal.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
 import StaffDashboard from './components/StaffDashboard.vue'
+import OfficialRegistrationPage from './components/OfficialRegistrationPage.vue'
 import { useAthletes } from './composables/useAthletes.js'
 import { trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
 
@@ -54,6 +62,7 @@ const { isSoldOut } = useAthletes()
 const isRegistrationOpen = ref(false)
 const isSponsorshipOpen = ref(false)
 const isStaffMode = ref(false)
+const isOfficialRegistrationMode = ref(false)
 
 function openRegistration(source = 'geral') {
   isRegistrationOpen.value = true
@@ -67,6 +76,7 @@ function openSponsorship(source = 'geral') {
 
 function enterStaffMode() {
   isStaffMode.value = true
+  isOfficialRegistrationMode.value = false
   if (window.location.hash !== '#staff') {
     window.location.hash = '#staff'
   }
@@ -79,11 +89,34 @@ function exitStaffMode() {
   }
 }
 
+function enterOfficialRegistrationMode() {
+  isOfficialRegistrationMode.value = true
+  isStaffMode.value = false
+  if (!window.location.hash.startsWith('#inscricao')) {
+    window.location.hash = '#inscricao'
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function exitOfficialRegistrationMode() {
+  isOfficialRegistrationMode.value = false
+  if (window.location.hash.startsWith('#inscricao') || window.location.hash.startsWith('#/inscricao')) {
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function handleHashCheck() {
-  if (window.location.hash === '#staff') {
+  const hash = window.location.hash || ''
+  if (hash === '#staff') {
     isStaffMode.value = true
+    isOfficialRegistrationMode.value = false
+  } else if (hash.startsWith('#inscricao') || hash.startsWith('#/inscricao') || hash.startsWith('#cadastro')) {
+    isOfficialRegistrationMode.value = true
+    isStaffMode.value = false
   } else {
     isStaffMode.value = false
+    isOfficialRegistrationMode.value = false
   }
 }
 

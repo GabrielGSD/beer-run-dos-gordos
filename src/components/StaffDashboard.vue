@@ -251,6 +251,33 @@
                 </div>
               </div>
 
+              <!-- Card: Status das Inscrições Oficiais & Pagamentos -->
+              <div class="kpi-card vintage-card span-2">
+                <div class="kpi-header">
+                  <span class="kpi-tag font-condensed">PIPELINE DE INSCRIÇÕES & PAGAMENTOS</span>
+                  <i class="fa-solid fa-receipt kpi-icon text-gold"></i>
+                </div>
+                <div class="sponsor-pipeline-summary">
+                  <div class="pipe-step">
+                    <span class="pipe-num text-muted">{{ athletesPreRegistrationCount }}</span>
+                    <span class="pipe-lbl font-condensed">Pré-Inscrições</span>
+                  </div>
+                  <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+                  <div class="pipe-step step-approved">
+                    <span class="pipe-num text-amber">{{ athletesPendingPaymentCount }}</span>
+                    <span class="pipe-lbl font-condensed">Aguardando Pagamento</span>
+                  </div>
+                  <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+                  <div class="pipe-step step-finished">
+                    <span class="pipe-num text-green">{{ athletesCompletedCount }}</span>
+                    <span class="pipe-lbl font-condensed">Concluídos (Pagos)</span>
+                  </div>
+                </div>
+                <div class="kpi-footer font-condensed">
+                  <button class="btn-vintage btn-sm" @click="activeTab = 'athletes'">Gerenciar Inscrições →</button>
+                </div>
+              </div>
+
               <!-- Card 5: Patrocínios Pipeline -->
               <div class="kpi-card vintage-card span-2">
                 <div class="kpi-header">
@@ -287,6 +314,12 @@
 
           <!-- TAB 2: ATLETAS CONFIRMADOS -->
           <section v-if="activeTab === 'athletes'" class="tab-pane animate-fade-in">
+            <!-- Toast de Atualização de Status -->
+            <div v-if="paymentStatusToast" class="payment-toast-banner font-condensed animate-slide-up">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>{{ paymentStatusToast }}</span>
+            </div>
+
             <!-- Control Bar -->
             <div class="pane-toolbar">
               <div class="search-wrap">
@@ -307,7 +340,7 @@
                   :class="{ active: athleteFilterModality === 'all' }"
                   @click="athleteFilterModality = 'all'"
                 >
-                  Todos
+                  Todas Modalidades
                 </button>
                 <button
                   class="pill-btn"
@@ -344,10 +377,49 @@
                 >
                   🚫 Sem Álcool
                 </button>
+
+                <!-- Filtros de Status de Pagamento -->
+                <button
+                  class="pill-btn pill-status"
+                  :class="{ active: athleteFilterPaymentStatus === 'all' }"
+                  @click="athleteFilterPaymentStatus = 'all'"
+                >
+                  Todos Status
+                </button>
+                <button
+                  class="pill-btn pill-pending"
+                  :class="{ active: athleteFilterPaymentStatus === 'pending_payment' }"
+                  @click="athleteFilterPaymentStatus = 'pending_payment'"
+                >
+                  ⏳ Aguardando Pgto ({{ athletesPendingPaymentCount }})
+                </button>
+                <button
+                  class="pill-btn pill-completed"
+                  :class="{ active: athleteFilterPaymentStatus === 'completed' }"
+                  @click="athleteFilterPaymentStatus = 'completed'"
+                >
+                  🟢 Concluídos ({{ athletesCompletedCount }})
+                </button>
+                <button
+                  class="pill-btn"
+                  :class="{ active: athleteFilterPaymentStatus === 'pre_registration' }"
+                  @click="athleteFilterPaymentStatus = 'pre_registration'"
+                >
+                  ⚪ Pré-Inscrição ({{ athletesPreRegistrationCount }})
+                </button>
               </div>
 
               <!-- Mobile Filter Dropdowns (100% largura, Zero Scroll Horizontal) -->
               <div class="mobile-athlete-filters-grid font-condensed">
+                <div class="mobile-select-group">
+                  <label class="mobile-select-label"><i class="fa-solid fa-file-invoice-dollar"></i> Status Pgto:</label>
+                  <select v-model="athleteFilterPaymentStatus" class="mobile-filter-dropdown">
+                    <option value="all">Todos os Status ({{ athletes.length }})</option>
+                    <option value="pending_payment">⏳ Aguardando Pgto ({{ athletesPendingPaymentCount }})</option>
+                    <option value="completed">🟢 Concluídos ({{ athletesCompletedCount }})</option>
+                    <option value="pre_registration">⚪ Pré-Inscrição ({{ athletesPreRegistrationCount }})</option>
+                  </select>
+                </div>
                 <div class="mobile-select-group">
                   <label class="mobile-select-label"><i class="fa-solid fa-person-running"></i> Modalidade:</label>
                   <select v-model="athleteFilterModality" class="mobile-filter-dropdown">
@@ -392,13 +464,14 @@
                       <th>WhatsApp</th>
                       <th>Modalidade</th>
                       <th>Chopp</th>
+                      <th style="min-width: 170px;">Status Pagamento</th>
                       <th>Check-in</th>
                       <th style="text-align: right;">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-if="filteredAthletes.length === 0">
-                      <td colspan="7" class="table-empty font-condensed">
+                      <td colspan="8" class="table-empty font-condensed">
                         Nenhum atleta encontrado com os filtros selecionados.
                       </td>
                     </tr>
@@ -408,6 +481,9 @@
                         <div class="athlete-name-cell">
                           <div class="font-slab athlete-name">{{ athlete.name }}</div>
                           <div v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</div>
+                          <div v-if="athlete.skewerChoice || athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
+                            🍢 Espetinhos: <strong>{{ athlete.skewerChoice || athlete.shirtSize }}</strong>
+                          </div>
                         </div>
                       </td>
                       <td>
@@ -440,6 +516,46 @@
                           {{ athlete.drinksBeer ? '🍺 Chopp' : '🚫 Não' }}
                         </span>
                       </td>
+
+                      <!-- COLUNA STATUS PAGAMENTO (STAFF MANAGEMENT) -->
+                      <td>
+                        <div class="status-cell-wrap font-condensed">
+                          <template v-if="athlete.paymentStatus === 'completed'">
+                            <span class="tag-badge tag-paid" title="Pagamento confirmado pelo Staff">
+                              <i class="fa-solid fa-circle-check"></i> Concluído
+                            </span>
+                            <button
+                              type="button"
+                              class="btn-mini-status text-muted"
+                              @click="handleTogglePaymentStatus(athlete)"
+                              title="Reverter para Aguardando Pagamento"
+                            >
+                              <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                          </template>
+
+                          <template v-else-if="athlete.paymentStatus === 'pending_payment' || athlete.acceptedTermsAt">
+                            <span class="tag-badge tag-wait-pay" title="Inscrição preenchida, aguardando validação do PIX">
+                              <i class="fa-solid fa-hourglass-half"></i> Aguardando Pgto
+                            </span>
+                            <button
+                              type="button"
+                              class="btn-mini-approve font-condensed font-bold"
+                              @click="handleConfirmPayment(athlete)"
+                              title="Validar comprovante e marcar como CONCLUÍDO"
+                            >
+                              <i class="fa-solid fa-check"></i> Concluir
+                            </button>
+                          </template>
+
+                          <template v-else>
+                            <span class="tag-badge tag-pre-only" title="Apenas pré-inscrição (ainda não preencheu dados oficiais)">
+                              <i class="fa-regular fa-clock"></i> Pré-Inscrição
+                            </span>
+                          </template>
+                        </div>
+                      </td>
+
                       <td>
                         <button
                           class="checkin-badge-btn font-condensed"
@@ -492,6 +608,9 @@
                       <div>
                         <div class="mobile-athlete-name font-slab">{{ athlete.name }}</div>
                         <div v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</div>
+                        <div v-if="athlete.skewerChoice || athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
+                          🍢 Espetinhos: <strong>{{ athlete.skewerChoice || athlete.shirtSize }}</strong>
+                        </div>
                       </div>
                     </div>
 
@@ -531,6 +650,31 @@
                     <span v-if="athlete.phone" class="mobile-phone-text">
                       <i class="fa-solid fa-phone"></i> {{ athlete.phone }}
                     </span>
+                  </div>
+
+                  <!-- Linha de Status de Pagamento no Mobile -->
+                  <div class="mobile-card-status-row font-condensed">
+                    <div class="mobile-status-left">
+                      <span class="mobile-status-label">Status:</span>
+                      <span v-if="athlete.paymentStatus === 'completed'" class="tag-badge tag-paid">
+                        <i class="fa-solid fa-circle-check"></i> Concluído (Pago)
+                      </span>
+                      <span v-else-if="athlete.paymentStatus === 'pending_payment' || athlete.acceptedTermsAt" class="tag-badge tag-wait-pay">
+                        <i class="fa-solid fa-hourglass-half"></i> Aguardando Pgto
+                      </span>
+                      <span v-else class="tag-badge tag-pre-only">
+                        <i class="fa-regular fa-clock"></i> Pré-Inscrição
+                      </span>
+                    </div>
+
+                    <button
+                      v-if="athlete.paymentStatus === 'pending_payment' || (athlete.acceptedTermsAt && athlete.paymentStatus !== 'completed')"
+                      type="button"
+                      class="mobile-approve-btn font-slab"
+                      @click="handleConfirmPayment(athlete)"
+                    >
+                      <i class="fa-solid fa-check"></i> Aprovar Pagamento (Concluir)
+                    </button>
                   </div>
 
                   <div class="mobile-card-action-bar">
@@ -1432,6 +1576,7 @@ const {
   deleteAthlete,
   addAthleteManual,
   toggleCheckIn,
+  updateAthletePaymentStatus,
   fetchWaitlist,
   updateWaitlistStatus,
   promoteAthleteToConfirmed,
@@ -1446,6 +1591,41 @@ const {
   exportWaitlistCSV,
   exportProposalsCSV
 } = useStaff()
+
+// Estado de Status de Pagamento e Toast
+const athleteFilterPaymentStatus = ref('all')
+const paymentStatusToast = ref('')
+
+const athletesCompletedCount = computed(() => athletes.value.filter(a => a.paymentStatus === 'completed').length)
+const athletesPendingPaymentCount = computed(() => athletes.value.filter(a => a.paymentStatus === 'pending_payment' || (a.acceptedTermsAt && a.paymentStatus !== 'completed')).length)
+const athletesPreRegistrationCount = computed(() => athletes.value.filter(a => !a.acceptedTermsAt && a.paymentStatus !== 'completed' && a.paymentStatus !== 'pending_payment').length)
+
+async function handleConfirmPayment(athlete) {
+  try {
+    await updateAthletePaymentStatus(athlete.id, 'completed')
+    paymentStatusToast.value = `✓ Inscrição de "${athlete.name}" atualizada para CONCLUÍDO!`
+    setTimeout(() => { paymentStatusToast.value = '' }, 4000)
+  } catch (err) {
+    alert('Erro ao atualizar status de pagamento: ' + err.message)
+  }
+}
+
+async function handleTogglePaymentStatus(athlete) {
+  const current = athlete.paymentStatus
+  const newStatus = current === 'completed' ? 'pending_payment' : 'completed'
+  const confirmMsg = newStatus === 'pending_payment'
+    ? `Deseja reverter a inscrição de "${athlete.name}" para AGUARDANDO PAGAMENTO?`
+    : `Deseja aprovar o pagamento de "${athlete.name}" e marcar como CONCLUÍDO?`
+  if (!confirm(confirmMsg)) return
+
+  try {
+    await updateAthletePaymentStatus(athlete.id, newStatus)
+    paymentStatusToast.value = `✓ Status de "${athlete.name}" alterado para ${newStatus === 'completed' ? 'CONCLUÍDO' : 'AGUARDANDO PAGAMENTO'}!`
+    setTimeout(() => { paymentStatusToast.value = '' }, 4000)
+  } catch (err) {
+    alert('Erro ao atualizar status: ' + err.message)
+  }
+}
 
 // Estado da aba de Patrocínios & Sponsors
 const sponsorSubTab = ref('proposals')
@@ -1581,6 +1761,14 @@ const filteredAthletes = computed(() => {
     list = list.filter(a => a.drinksBeer)
   } else if (athleteFilterBeer.value === 'no-drinks') {
     list = list.filter(a => !a.drinksBeer)
+  }
+
+  if (athleteFilterPaymentStatus.value === 'completed') {
+    list = list.filter(a => a.paymentStatus === 'completed')
+  } else if (athleteFilterPaymentStatus.value === 'pending_payment') {
+    list = list.filter(a => a.paymentStatus === 'pending_payment' || (a.acceptedTermsAt && a.paymentStatus !== 'completed'))
+  } else if (athleteFilterPaymentStatus.value === 'pre_registration') {
+    list = list.filter(a => !a.acceptedTermsAt && a.paymentStatus !== 'completed' && a.paymentStatus !== 'pending_payment')
   }
 
   return list
@@ -1770,6 +1958,153 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Toast de Atualização de Pagamento */
+.payment-toast-banner {
+  background-color: #27ae60;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+}
+
+/* Pills de Status */
+.pill-pending.active {
+  background-color: #d35400 !important;
+  color: #ffffff !important;
+  border-color: #a04000 !important;
+}
+
+.pill-completed.active {
+  background-color: #27ae60 !important;
+  color: #ffffff !important;
+  border-color: #1e8449 !important;
+}
+
+/* Célula de Status Pagamento na Tabela */
+.status-cell-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.athlete-kit-info {
+  font-size: 0.82rem;
+  margin-top: 3px;
+}
+
+.tag-paid {
+  background-color: #d4efdf;
+  color: #1e8449;
+  border: 1px solid #a9dfbf;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.tag-wait-pay {
+  background-color: #fdebd0;
+  color: #b9770e;
+  border: 1px solid #f8c471;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.tag-pre-only {
+  background-color: #eaecee;
+  color: #5d6d7e;
+  border: 1px solid #d5d8dc;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.btn-mini-approve {
+  background-color: #27ae60;
+  color: #ffffff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.15);
+}
+
+.btn-mini-approve:hover {
+  background-color: #1e8449;
+  transform: translateY(-1px);
+}
+
+.btn-mini-status {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.btn-mini-status:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+/* Mobile Card Status Row */
+.mobile-card-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background-color: rgba(0,0,0,0.03);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.mobile-status-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-status-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #666;
+}
+
+.mobile-approve-btn {
+  background-color: #27ae60;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-approve-btn:hover {
+  background-color: #1e8449;
+}
+
 /* Page Root */
 .staff-page-view {
   min-height: 100vh;

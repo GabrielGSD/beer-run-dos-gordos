@@ -16,7 +16,11 @@ const isLoading = ref(false)
 const staffError = ref(null)
 
 export function useStaff() {
-  const { athletes, fetchAthletes: refreshPublicAthletes } = useAthletes()
+  const {
+    athletes,
+    fetchAthletes: refreshPublicAthletes,
+    updateAthletePaymentStatus
+  } = useAthletes()
 
   // --------------------------------------------------------------------------
   // AUTENTICAÇÃO
@@ -411,7 +415,12 @@ export function useStaff() {
     const phone = sanitizePhoneForWhatsApp(athlete.phone)
     if (!phone) return null
 
-    const text = `Fala, ${athlete.name}! 🍻🏃‍♂️\n\nBoas notícias da equipe da *Beer Run dos Gordos*!\nUma vaga foi liberada e você é o próximo da nossa Lista de Espera (posição #${position || 1}).\n\nVocê tem interesse em confirmar sua participação e garantir seu kit? Por favor, nos responda nesta mensagem para realizarmos sua inscrição!`
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://gordosrun.netlify.app'
+    const nameParam = encodeURIComponent(athlete.name || '')
+    const phoneParam = encodeURIComponent(athlete.phone || '')
+    const regUrl = `${baseUrl}/#inscricao?nome=${nameParam}&tel=${phoneParam}`
+
+    const text = `Fala, ${athlete.name}! 🍻🏃‍♂️\n\nBoas notícias da comissão da *Beer Run dos Gordos*!\nUma vaga foi liberada para você (posição #${position || 1} da Lista de Espera)!\n\nPara oficializar sua inscrição, escolher o tamanho da sua camiseta do kit oficial e ler/aceitar o regulamento da prova, acesse o link de inscrição abaixo:\n\n👉 ${regUrl}\n\nFicamos no seu aguardo para garantir sua vaga e seu kit! Qualquer dúvida pode nos chamar por aqui.`
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
@@ -439,14 +448,43 @@ export function useStaff() {
   }
 
   function exportAthletesCSV() {
-    const headers = ['Posicao', 'Nome', 'Apelido', 'Telefone', 'Modalidade', 'Bebe Cerveja', 'Check-in Realizado', 'Data Inscricao']
+    const headers = [
+      'Posicao',
+      'Nome',
+      'Apelido',
+      'Telefone',
+      'CPF',
+      'Espetinhos Chegada',
+      'Data Nasc',
+      'Genero',
+      'Cidade/UF',
+      'Contato Emergencia',
+      'Tel Emergencia',
+      'Modalidade',
+      'Bebe Cerveja',
+      'Tipo Inscricao',
+      'Status Pagamento',
+      'Termos Aceitos Em',
+      'Check-in Realizado',
+      'Data Cadastro'
+    ]
     const rows = athletes.value.map((a, i) => [
       i + 1,
       `"${(a.name || '').replace(/"/g, '""')}"`,
       `"${(a.nickname || '').replace(/"/g, '""')}"`,
       `"${(a.phone || '').replace(/"/g, '""')}"`,
+      `"${(a.cpf || '').replace(/"/g, '""')}"`,
+      `"${(a.skewerChoice || a.shirtSize || '').replace(/"/g, '""')}"`,
+      `"${(a.birthDate || '').replace(/"/g, '""')}"`,
+      `"${(a.gender || '').replace(/"/g, '""')}"`,
+      `"${(a.cityState || '').replace(/"/g, '""')}"`,
+      `"${(a.emergencyContactName || '').replace(/"/g, '""')}"`,
+      `"${(a.emergencyContactPhone || '').replace(/"/g, '""')}"`,
       a.modality === 'caminhada' ? 'Caminhada' : 'Corrida',
       a.drinksBeer ? 'Sim' : 'Nao',
+      a.registrationType === 'official' ? 'Oficial Completa' : 'Pre-Inscricao',
+      a.paymentStatus === 'completed' ? 'Concluido (Pago)' : (a.paymentStatus === 'pending_payment' ? 'Aguardando Pagamento' : 'Pre-Inscricao'),
+      a.acceptedTermsAt ? new Date(a.acceptedTermsAt).toLocaleString('pt-BR') : 'Nao registrado',
       a.isCheckedIn ? 'Sim' : 'Nao',
       a.createdAt ? new Date(a.createdAt).toLocaleString('pt-BR') : ''
     ])
@@ -502,6 +540,7 @@ export function useStaff() {
     deleteAthlete,
     addAthleteManual,
     toggleCheckIn,
+    updateAthletePaymentStatus,
     fetchWaitlist,
     updateWaitlistStatus,
     promoteAthleteToConfirmed,

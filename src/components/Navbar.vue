@@ -12,7 +12,8 @@
         <a href="#kit" class="nav-link">KIT ATLETA</a>
         <a href="#atletas" class="nav-link">ATLETAS</a>
         <a href="#patrocinadores" class="nav-link">PATROCINADORES</a>
-        <a href="#inscricoes" class="nav-link" @click="trackRegistrationClick('menu_superior_desktop', isSoldOut)">INSCRIÇÕES</a>
+        <a href="#inscricoes" class="nav-link" @click="trackRegistrationClick('menu_superior_desktop', isSoldOut)">PRÉ-INSCRIÇÃO</a>
+        <!-- <a href="#inscricao" class="nav-link highlight-nav" @click.prevent="$emit('open-official-registration')">REGULAMENTO</a> -->
         <a href="#contato" class="nav-link">CONTATO</a>
       </nav>
 
@@ -30,7 +31,8 @@
         <a href="#kit" class="mobile-link" @click="mobileMenuOpen = false">KIT ATLETA</a>
         <a href="#atletas" class="mobile-link" @click="mobileMenuOpen = false">ATLETAS</a>
         <a href="#patrocinadores" class="mobile-link" @click="mobileMenuOpen = false">PATROCINADORES</a>
-        <a href="#inscricoes" class="mobile-link" @click="mobileMenuOpen = false; trackRegistrationClick('menu_superior_mobile', isSoldOut)">INSCRIÇÕES</a>
+        <a href="#inscricoes" class="mobile-link" @click="mobileMenuOpen = false; trackRegistrationClick('menu_superior_mobile', isSoldOut)">PRÉ-INSCRIÇÃO</a>
+        <!-- <a href="#inscricao" class="mobile-link" @click="mobileMenuOpen = false; $emit('open-official-registration')">REGULAMENTO & INSCRIÇÃO</a> -->
         <a href="#contato" class="mobile-link" @click="mobileMenuOpen = false">CONTATO</a>
       </nav>
     </transition>
@@ -41,6 +43,8 @@
 import { ref } from 'vue'
 import { useAthletes } from '../composables/useAthletes.js'
 import { trackRegistrationClick } from '../services/analytics.js'
+
+defineEmits(['open-official-registration'])
 
 const { isSoldOut } = useAthletes()
 const mobileMenuOpen = ref(false)
@@ -112,6 +116,15 @@ const mobileMenuOpen = ref(false)
 
 .nav-link:hover::after {
   width: 100%;
+}
+
+.highlight-nav {
+  color: #a35b12 !important;
+  font-weight: 800;
+}
+
+.highlight-nav::after {
+  background-color: #a35b12 !important;
 }
 
 .mobile-toggle {

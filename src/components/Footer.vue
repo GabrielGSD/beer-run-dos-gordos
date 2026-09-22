@@ -49,6 +49,14 @@
         <!-- Right Realization Note -->
         <div class="footer-realization">
           <img src="/logo.png" alt="BEER RUN DOS GORDOS" class="footer-logo" />
+          <!-- <button
+            type="button"
+            class="footer-reg-btn font-condensed"
+            @click="$emit('open-official-registration')"
+            title="Acessar Regulamento e Inscrição Oficial"
+          >
+            <i class="fa-solid fa-file-pdf"></i> Regulamento da Prova
+          </button> -->
           <button
             type="button"
             class="footer-sponsor-btn font-condensed"
@@ -73,7 +81,7 @@
 <script setup>
 import { useAthletes } from '../composables/useAthletes.js'
 
-defineEmits(['open-registration', 'open-sponsorship', 'open-staff'])
+defineEmits(['open-registration', 'open-sponsorship', 'open-staff', 'open-official-registration'])
 
 const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
 </script>
@@ -237,6 +245,27 @@ const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
 .footer-logo {
   height: 50px;
   opacity: 0.85;
+}
+
+.footer-reg-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(217, 130, 43, 0.6);
+  color: var(--text-light);
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.footer-reg-btn:hover {
+  background: var(--accent-gold);
+  color: var(--accent-dark);
+  border-color: var(--accent-gold);
 }
 
 .footer-sponsor-btn {
