@@ -40,9 +40,15 @@
         <div class="footer-social-box">
           <h4 class="social-title font-condensed">ACOMPANHE NOSSAS REDES</h4>
           <div class="social-icons">
-            <a href="#" aria-label="Instagram" class="social-btn"><i class="fa-brands fa-instagram"></i></a>
-            <a href="#" aria-label="Facebook" class="social-btn"><i class="fa-brands fa-facebook"></i></a>
-            <a href="#" aria-label="TikTok" class="social-btn"><i class="fa-brands fa-tiktok"></i></a>
+            <a
+              href="https://www.instagram.com/beerrundosgordos"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              class="social-btn"
+            >
+              <i class="fa-brands fa-instagram"></i>
+            </a>
           </div>
         </div>
 
@@ -73,6 +79,21 @@
             <i class="fa-solid fa-lock"></i> Painel da Staff
           </button>
         </div>
+      </div>
+
+      <div class="container footer-bottom-content">
+        <p class="developer-credit">
+          Desenvolvido por
+          <a
+            href="https://wa.me/5535910246480"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="omna-tech-link"
+            title="Falar com a Omna tech no WhatsApp"
+          >
+            <span>Omna tech</span>
+          </a>
+        </p>
       </div>
     </div>
   </footer>
@@ -328,5 +349,53 @@ const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
   .footer-realization {
     align-items: center;
   }
+}
+
+.footer-bottom {
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-bottom-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px;
+}
+
+.developer-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.3px;
+  color: #7d7261;
+  margin: 0;
+  font-weight: 400;
+}
+
+.omna-tech-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #a89a80;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.omna-tech-link:hover {
+  color: var(--accent-gold);
+}
+
+.omna-tech-link .fa-whatsapp {
+  font-size: 0.85rem;
+  color: #a89a80;
+  transition: color 0.2s ease;
+}
+
+.omna-tech-link:hover .fa-whatsapp {
+  color: #25d366;
 }
 </style>
