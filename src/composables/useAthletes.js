@@ -18,7 +18,7 @@ export function formatAthleteDisplayName(name, nickname) {
 }
 
 // Limite máximo de participantes da prova
-export const MAX_ATHLETES = 70
+export const MAX_ATHLETES = 500
 
 // Mock inicial de fallback caso o Supabase não esteja configurado ainda
 const INITIAL_ATHLETES = [
