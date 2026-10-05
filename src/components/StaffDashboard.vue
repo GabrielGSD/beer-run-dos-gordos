@@ -138,7 +138,7 @@
               <i class="fa-solid fa-clock-rotate-left"></i>
               <span class="tab-label-desktop">Lista de Espera</span>
               <span class="tab-label-mobile">Espera</span>
-              <span v-if="waitlist.length > 0" class="tab-badge badge-warning">{{ waitlist.length }}</span>
+              <span v-if="activeWaitlist.length > 0" class="tab-badge badge-warning">{{ activeWaitlist.length }}</span>
             </button>
 
             <button
@@ -238,11 +238,11 @@
                   <span class="kpi-tag font-condensed">LISTA DE ESPERA</span>
                   <i class="fa-solid fa-hourglass-half kpi-icon text-gold"></i>
                 </div>
-                <div class="kpi-value font-slab text-gold">{{ waitlist.length }}</div>
+                <div class="kpi-value font-slab text-gold">{{ activeWaitlist.length }}</div>
                 <p class="kpi-desc font-condensed">Atletas na fila aguardando vagas por desistência.</p>
                 <div class="kpi-footer">
                   <button
-                    v-if="waitlist.length > 0"
+                    v-if="activeWaitlist.length > 0"
                     class="btn-vintage btn-sm font-condensed"
                     @click="activeTab = 'waitlist'"
                   >
@@ -481,8 +481,11 @@
                         <div class="athlete-name-cell">
                           <div class="font-slab athlete-name">{{ athlete.name }}</div>
                           <div v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</div>
-                          <div v-if="athlete.skewerChoice || athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
-                            🍢 Espetinhos: <strong>{{ athlete.skewerChoice || athlete.shirtSize }}</strong>
+                          <div v-if="athlete.skewerChoice" class="athlete-kit-info font-condensed text-muted">
+                            🍢 Espetinhos: <strong>{{ athlete.skewerChoice }}</strong>
+                          </div>
+                          <div v-if="athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
+                            👕 Camiseta: <strong>{{ athlete.shirtSize }}</strong>
                           </div>
                         </div>
                       </td>
@@ -608,8 +611,11 @@
                       <div>
                         <div class="mobile-athlete-name font-slab">{{ athlete.name }}</div>
                         <div v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</div>
-                        <div v-if="athlete.skewerChoice || athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
-                          🍢 Espetinhos: <strong>{{ athlete.skewerChoice || athlete.shirtSize }}</strong>
+                        <div v-if="athlete.skewerChoice" class="athlete-kit-info font-condensed text-muted">
+                          🍢 Espetinhos: <strong>{{ athlete.skewerChoice }}</strong>
+                        </div>
+                        <div v-if="athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
+                          👕 Camiseta: <strong>{{ athlete.shirtSize }}</strong>
                         </div>
                       </div>
                     </div>
@@ -698,11 +704,18 @@
               <div class="waitlist-banner-info font-condensed">
                 <i class="fa-solid fa-circle-info"></i>
                 <span>
-                  Ordem estrita de cadastro. Quando abrir vaga, promova o primeiro da fila ou contate via WhatsApp!
+                  Para liberar a inscrição de um atleta da fila, altere o status para “Convocado — inscrição liberada”. A convocação não reserva a vaga.
                 </span>
               </div>
 
               <div class="toolbar-actions">
+                <label class="font-condensed">
+                  Exibir:
+                  <select v-model="waitlistView" class="status-select font-condensed" aria-label="Visualiza??o da lista de espera">
+                    <option value="active">Fila ativa</option>
+                    <option value="history">Hist?rico</option>
+                  </select>
+                </label>
                 <button class="btn-vintage btn-sm btn-export font-slab" @click="exportWaitlistCSV">
                   <i class="fa-solid fa-file-csv"></i> Exportar Waitlist
                 </button>
@@ -725,12 +738,12 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-if="waitlist.length === 0">
+                    <tr v-if="visibleWaitlist.length === 0">
                       <td colspan="8" class="table-empty font-condensed">
                         A lista de espera está vazia no momento.
                       </td>
                     </tr>
-                    <tr v-for="(item, idx) in waitlist" :key="item.id">
+                    <tr v-for="(item, idx) in visibleWaitlist" :key="item.id">
                       <td class="cell-num font-slab">
                         <span class="waitlist-rank-badge">#{{ idx + 1 }}</span>
                       </td>
@@ -765,13 +778,13 @@
                       </td>
                       <td>
                         <select
-                          v-model="item.status"
-                          @change="updateWaitlistStatus(item.id, item.status)"
+                          :value="item.status"
+                          @change="handleWaitlistStatusChange(item, $event)"
                           class="status-select font-condensed"
                           :class="'status-' + item.status"
                         >
                           <option value="waiting">⏳ Aguardando</option>
-                          <option value="called">📞 Contatado</option>
+                          <option value="called">📞 Convocado — inscrição liberada</option>
                           <option value="registered">✅ Inscrito / Promovido</option>
                           <option value="cancelled">❌ Desistiu / Cancelado</option>
                         </select>
@@ -813,11 +826,11 @@
 
               <!-- Mobile Waitlist Cards List (Exibido apenas em mobile <= 768px) -->
               <div class="mobile-cards-list mobile-waitlist-list">
-                <div v-if="waitlist.length === 0" class="table-empty font-condensed">
+                <div v-if="visibleWaitlist.length === 0" class="table-empty font-condensed">
                   A lista de espera está vazia no momento.
                 </div>
                 <div
-                  v-for="(item, idx) in waitlist"
+                  v-for="(item, idx) in visibleWaitlist"
                   :key="item.id"
                   class="mobile-data-card"
                 >
@@ -865,13 +878,13 @@
                   <div class="mobile-card-status-row font-condensed">
                     <label class="mobile-status-lbl">Status da Fila:</label>
                     <select
-                      v-model="item.status"
-                      @change="updateWaitlistStatus(item.id, item.status)"
+                      :value="item.status"
+                      @change="handleWaitlistStatusChange(item, $event)"
                       class="status-select font-condensed"
                       :class="'status-' + item.status"
                     >
                       <option value="waiting">⏳ Aguardando</option>
-                      <option value="called">📞 Contatado</option>
+                      <option value="called">📞 Convocado — inscrição liberada</option>
                       <option value="registered">✅ Inscrito / Promovido</option>
                       <option value="cancelled">❌ Desistiu / Cancelado</option>
                     </select>
@@ -1543,7 +1556,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { isActiveWaitlistEntry } from '../services/waitlist.js'
 import { useStaff } from '../composables/useStaff.js'
 import { useAthletes } from '../composables/useAthletes.js'
 import { useSponsors } from '../composables/useSponsors.js'
@@ -1591,6 +1605,11 @@ const {
   exportWaitlistCSV,
   exportProposalsCSV
 } = useStaff()
+
+const waitlistView = ref('active')
+const activeWaitlist = computed(() => waitlist.value.filter(isActiveWaitlistEntry))
+const visibleWaitlist = computed(() => waitlistView.value === 'active'
+  ? activeWaitlist.value : waitlist.value.filter(item => !isActiveWaitlistEntry(item)))
 
 // Estado de Status de Pagamento e Toast
 const athleteFilterPaymentStatus = ref('all')
@@ -1910,6 +1929,20 @@ async function executeDeletion() {
 const showPromoteModal = ref(false)
 const targetPromoteAthlete = ref(null)
 
+async function handleWaitlistStatusChange(item, event) {
+  const select = event.target
+  const status = select.value
+  select.disabled = true
+  try {
+    await updateWaitlistStatus(item.id, status)
+  } catch (error) {
+    window.alert(error.message || 'Não foi possível salvar o status.')
+  } finally {
+    select.value = item.status
+    select.disabled = false
+  }
+}
+
 function confirmPromoteAthlete(item) {
   targetPromoteAthlete.value = item
   showPromoteModal.value = true
@@ -1948,13 +1981,18 @@ function handleLogout() {
   logout()
 }
 
+let waitlistRefreshTimer
 onMounted(() => {
+  waitlistRefreshTimer = setInterval(() => {
+    if (isAuthenticated.value && document.visibilityState === 'visible') fetchWaitlist()
+  }, 30000)
   if (isAuthenticated.value) {
     refreshAll()
   } else {
     nextTick(() => pinInputRef.value?.focus())
   }
 })
+onUnmounted(() => clearInterval(waitlistRefreshTimer))
 </script>
 
 <style scoped>

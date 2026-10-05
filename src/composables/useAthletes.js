@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
+import { ACTIVE_WAITLIST_STATUSES, isActiveWaitlistEntry } from '../services/waitlist.js'
 
 export function formatAthleteDisplayName(name, nickname) {
   if (!name) return ''
@@ -70,8 +71,8 @@ function mapDatabaseAthlete(row) {
     cityState: row.city_state || '',
     emergencyContactName: row.emergency_contact_name || '',
     emergencyContactPhone: row.emergency_contact_phone || '',
-    shirtSize: row.shirt_size || '',
-    skewerChoice: (row.shirt_size && !row.shirt_size.toLowerCase().includes('tradicional') && !row.shirt_size.toLowerCase().includes('baby look')) ? row.shirt_size : '1 Carne + 1 Frango',
+    shirtSize: ['1 Carne + 1 Frango', '2 Carne', '2 Frango', 'Vegetariano'].includes(row.shirt_size) ? '' : (row.shirt_size || ''),
+    skewerChoice: row.skewer_choice || (['1 Carne + 1 Frango', '2 Carne', '2 Frango', 'Vegetariano'].includes(row.shirt_size) ? row.shirt_size : ''),
     medicalNotes: row.medical_notes || '',
     acceptedTermsAt: row.accepted_terms_at || null,
     registrationType: isOfficial ? (row.registration_type || 'official') : 'pre_registration',
@@ -95,7 +96,7 @@ let waitlistRealtimeChannel = null
 function loadLocalWaitlistCount() {
   try {
     const saved = JSON.parse(localStorage.getItem('beer_run_athlete_waitlist') || '[]')
-    return Array.isArray(saved) ? saved.length : 0
+    return Array.isArray(saved) ? saved.filter(isActiveWaitlistEntry).length : 0
   } catch (e) {
     return 0
   }
@@ -145,13 +146,7 @@ export function useAthletes() {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'athlete_waitlist' },
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              waitlistCount.value++
-            } else if (payload.eventType === 'DELETE') {
-              waitlistCount.value = Math.max(0, waitlistCount.value - 1)
-            }
-          }
+          () => { fetchWaitlistCount() }
         )
         .subscribe()
     }
@@ -168,6 +163,7 @@ export function useAthletes() {
       const { count, error: countErr } = await supabase
         .from('athlete_waitlist')
         .select('*', { count: 'exact', head: true })
+        .in('status', ACTIVE_WAITLIST_STATUSES)
 
       if (!countErr && count !== null) {
         waitlistCount.value = count
@@ -367,6 +363,7 @@ export function useAthletes() {
         const { count } = await supabase
           .from('athlete_waitlist')
           .select('*', { count: 'exact', head: true })
+          .in('status', ACTIVE_WAITLIST_STATUSES)
         if (count !== null) {
           waitlistCount.value = count
           position = count
@@ -388,8 +385,8 @@ export function useAthletes() {
       })
       localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(saved))
       if (!isSupabaseConfigured || !supabase) {
-        waitlistCount.value = saved.length
-        position = saved.length
+        waitlistCount.value = saved.filter(isActiveWaitlistEntry).length
+        position = waitlistCount.value
       }
     } catch (e) {
       console.warn('Aviso ao salvar waitlist localmente:', e)
@@ -449,7 +446,7 @@ export function useAthletes() {
       throw new Error('Por favor, informe o telefone/WhatsApp do contato de emergência com DDD.')
     }
 
-    const finalSkewer = (skewerChoice || shirtSize || '1 Carne + 1 Frango').trim()
+    const finalSkewer = (skewerChoice || '').trim()
     if (!finalSkewer) {
       throw new Error('Por favor, selecione sua preferência para os 2 espetinhos da chegada.')
     }
@@ -474,7 +471,8 @@ export function useAthletes() {
       emergency_contact_phone: emergencyContactPhone.trim(),
       modality: modality || 'corrida',
       drinks_beer: Boolean(drinksBeer),
-      shirt_size: finalSkewer,
+      shirt_size: shirtSize || null,
+      skewer_choice: finalSkewer,
       medical_notes: medicalNotes?.trim() || null,
       accepted_terms_at: acceptedTermsAt,
       registration_type: 'official',
@@ -544,7 +542,7 @@ export function useAthletes() {
                 cityState,
                 emergencyContactName,
                 emergencyContactPhone,
-                shirtSize: finalSkewer,
+                shirtSize: shirtSize || '',
                 skewerChoice: finalSkewer,
                 medicalNotes,
                 acceptedTermsAt,
@@ -588,7 +586,7 @@ export function useAthletes() {
               cityState,
               emergencyContactName,
               emergencyContactPhone,
-              shirtSize: finalSkewer,
+              shirtSize: shirtSize || '',
               skewerChoice: finalSkewer,
               medicalNotes,
               acceptedTermsAt,
@@ -630,7 +628,7 @@ export function useAthletes() {
         emergencyContactPhone: emergencyContactPhone.trim(),
         modality: modality || 'corrida',
         drinksBeer: Boolean(drinksBeer),
-        shirtSize: finalSkewer,
+        shirtSize: shirtSize || '',
         skewerChoice: finalSkewer,
         medicalNotes: medicalNotes?.trim() || '',
         acceptedTermsAt,
@@ -729,7 +727,7 @@ export function useAthletes() {
         if (athletesData && athletesData.length > 0) {
           const matched = athletesData.find(a => {
             const digits = (a.phone || '').replace(/\D/g, '')
-            return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+            return digits.replace(/^55(?=\d{11}$)/, '') === cleanDigits
           })
           if (matched) {
             const mapped = mapDatabaseAthlete(matched)
@@ -752,7 +750,7 @@ export function useAthletes() {
         if (waitlistData && waitlistData.length > 0) {
           const matchedW = waitlistData.find(w => {
             const digits = (w.phone || '').replace(/\D/g, '')
-            return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+            return digits.replace(/^55(?=\d{11}$)/, '') === cleanDigits
           })
           if (matchedW) {
             return {
@@ -776,7 +774,7 @@ export function useAthletes() {
     // 2. Fallback no estado local e localStorage
     const localMatch = athletes.value.find(a => {
       const digits = (a.phone || '').replace(/\D/g, '')
-      return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+      return digits.replace(/^55(?=\d{11}$)/, '') === cleanDigits
     })
     if (localMatch) {
       const hasAcceptedTerms = Boolean(localMatch.acceptedTermsAt)
@@ -792,7 +790,7 @@ export function useAthletes() {
       const waitlistLocal = JSON.parse(localStorage.getItem('beer_run_athlete_waitlist') || '[]')
       const matchedW = waitlistLocal.find(w => {
         const digits = (w.phone || '').replace(/\D/g, '')
-        return digits === cleanDigits || digits.slice(-9) === cleanDigits.slice(-9)
+        return digits.replace(/^55(?=\d{11}$)/, '') === cleanDigits
       })
       if (matchedW) {
         return {
@@ -812,7 +810,7 @@ export function useAthletes() {
     return null
   }
 
-  // Salva dados parciais em cache local (localStorage) e no Supabase (para continuar de onde parou)
+  // Rascunho local; dados pessoais seguem para o backend ao confirmar.
   async function saveAthleteDraft(athleteId, phone, draftData) {
     if (!phone) return
     const cleanPhoneDigits = phone.replace(/\D/g, '')
@@ -832,42 +830,8 @@ export function useAthletes() {
       console.warn('Erro ao salvar rascunho no localStorage:', e)
     }
 
-    // 2. Se o atleta já possui registro no Supabase, atualiza os dados parciais na tabela athletes
-    if (isSupabaseConfigured && supabase && athleteId) {
-      try {
-        const formData = draftData.form || {}
-        const partialPayload = {}
-
-        if (formData.cpf) {
-          const cleanCpf = formData.cpf.replace(/\D/g, '')
-          if (cleanCpf.length === 11) partialPayload.cpf = cleanCpf
-        }
-        if (formData.birthDate) partialPayload.birth_date = formData.birthDate
-        if (formData.gender) partialPayload.gender = formData.gender
-        if (formData.cityState) partialPayload.city_state = formData.cityState.trim()
-        if (formData.email) partialPayload.email = formData.email.trim()
-        if (formData.emergencyContactName) partialPayload.emergency_contact_name = formData.emergencyContactName.trim()
-        if (formData.emergencyContactPhone) partialPayload.emergency_contact_phone = formData.emergencyContactPhone.trim()
-        if (formData.skewerChoice || formData.shirtSize) {
-          partialPayload.shirt_size = (formData.skewerChoice || formData.shirtSize).trim()
-        }
-        if (formData.medicalNotes !== undefined) partialPayload.medical_notes = formData.medicalNotes ? formData.medicalNotes.trim() : null
-        if (formData.modality) partialPayload.modality = formData.modality
-        if (formData.drinksBeer !== undefined) partialPayload.drinks_beer = Boolean(formData.drinksBeer)
-
-        if (Object.keys(partialPayload).length > 0) {
-          await supabase
-            .from('athletes')
-            .update(partialPayload)
-            .eq('id', athleteId)
-        }
-      } catch (sbErr) {
-        console.warn('Aviso ao persistir rascunho no Supabase:', sbErr)
-      }
-    }
   }
 
-  // Carrega rascunho do atleta do localStorage
   function loadAthleteDraft(phone) {
     if (!phone) return null
     const cleanPhoneDigits = phone.replace(/\D/g, '')
@@ -913,4 +877,3 @@ export function useAthletes() {
     clearAthleteDraft
   }
 }
-

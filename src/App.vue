@@ -1,7 +1,10 @@
 <template>
+  <main v-if="isPaymentReturn" class="payment-return-page">
+    <PaymentStatusPage @go-home="exitPaymentReturn" />
+  </main>
   <!-- Tela Dedicada da Staff (Tela Cheia / Mobile Native) -->
   <StaffDashboard
-    v-if="isStaffMode"
+    v-else-if="isStaffMode"
     @exit-staff="exitStaffMode"
   />
 
@@ -40,6 +43,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import PaymentStatusPage from './components/PaymentStatusPage.vue'
 import Navbar from './components/Navbar.vue'
 import HeroSection from './components/HeroSection.vue'
 import HighlightRibbon from './components/HighlightRibbon.vue'
@@ -55,10 +59,12 @@ import SponsorshipModal from './components/SponsorshipModal.vue'
 import StaffDashboard from './components/StaffDashboard.vue'
 import OfficialRegistrationPage from './components/OfficialRegistrationPage.vue'
 import { useAthletes } from './composables/useAthletes.js'
-import { trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
+import { trackPageView, trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
 
 const { isSoldOut } = useAthletes()
 
+const isPaymentReturn = ref(window.location.pathname === '/pagamento-concluido')
+function exitPaymentReturn() { window.location.assign('/') }
 const isRegistrationOpen = ref(false)
 const isSponsorshipOpen = ref(false)
 const isStaffMode = ref(false)
@@ -87,6 +93,7 @@ function exitStaffMode() {
   if (window.location.hash === '#staff') {
     history.replaceState(null, '', window.location.pathname + window.location.search)
   }
+  trackPageView()
 }
 
 function enterOfficialRegistrationMode() {
@@ -103,6 +110,7 @@ function exitOfficialRegistrationMode() {
   if (window.location.hash.startsWith('#inscricao') || window.location.hash.startsWith('#/inscricao')) {
     history.replaceState(null, '', window.location.pathname + window.location.search)
   }
+  trackPageView()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -118,6 +126,7 @@ function handleHashCheck() {
     isStaffMode.value = false
     isOfficialRegistrationMode.value = false
   }
+  trackPageView()
 }
 
 onMounted(() => {
@@ -131,6 +140,16 @@ onUnmounted(() => {
 </script>
 
 <style>
+.payment-return-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  background-color: var(--bg-parchment);
+  background-image: linear-gradient(rgb(247 241 228 / 60%), rgb(247 241 228)), url(/bg02.jpg);
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+
 .app-wrapper {
   min-height: 100vh;
   display: flex;

@@ -36,7 +36,7 @@
           <div class="card-pin pin-br"></div>
           <i class="fa-solid fa-person-running stat-icon"></i>
           <div class="card-main-text font-slab">
-            {{ totalAthletes < 10 && totalAthletes > 0 ? '0' + totalAthletes : totalAthletes }}
+            {{ loading || error ? '—' : String(summary.total).padStart(2, '0') }}
           </div>
           <div class="card-sub-text font-condensed">CONFIRMADOS NO PELOTÃO</div>
           <div class="card-pill-tag font-condensed">ATLETAS</div>
@@ -47,9 +47,9 @@
 </template>
 
 <script setup>
-import { useAthletes } from '../composables/useAthletes.js'
+import { usePublicAthletes } from '../composables/usePublicAthletes.js'
 
-const { totalAthletes, maxAthletes, isSoldOut } = useAthletes()
+const { summary, loading, error } = usePublicAthletes()
 </script>
 
 <style scoped>

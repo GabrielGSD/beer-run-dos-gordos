@@ -17,163 +17,8 @@
     </header>
 
     <main class="container reg-main-content">
-      <!-- 1. TELA DE SUCESSO / COMPROVANTE APÓS INSCRIÇÃO CONCLUÍDA -->
-      <!-- 1. TELA DE SUCESSO / COMPROVANTE / PAGAMENTO APÓS INSCRIÇÃO -->
-      <section v-if="submitted && confirmedAthlete" class="confirmation-section">
-        <div class="vintage-card checkout-card">
-          <!-- Top Header Ribbon -->
-          <div class="checkout-header-ribbon">
-            <div
-              :class="[
-                'checkout-status-badge font-condensed',
-                confirmedAthlete.paymentStatus === 'completed' ? 'status-completed' : 'status-pending'
-              ]"
-            >
-              <span class="status-pulse-dot"></span>
-              <i :class="confirmedAthlete.paymentStatus === 'completed' ? 'fa-solid fa-circle-check' : 'fa-solid fa-clock'"></i>
-              <span>{{ confirmedAthlete.paymentStatus === 'completed' ? 'INSCRIÇÃO CONFIRMADA' : 'AGUARDANDO PAGAMENTO' }}</span>
-            </div>
-            <div class="checkout-ticket-num font-mono">
-              <span class="num-lbl font-condensed">INSCRIÇÃO:</span>
-              <span class="num-badge">BRG-{{ formattedRegistrationCode }}</span>
-            </div>
-          </div>
-
-          <!-- Conteúdo Principal do Checkout -->
-          <div class="checkout-body">
-            <!-- Cabeçalho do Atleta e Prova -->
-            <div class="checkout-athlete-summary">
-              <span class="checkout-subtitle font-condensed">ATLETA INSCRITO(A)</span>
-              <h2 class="checkout-athlete-name font-slab">
-                {{ confirmedAthlete.displayName || confirmedAthlete.name }}
-              </h2>
-
-              <!-- Chips Essenciais Resumidos -->
-              <div class="checkout-chips font-condensed">
-                <span class="checkout-chip">
-                  <i :class="confirmedAthlete.modality === 'caminhada' ? 'fa-solid fa-person-walking' : 'fa-solid fa-person-running'"></i>
-                  {{ confirmedAthlete.modality === 'caminhada' ? 'Caminhada 6.37 KM' : 'Corrida 6.37 KM' }}
-                </span>
-                <span class="checkout-chip">
-                  <i class="fa-solid fa-utensils"></i>
-                  {{ confirmedAthlete.skewerChoice || confirmedAthlete.shirtSize || '1 Carne + 1 Frango' }}
-                </span>
-                <span class="checkout-chip">
-                  <i :class="confirmedAthlete.drinksBeer ? 'fa-solid fa-beer-mug-empty' : 'fa-solid fa-bottle-water'"></i>
-                  {{ confirmedAthlete.drinksBeer ? 'Chopp Liberado' : 'Apenas Hidratação' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- SEÇÃO DE PAGAMENTO: PENDENTE -->
-            <div v-if="confirmedAthlete.paymentStatus !== 'completed'" class="checkout-payment-box">
-              <!-- BOX DO VALOR DA INSCRIÇÃO (DESTAQUE MÁXIMO) -->
-              <div class="checkout-price-card">
-                <div class="price-header">
-                  <span class="price-label font-condensed">VALOR DA INSCRIÇÃO</span>
-                  <span class="price-batch font-condensed">LOTE ÚNICO</span>
-                </div>
-                <div class="price-amount-wrap">
-                  <span class="price-currency font-slab">R$</span>
-                  <span class="price-value font-slab">80</span>
-                  <span class="price-cents font-slab">,00</span>
-                </div>
-                <div class="price-includes-tags font-condensed">
-                  <span><i class="fa-solid fa-check"></i> Medalha Finisher Metal</span>
-                  <span><i class="fa-solid fa-check"></i> 2 Espetinhos na Chegada</span>
-                  <span><i class="fa-solid fa-check"></i> Chopp / Bebida</span>
-                  <span><i class="fa-solid fa-check"></i> Hidratação Oficial</span>
-                </div>
-              </div>
-
-              <!-- BOX DA CHAVE PIX -->
-              <div class="checkout-pix-box">
-                <div class="pix-title-row font-condensed">
-                  <span class="pix-badge"><i class="fa-brands fa-pix"></i> PAGAMENTO VIA PIX</span>
-                  <span class="pix-recipient">Favorecido: <strong>Gabriel Daniel</strong> (Comissão)</span>
-                </div>
-
-                <div class="pix-copy-container">
-                  <div class="pix-key-display">
-                    <span class="pix-key-type font-condensed">CHAVE PIX (E-MAIL):</span>
-                    <strong class="pix-key-string font-mono">gabriel.souza492@gmail.com</strong>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn-copy-pix font-condensed"
-                    @click="copyPixKey"
-                    :class="{ 'btn-copied': pixKeyCopied }"
-                  >
-                    <i :class="pixKeyCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'"></i>
-                    <span>{{ pixKeyCopied ? 'CHAVE COPIADA!' : 'COPIAR CHAVE' }}</span>
-                  </button>
-                </div>
-
-                <p class="pix-instruction-hint font-condensed">
-                  <i class="fa-solid fa-circle-info"></i> Transfira <strong>R$ 80,00</strong> no app do seu banco e envie o comprovante no WhatsApp abaixo para confirmação imediata da vaga:
-                </p>
-              </div>
-
-              <!-- BOTÃO PRINCIPAL: ENVIAR COMPROVANTE -->
-              <div class="checkout-cta-zone">
-                <a
-                  :href="whatsappReceiptUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-vintage btn-whatsapp-checkout font-slab"
-                >
-                  <i class="fa-brands fa-whatsapp"></i>
-                  <span>ENVIAR COMPROVANTE (R$ 80,00)</span>
-                </a>
-                <p class="cta-note font-condensed">
-                  <i class="fa-solid fa-shield-halved"></i> O Staff validará seu pagamento e atualizará o status para <strong>CONCLUÍDO</strong>.
-                </p>
-              </div>
-            </div>
-
-            <!-- SEÇÃO DE PAGAMENTO: JÁ CONFIRMADO / COMPLETED -->
-            <div v-else class="checkout-completed-box">
-              <div class="completed-badge-icon">
-                <i class="fa-solid fa-circle-check"></i>
-              </div>
-              <h3 class="font-slab completed-h3">PAGAMENTO DE R$ 80,00 CONFIRMADO!</h3>
-              <p class="font-condensed completed-p">
-                Sua vaga e seu kit estão 100% garantidos para o dia <strong>29 de Novembro de 2026</strong> em Natércia/MG. Nos vemos na largada!
-              </p>
-
-              <div class="checkout-cta-zone">
-                <a
-                  :href="whatsappReceiptUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-vintage btn-whatsapp-checkout font-slab"
-                >
-                  <i class="fa-brands fa-whatsapp"></i>
-                  <span>FALAR COM A ORGANIZAÇÃO</span>
-                </a>
-              </div>
-            </div>
-
-            <!-- AÇÕES SECUNDÁRIAS COMPACTAS -->
-            <div class="checkout-secondary-actions font-condensed">
-              <button type="button" class="btn-sec-link" @click="printReceipt">
-                <i class="fa-solid fa-print"></i>
-                <span>Imprimir Comprovante</span>
-              </button>
-              <span class="sec-divider">•</span>
-              <button type="button" class="btn-sec-link" @click="$emit('go-home')">
-                <i class="fa-solid fa-house"></i>
-                <span>Voltar ao Início</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Rodapé decorativo discreto -->
-          <div class="checkout-footer-strip font-condensed">
-            <span>BEER RUN DOS GORDOS • NATÉRCIA / MG • 29 NOV 2026 • 08:00</span>
-          </div>
-        </div>
-      </section>
+      <PaymentStatusPage v-if="paymentOrder" :order-id="paymentOrder" @go-home="$emit('go-home')" />
+      <PublicRegistrationStatus v-else-if="publicLookup" :key="publicLookup.phone" :phone="publicLookup.phone" :initial-status="publicLookup.publicStatus" @back="publicLookup = null" @resume="paymentOrder = $event" />
 
       <!-- 2. CARREGAMENTO / VERIFICAÇÃO AUTOMÁTICA EM ANDAMENTO -->
       <section v-else-if="isAutoVerifying" class="auth-barrier-section">
@@ -192,7 +37,7 @@
       <section v-else-if="!verifiedAthlete" class="auth-barrier-section">
         <div class="vintage-card auth-card">
           <div class="auth-badge font-condensed">
-            <i class="fa-solid fa-lock"></i> VAGAS PESSOAIS E INTRANSFERÍVEIS
+            <i class="fa-solid fa-ticket"></i> INSCRIÇÕES BEER RUN
           </div>
 
           <div class="auth-header">
@@ -200,27 +45,31 @@
               <i class="fa-solid fa-user-shield"></i>
             </div>
             <div>
-              <h1 class="auth-title font-slab">ÁREA EXCLUSIVA PARA CONVOCADOS</h1>
+              <h1 class="auth-title font-slab">CONSULTE SUA INSCRIÇÃO</h1>
               <p class="auth-subtitle font-condensed">
-                Para evitar repasses indevidos de vagas, a inscrição oficial é restrita aos atletas que já realizaram a pré-inscrição e foram chamados pela comissão.
+                Informe o WhatsApp usado na pré-inscrição para continuar ou consultar seu pedido.
               </p>
             </div>
           </div>
 
           <div class="auth-form-box">
-            <div v-if="authError" class="auth-error-banner font-condensed">
+            <div v-if="authError" role="alert" class="auth-error-banner font-condensed">
               <i class="fa-solid fa-circle-exclamation"></i>
               <span>{{ authError }}</span>
             </div>
 
             <form @submit.prevent="handleManualAuth" class="auth-form">
               <div class="form-group">
-                <label class="auth-label font-condensed">
-                  INFORME O WHATSAPP CADASTRADO NA PRÉ-INSCRIÇÃO:
+                <label for="registration-phone" class="auth-label font-condensed">
+                  WHATSAPP CADASTRADO
                 </label>
                 <div class="input-with-button">
                   <input
+                    id="registration-phone"
                     type="tel"
+                    autocomplete="tel-national"
+                    inputmode="tel"
+                    aria-describedby="registration-phone-help"
                     v-model="manualPhoneInput"
                     @input="formatManualPhone"
                     maxlength="15"
@@ -235,15 +84,16 @@
                     :disabled="isVerifying"
                   >
                     <i v-if="isVerifying" class="fa-solid fa-spinner fa-spin"></i>
-                    <i v-else class="fa-solid fa-key"></i>
-                    <span>{{ isVerifying ? 'VERIFICANDO...' : 'LIBERAR INSCRIÇÃO' }}</span>
+                    <i v-else class="fa-solid fa-magnifying-glass"></i>
+                    <span>{{ isVerifying ? 'CONSULTANDO...' : 'CONSULTAR INSCRIÇÃO' }}</span>
                   </button>
                 </div>
               </div>
+              <p id="registration-phone-help" class="auth-phone-help font-condensed">Use o mesmo número da pré-inscrição, com DDD.</p>
             </form>
 
             <div class="auth-footer-help font-condensed">
-              <span>Ainda não realizou sua pré-inscrição ou está na lista de espera?</span>
+              <span>Precisa de ajuda com sua inscrição?</span>
               <div class="auth-help-actions">
                 <button class="link-btn" @click="$emit('go-home')">
                   ← Acessar Página Inicial
@@ -270,7 +120,7 @@
             <div class="welcome-shield-circle">
               <i class="fa-solid fa-circle-check"></i>
             </div>
-            <span class="welcome-tag font-condensed">★ ATLETA CONVOCADO(A) E AUTENTICADO(A) ★</span>
+            <span class="welcome-tag font-condensed">★ PRÉ-INSCRIÇÃO LOCALIZADA ★</span>
             <h1 class="welcome-name font-slab">{{ verifiedAthlete.displayName || verifiedAthlete.name }}</h1>
             
             <div class="welcome-phone font-condensed">
@@ -283,14 +133,17 @@
 
           <!-- Mensagem e Instruções -->
           <div class="welcome-body font-condensed">
-            <p class="welcome-lead">
+            <p v-if="verifiedAthlete.requiresDetails" class="welcome-lead">
+              Localizamos sua pré-inscrição. Confira e complete os dados para continuar.
+            </p>
+            <p v-else class="welcome-lead">
               Sua vaga para a <strong>1ª Edição da Beer Run dos Gordos (29 de Novembro de 2026)</strong> está liberada! Seus dados de pré-inscrição já foram importados com sucesso.
             </p>
             <p class="welcome-instruction">
-              Para oficializar sua participação na prova (número de peito, medalha, chopp e churrasco de chegada), complete as <strong>4 etapas rápidas</strong> abaixo:
+              Para oficializar sua participação na prova, complete as <strong>5 etapas rápidas</strong> abaixo:
             </p>
 
-            <!-- Preview Visual das 4 Etapas -->
+            <!-- Preview Visual das 5 Etapas -->
             <div class="welcome-steps-preview">
               <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 1, 'preview-done': savedDraftStep > 1 }">
                 <span class="preview-num">
@@ -320,8 +173,8 @@
                   <span v-else>3</span>
                 </span>
                 <div class="preview-text">
-                  <strong>3. Espetinhos & Chopp</strong>
-                  <span>Modalidade, 2 espetinhos e chopp</span>
+                  <strong>3. Modalidade & Brindes</strong>
+                  <span>Modalidade, camiseta, espetinhos e chopp</span>
                 </div>
               </div>
 
@@ -332,7 +185,14 @@
                 </span>
                 <div class="preview-text">
                   <strong>4. Regulamento</strong>
-                  <span>Termos da prova e dados do PIX</span>
+                  <span>Leitura e aceite dos termos da prova</span>
+                </div>
+              </div>
+              <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 5 }">
+                <span class="preview-num">5</span>
+                <div class="preview-text">
+                  <strong>5. Resumo e pagamento</strong>
+                  <span>Confira seu kit, desconto e valor total</span>
                 </div>
               </div>
             </div>
@@ -358,7 +218,7 @@
             >
               <i v-if="hasSavedDraft" class="fa-solid fa-play"></i>
               <i v-else class="fa-solid fa-flag-checkered"></i>
-              <span>{{ hasSavedDraft ? `CONTINUAR INSCRIÇÃO (ETAPA ${savedDraftStep} DE 4)` : 'COMEÇAR INSCRIÇÃO' }}</span>
+              <span>{{ hasSavedDraft ? `CONTINUAR INSCRIÇÃO (ETAPA ${savedDraftStep} DE 5)` : 'COMEÇAR INSCRIÇÃO' }}</span>
               <i class="fa-solid fa-arrow-right"></i>
             </button>
 
@@ -450,7 +310,7 @@
                   <span class="step-num font-condensed">1</span> DADOS PESSOAIS DO ATLETA
                 </h2>
                 <p class="step-subtitle font-condensed">
-                  Etapa 1 de 4 • Confirme sua identificação para o número de peito e classificação
+                  Etapa 1 de 5 • Confirme sua identificação para o número de peito e classificação
                 </p>
               </div>
 
@@ -459,19 +319,23 @@
                 <div class="form-group full-width">
                   <label class="form-label font-condensed">
                     NOME COMPLETO *
-                    <span class="locked-hint">
+                    <span v-if="!verifiedAthlete.requiresDetails" class="locked-hint">
                       <i class="fa-solid fa-lock"></i> Nome oficial da pré-inscrição (vaga intransferível)
                     </span>
                   </label>
                   <div class="input-locked-wrapper">
                     <input
                       type="text"
-                      :value="form.name"
-                      readonly
-                      class="vintage-input font-condensed input-locked"
-                      title="O nome não pode ser alterado pois está vinculado à sua convocação oficial."
+                      v-model="form.name"
+                      :readonly="!verifiedAthlete.requiresDetails"
+                      :disabled="isSubmitting"
+                      required
+                      maxlength="120"
+                      class="vintage-input font-condensed"
+                      :class="{ 'input-locked': !verifiedAthlete.requiresDetails }"
+                      :title="verifiedAthlete.requiresDetails ? 'Informe seu nome completo.' : 'Nome da pré-inscrição.'"
                     />
-                    <span class="lock-indicator" title="Campo bloqueado">
+                    <span v-if="!verifiedAthlete.requiresDetails" class="lock-indicator" title="Campo bloqueado">
                       <i class="fa-solid fa-lock"></i>
                     </span>
                   </div>
@@ -573,8 +437,7 @@
                   class="btn-vintage btn-step-next font-slab"
                   @click="goToNextStep"
                 >
-                  <span class="btn-text-desktop">CONTINUAR PARA CONTATO & EMERGÊNCIA</span>
-                  <span class="btn-text-mobile">AVANÇAR</span>
+                  <span>CONTINUAR</span>
                   <i class="fa-solid fa-arrow-right"></i>
                 </button>
               </div>
@@ -587,11 +450,15 @@
                   <span class="step-num font-condensed">2</span> CONTATO & EMERGÊNCIA
                 </h2>
                 <p class="step-subtitle font-condensed">
-                  Etapa 2 de 4 • Dados de segurança obrigatórios para atendimento no percurso rural
+                  Etapa 2 de 5 • Dados de segurança obrigatórios para atendimento no percurso rural
                 </p>
               </div>
 
               <div class="form-grid">
+                <div class="form-group full-width">
+                  <label class="form-label font-condensed">E-MAIL *</label>
+                  <input v-model="form.email" type="email" required maxlength="254" class="vintage-input font-condensed" placeholder="voce@exemplo.com" />
+                </div>
                 <!-- CELULAR / WHATSAPP (BLOQUEADO / READONLY) -->
                 <div class="form-group">
                   <label class="form-label font-condensed">
@@ -671,8 +538,7 @@
                   class="btn-vintage btn-step-next font-slab"
                   @click="goToNextStep"
                 >
-                  <span class="btn-text-desktop">CONTINUAR PARA ESPETINHOS & CHOPP</span>
-                  <span class="btn-text-mobile">AVANÇAR</span>
+                  <span>CONTINUAR</span>
                   <i class="fa-solid fa-arrow-right"></i>
                 </button>
               </div>
@@ -685,7 +551,7 @@
                   <span class="step-num font-condensed">3</span> MODALIDADE & BRINDES
                 </h2>
                 <p class="step-subtitle font-condensed">
-                  Etapa 3 de 4 • Selecione sua modalidade, opção de espetinhos e hidratação
+                  Etapa 3 de 5 • Selecione sua modalidade, camiseta, espetinhos e hidratação
                 </p>
               </div>
 
@@ -872,6 +738,14 @@
                     </div>
                   </div>
                 </div>
+                <div class="form-group full-width">
+                  <label for="shirt-size" class="form-label font-condensed">TAMANHO DA CAMISETA 👕 *</label>
+                  <select id="shirt-size" v-model="form.shirtSize" class="vintage-input font-condensed" required aria-describedby="shirt-size-help">
+                    <option disabled value="">Selecione o tamanho</option>
+                    <option v-for="size in SHIRT_SIZES" :key="size" :value="size">{{ size }}</option>
+                  </select>
+                  <small id="shirt-size-help" class="field-desc font-condensed">Camiseta incluída na inscrição de todos os atletas.</small>
+                </div>
               </div>
 
               <!-- Botões da Etapa 3 -->
@@ -889,8 +763,7 @@
                   class="btn-vintage btn-step-next font-slab"
                   @click="goToNextStep"
                 >
-                  <span class="btn-text-desktop">AVANÇAR PARA O REGULAMENTO</span>
-                  <span class="btn-text-mobile">AVANÇAR</span>
+                  <span>CONTINUAR</span>
                   <i class="fa-solid fa-arrow-right"></i>
                 </button>
               </div>
@@ -903,7 +776,7 @@
                   <span class="step-num font-condensed">4</span> REGULAMENTO & ACEITE
                 </h2>
                 <p class="step-subtitle font-condensed">
-                  Etapa 4 de 4 • Leia o regulamento oficial e confirme sua participação na prova
+                  Etapa 4 de 5 • Leia o regulamento e aceite os termos para continuar
                 </p>
               </div>
 
@@ -998,12 +871,58 @@
                   />
                   <span class="checkbox-custom"></span>
                   <span class="terms-text">
-                    <strong>LI E CONCORDO COM O REGULAMENTO OFICIAL:</strong> Declaro que li integralmente e concordo com todos os termos do Regulamento da Beer Run dos Gordos 2026. Atesto que possuo aptidão física para a realização do percurso rural de 6,37 km, isentando a organização de responsabilidades decorrentes de condições clínicas prévias, e autorizo expressamente o uso da minha imagem em fotografias e filmagens oficiais para divulgação do evento e das ações do Natal Solidário dos Gordos.
+                    <strong>Li e concordo com o Regulamento da Beer Run dos Gordos 2026.</strong> Declaro estar apto(a) para participar e autorizo o uso da minha imagem conforme o regulamento.
                   </span>
                 </label>
               </div>
 
-              <!-- Botões da Etapa 4 (Finalização) -->
+              <div class="step-footer-actions">
+                <button type="button" class="btn-vintage btn-step-back font-slab" @click="goToPrevStep">
+                  <i class="fa-solid fa-arrow-left"></i><span>VOLTAR</span>
+                </button>
+                <button type="button" class="btn-vintage btn-step-next font-slab" :disabled="!form.acceptedTerms" @click="goToNextStep">
+                  <span>CONTINUAR</span><i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <div v-else-if="currentStep === 5" key="step5" class="form-section-card step-card payment-review-card" role="region" aria-label="Resumo e pagamento">
+              <div class="step-header">
+                <h2 class="section-title font-slab"><span class="step-num font-condensed">5</span> RESUMO & PAGAMENTO</h2>
+                <p class="step-subtitle font-condensed">Etapa 5 de 5 • Confira seu kit e o total</p>
+              </div>
+
+              <section class="registration-kit-summary font-condensed" aria-label="Kit selecionado">
+                <div class="review-section-heading">
+                  <h3 class="font-slab">Sua inscrição inclui</h3>
+                  <button type="button" class="review-edit-button" :disabled="isSubmitting" @click="goToStep(3)">Editar escolhas</button>
+                </div>
+                <dl class="review-kit-grid">
+                  <div><dt>Modalidade</dt><dd>{{ form.modality === 'caminhada' ? 'Caminhada' : 'Corrida' }} · 6,37 km</dd></div>
+                  <div><dt>Camiseta</dt><dd>Tamanho {{ form.shirtSize }}</dd></div>
+                  <div><dt>Churrasco de chegada</dt><dd>{{ formatSkewerLabel(form.skewerChoice) }}</dd></div>
+                  <div><dt>Hidratação</dt><dd>{{ form.drinksBeer ? 'Com chopp artesanal' : 'Sem álcool · água e refrigerante' }}</dd></div>
+                </dl>
+              </section>
+
+              <CouponEntry v-if="verifiedAthlete.couponEligible === true" v-model="form.couponCode" :phone="verifiedAthlete.phone" :beer="form.drinksBeer"
+                :disabled="isSubmitting" :show-total="false" @quote="couponQuote = $event" />
+
+              <section class="registration-total-card font-condensed" aria-label="Valores da inscrição" aria-live="polite">
+                <dl class="review-amounts">
+                  <div><dt>Inscrição {{ form.drinksBeer ? 'com chopp' : 'sem chopp' }}</dt><dd>{{ formatMoney(registrationAmount) }}</dd></div>
+                  <div v-if="couponQuote" class="review-discount"><dt>Desconto aplicado</dt><dd>− {{ formatMoney(couponQuote.discountAmount) }}</dd></div>
+                  <div class="review-total"><dt>Total a pagar</dt><dd class="font-slab">{{ formatMoney(couponQuote?.amount ?? registrationAmount) }}</dd></div>
+                </dl>
+                <p>Todos os itens acima incluídos.</p>
+              </section>
+              <p v-if="couponNeedsApply" class="review-coupon-hint font-condensed" role="status">Aplique o cupom ou apague o código para continuar.</p>
+              <div class="review-payment-note font-condensed">
+                <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                <p>Pagamento seguro pela InfinitePay. Inscrição confirmada após a aprovação do pagamento.</p>
+              </div>
+              <p v-if="submitError" role="alert" class="auth-error-banner font-condensed">{{ submitError }}</p>
+              <!-- Botões da Etapa 5 (Finalização) -->
               <div class="step-footer-actions final-actions">
                 <button
                   type="button"
@@ -1017,18 +936,13 @@
                 <button
                   type="submit"
                   class="btn-vintage btn-submit-registration font-slab"
-                  :disabled="isSubmitting || !form.acceptedTerms"
+                  :disabled="isSubmitting || !form.acceptedTerms || couponNeedsApply"
                 >
                   <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
                   <i v-else class="fa-solid fa-check-double"></i>
-                  <span class="btn-text-desktop">{{ isSubmitting ? 'PROCESSANDO INSCRIÇÃO...' : 'CONFIRMAR INSCRIÇÃO OFICIAL' }}</span>
-                  <span class="btn-text-mobile">{{ isSubmitting ? 'PROCESSANDO...' : 'CONFIRMAR INSCRIÇÃO' }}</span>
+                  <span>{{ isSubmitting ? 'PROCESSANDO...' : 'CONFIRMAR E PAGAR' }}</span>
                 </button>
               </div>
-
-              <p class="submit-guarantee font-condensed mt-3 text-center" style="margin-top: 15px">
-                <i class="fa-solid fa-lock"></i> Seus dados estão protegidos e serão utilizados exclusivamente para os procedimentos da prova.
-              </p>
             </div>
           </transition>
         </form>
@@ -1040,17 +954,34 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAthletes } from '../composables/useAthletes.js'
-import { trackEvent } from '../services/analytics.js'
+import PaymentStatusPage from './PaymentStatusPage.vue'
+import PublicRegistrationStatus from './PublicRegistrationStatus.vue'
+import CouponEntry from './CouponEntry.vue'
+import { resolveRegistrationAthlete } from '../services/registration-access.js'
+import { submitRegistration } from '../services/checkout.js'
+import { trackPageView, trackRegistrationEvent, trackRegistrationOrder } from '../services/analytics.js'
+import { analyticsErrorKind } from '../services/analytics-policy.js'
 
 const emit = defineEmits(['go-home'])
 
 const {
-  registerOfficialAthlete,
-  findAthleteByPhone,
   saveAthleteDraft,
   loadAthleteDraft,
   clearAthleteDraft
 } = useAthletes()
+
+async function findAthleteByPhone(phone, origem = 'manual') {
+  trackRegistrationEvent('inscricao_consulta', { origem, resultado: 'tentativa' })
+  try {
+    const found = await resolveRegistrationAthlete(phone)
+    trackRegistrationEvent('inscricao_consulta', { origem, resultado: found?.orderId ? 'pedido_existente'
+      : found?.publicStatus ? 'status_disponivel' : found ? 'localizado' : 'nao_encontrado' })
+    return found
+  } catch (error) {
+    trackRegistrationEvent('inscricao_consulta', { origem, resultado: 'erro', tipo_erro: analyticsErrorKind(error) })
+    throw error
+  }
+}
 
 const isAutoVerifying = ref(false)
 const isVerifying = ref(false)
@@ -1067,12 +998,29 @@ const currentStep = ref(1)
 const stepError = ref('')
 
 const isSubmitting = ref(false)
-const submitted = ref(false)
+const paymentOrder = ref('')
+const publicLookup = ref(null)
 const submitError = ref('')
+let submitErrorKind = 'validacao'
 const athleteAge = ref(null)
-const confirmedAthlete = ref(null)
+
+watch([hasStartedWizard, currentStep, paymentOrder, publicLookup], () => {
+  if (hasStartedWizard.value && !paymentOrder.value && !publicLookup.value) {
+    trackRegistrationEvent('inscricao_etapa_visualizada', { etapa: currentStep.value })
+  }
+})
+watch(stepError, value => {
+  if (value) trackRegistrationEvent('inscricao_erro', { etapa: currentStep.value, tipo_erro: 'validacao' })
+}, { flush: 'sync' })
+watch(authError, value => {
+  if (value) trackRegistrationEvent('inscricao_erro', { tipo_erro: 'consulta' })
+}, { flush: 'sync' })
+watch(submitError, value => {
+  if (value && value !== stepError.value) trackRegistrationEvent('inscricao_erro', { etapa: currentStep.value, tipo_erro: submitErrorKind })
+}, { flush: 'sync' })
 
 const VALID_SKEWER_CHOICES = ['1 Carne + 1 Frango', '2 Carne', '2 Frango', 'Vegetariano']
+const SHIRT_SIZES = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG']
 
 const skewerCarne = ref(1)
 const skewerFrango = ref(1)
@@ -1094,19 +1042,14 @@ function resolveValidSkewer(val) {
 function updateSkewerChoice() {
   if (skewerIsVegetarian.value) {
     form.skewerChoice = 'Vegetariano'
-    form.shirtSize = 'Vegetariano'
   } else if (skewerCarne.value === 1 && skewerFrango.value === 1) {
     form.skewerChoice = '1 Carne + 1 Frango'
-    form.shirtSize = '1 Carne + 1 Frango'
   } else if (skewerCarne.value === 2) {
     form.skewerChoice = '2 Carne'
-    form.shirtSize = '2 Carne'
   } else if (skewerFrango.value === 2) {
     form.skewerChoice = '2 Frango'
-    form.shirtSize = '2 Frango'
   } else {
     form.skewerChoice = '1 Carne + 1 Frango'
-    form.shirtSize = '1 Carne + 1 Frango'
   }
   persistDraft()
 }
@@ -1192,20 +1135,30 @@ const form = reactive({
   modality: 'corrida',
   drinksBeer: true,
   skewerChoice: '1 Carne + 1 Frango',
-  shirtSize: '1 Carne + 1 Frango',
-  acceptedTerms: false
+  shirtSize: '',
+  acceptedTerms: false,
+  couponCode: ''
 })
 
 const steps = [
   { step: 1, label: '1. Identificação' },
   { step: 2, label: '2. Emergência' },
-  { step: 3, label: '3. Espetinhos & Chopp' },
-  { step: 4, label: '4. Regulamento' }
+  { step: 3, label: '3. Modalidade & Brindes' },
+  { step: 4, label: '4. Regulamento' },
+  { step: 5, label: '5. Resumo e pagamento' }
 ]
+
+const couponQuote = ref(null)
+const registrationAmount = computed(() => form.drinksBeer ? 10000 : 9000)
+const couponNeedsApply = computed(() => verifiedAthlete.value?.couponEligible === true && Boolean(form.couponCode) && !couponQuote.value)
+const formatMoney = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
+watch(() => [form.couponCode, form.drinksBeer, form.phone, currentStep.value], () => {
+  couponQuote.value = null
+}, { flush: 'sync' })
 
 let draftDebounceTimer = null
 
-// Persistência contínua: salva localmente no localStorage e de forma parcial no Supabase
+// Persistência local do rascunho; gravação remota somente pela API.
 async function persistDraft(immediate = false) {
   if (!verifiedAthlete.value) return
 
@@ -1249,10 +1202,12 @@ watch(
 
 function startWizard(stepOverride) {
   stepError.value = ''
-  const target = typeof stepOverride === 'number' && stepOverride >= 1 && stepOverride <= 4
+  const target = typeof stepOverride === 'number' && stepOverride >= 1 && stepOverride <= steps.length
     ? stepOverride
     : (savedDraftStep.value || 1)
-  currentStep.value = target
+  currentStep.value = target >= 4 && !SHIRT_SIZES.includes(form.shirtSize) ? 3
+    : target === 5 && !form.acceptedTerms ? 4 : target
+  trackRegistrationEvent('inscricao_inicio', { retomada: hasSavedDraft.value ? 'sim' : 'nao', etapa: currentStep.value })
   hasStartedWizard.value = true
   persistDraft(true)
   scrollToCard()
@@ -1273,6 +1228,16 @@ function canNavigateTo(targetStep) {
 
 function goToStep(targetStep) {
   stepError.value = ''
+  if (targetStep >= 4 && !validateStep3()) {
+    currentStep.value = 3
+    scrollToCard()
+    return
+  }
+  if (targetStep === 5 && !validateStep4()) {
+    currentStep.value = 4
+    scrollToCard()
+    return
+  }
   currentStep.value = targetStep
   persistDraft(true)
   scrollToCard()
@@ -1289,7 +1254,7 @@ function scrollToCard() {
 
 function validateStep1() {
   if (!form.name || !form.name.trim()) {
-    stepError.value = 'Nome do atleta não identificado. Por favor, autentique seu WhatsApp.'
+    stepError.value = 'Por favor, informe seu nome completo para continuar.'
     return false
   }
   const cleanCpf = (form.cpf || '').replace(/\D/g, '')
@@ -1313,6 +1278,10 @@ function validateStep1() {
 }
 
 function validateStep2() {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    stepError.value = 'Informe um e-mail válido para continuar.'
+    return false
+  }
   if (!form.phone || (form.phone || '').replace(/\D/g, '').length < 10) {
     stepError.value = 'Número de WhatsApp inválido ou não autenticado.'
     return false
@@ -1330,6 +1299,10 @@ function validateStep2() {
 }
 
 function validateStep3() {
+  if (!SHIRT_SIZES.includes(form.shirtSize)) {
+    stepError.value = 'Por favor, selecione o tamanho da sua camiseta.'
+    return false
+  }
   if (!form.modality) {
     stepError.value = 'Por favor, selecione a modalidade desejada (Corrida ou Caminhada).'
     return false
@@ -1341,24 +1314,43 @@ function validateStep3() {
   return true
 }
 
+function validateStep4() {
+  if (!form.acceptedTerms) {
+    stepError.value = 'Leia e aceite o regulamento para continuar.'
+    return false
+  }
+  return true
+}
+
 function goToNextStep() {
   stepError.value = ''
   if (currentStep.value === 1) {
     if (!validateStep1()) return
+    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 1 })
     currentStep.value = 2
     if (currentStep.value > savedDraftStep.value) savedDraftStep.value = 2
     persistDraft(true)
     scrollToCard()
   } else if (currentStep.value === 2) {
     if (!validateStep2()) return
+    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 2 })
     currentStep.value = 3
     if (currentStep.value > savedDraftStep.value) savedDraftStep.value = 3
     persistDraft(true)
     scrollToCard()
   } else if (currentStep.value === 3) {
     if (!validateStep3()) return
+    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 3, modalidade: form.modality,
+      camiseta: form.shirtSize, espetinhos: form.skewerChoice, chopp: form.drinksBeer })
     currentStep.value = 4
     if (currentStep.value > savedDraftStep.value) savedDraftStep.value = 4
+    persistDraft(true)
+    scrollToCard()
+  } else if (currentStep.value === 4) {
+    if (!validateStep4()) return
+    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 4 })
+    currentStep.value = 5
+    savedDraftStep.value = 5
     persistDraft(true)
     scrollToCard()
   }
@@ -1375,11 +1367,17 @@ function goToPrevStep() {
 
 function applyVerifiedAthlete(athlete) {
   verifiedAthlete.value = athlete
+  if (athlete.requiresDetails) {
+    for (const field of ['cpf', 'birthDate', 'cityState', 'email', 'emergencyContactName', 'emergencyContactPhone', 'medicalNotes']) form[field] = ''
+    form.acceptedTerms = false
+    athleteAge.value = null
+  }
 
   // 1. Preenche dados herdados da pré-inscrição e do banco
   form.name = athlete.name
   form.nickname = athlete.nickname || ''
   form.phone = athlete.phone
+  form.couponCode = ''
   form.modality = athlete.modality || 'corrida'
   form.drinksBeer = athlete.drinksBeer !== false
 
@@ -1395,28 +1393,21 @@ function applyVerifiedAthlete(athlete) {
   if (athlete.emergencyContactPhone) form.emergencyContactPhone = athlete.emergencyContactPhone
   const athleteSkewer = resolveValidSkewer(athlete.skewerChoice || athlete.shirtSize)
   form.skewerChoice = athleteSkewer
-  form.shirtSize = athleteSkewer
+  form.shirtSize = SHIRT_SIZES.includes(athlete.shirtSize) ? athlete.shirtSize : ''
   syncSkewersFromChoice(athleteSkewer)
   if (athlete.medicalNotes) form.medicalNotes = athlete.medicalNotes
 
   // 2. Se já tiver inscrição oficial finalizada (com termos aceitos), exibe o ticket direto
-  if (athlete.isAlreadyOfficial) {
-    confirmedAthlete.value = athlete
-    submitted.value = true
-    hasStartedWizard.value = false
-    clearAthleteDraft(athlete.phone)
-    return
-  }
+  // Confirmacao financeira vem somente da consulta autenticada ao backend.
 
   // 3. É pré-inscrição / rascunho em andamento!
-  confirmedAthlete.value = null
-  submitted.value = false
   hasStartedWizard.value = false // TELA INICIAL É APENAS O PRIMEIRO CARD!
 
   // 4. Carrega cache local de rascunho (localStorage)
   const localDraft = loadAthleteDraft(athlete.phone)
   if (localDraft && localDraft.form) {
     const df = localDraft.form
+    if (athlete.requiresDetails && typeof df.name === 'string' && df.name.trim()) form.name = df.name
     if (df.cpf) form.cpf = df.cpf
     if (df.birthDate) {
       form.birthDate = df.birthDate
@@ -1425,18 +1416,19 @@ function applyVerifiedAthlete(athlete) {
     if (df.gender) form.gender = df.gender
     if (df.cityState) form.cityState = df.cityState
     if (df.email) form.email = df.email
+    if (athlete.couponEligible === true && typeof df.couponCode === 'string') form.couponCode = df.couponCode
     if (df.emergencyContactName) form.emergencyContactName = df.emergencyContactName
     if (df.emergencyContactPhone) form.emergencyContactPhone = df.emergencyContactPhone
     const draftSkewer = resolveValidSkewer(df.skewerChoice || df.shirtSize)
     form.skewerChoice = draftSkewer
-    form.shirtSize = draftSkewer
+    form.shirtSize = SHIRT_SIZES.includes(df.shirtSize) ? df.shirtSize : ''
     syncSkewersFromChoice(draftSkewer)
     if (df.medicalNotes !== undefined) form.medicalNotes = df.medicalNotes
     if (df.modality) form.modality = df.modality
     if (df.drinksBeer !== undefined) form.drinksBeer = df.drinksBeer
     if (df.acceptedTerms) form.acceptedTerms = df.acceptedTerms
 
-    if (localDraft.currentStep && localDraft.currentStep >= 1) {
+    if (Number.isInteger(localDraft.currentStep) && localDraft.currentStep >= 1 && localDraft.currentStep <= steps.length) {
       savedDraftStep.value = localDraft.currentStep
       hasSavedDraft.value = true
     }
@@ -1458,27 +1450,6 @@ function applyVerifiedAthlete(athlete) {
   }
 }
 
-const pixKeyCopied = ref(false)
-function copyPixKey() {
-  const pixKey = 'gabriel.souza492@gmail.com'
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(pixKey)
-  } else {
-    // Fallback manual para clipboard
-    const el = document.createElement('textarea')
-    el.value = pixKey
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-  }
-  pixKeyCopied.value = true
-  setTimeout(() => {
-    pixKeyCopied.value = false
-  }, 3000)
-}
-
-// Verificação automática ao abrir link com query params (#inscricao?tel=...)
 async function checkHashParams() {
   try {
     const rawHash = window.location.hash || ''
@@ -1490,10 +1461,16 @@ async function checkHashParams() {
 
       if (telParam) {
         isAutoVerifying.value = true
-        const found = await findAthleteByPhone(telParam)
+        const found = await findAthleteByPhone(telParam, 'link')
         isAutoVerifying.value = false
 
-        if (found) {
+        if (found?.orderId) {
+          paymentOrder.value = found.orderId
+          return
+        } else if (found?.publicStatus) {
+          publicLookup.value = found
+          return
+        } else if (found) {
           applyVerifiedAthlete(found)
           return
         } else {
@@ -1502,12 +1479,14 @@ async function checkHashParams() {
       }
     }
   } catch (e) {
-    console.warn('Erro ao verificar parâmetros da URL:', e)
+    authError.value = e.message || 'Não foi possível verificar sua pré-inscrição. Tente novamente.'
     isAutoVerifying.value = false
   }
 }
 
 onMounted(() => {
+  trackPageView()
+  trackRegistrationEvent('inscricao_visualizada')
   checkHashParams()
   window.addEventListener('hashchange', checkHashParams)
 })
@@ -1519,9 +1498,10 @@ onUnmounted(() => {
 
 // Validação manual caso o atleta abra o link solto ou precise conferir o número
 async function handleManualAuth() {
+  if (isVerifying.value) return
   authError.value = ''
   const clean = manualPhoneInput.value.replace(/\D/g, '')
-  if (clean.length < 10) {
+  if (clean.length !== 11) {
     authError.value = 'Por favor, informe um número de celular/WhatsApp válido com DDD.'
     return
   }
@@ -1529,13 +1509,17 @@ async function handleManualAuth() {
   isVerifying.value = true
   try {
     const found = await findAthleteByPhone(manualPhoneInput.value)
-    if (found) {
+    if (found?.orderId) {
+      paymentOrder.value = found.orderId
+    } else if (found?.publicStatus) {
+      publicLookup.value = found
+    } else if (found) {
       applyVerifiedAthlete(found)
     } else {
       authError.value = 'Número não encontrado na lista de pré-inscrições ou lista de espera. Verifique se digitou o DDD correto ou fale com a organização.'
     }
   } catch (err) {
-    authError.value = 'Erro ao consultar a base de dados. Verifique sua conexão e tente novamente.'
+    authError.value = err.message || 'Erro ao consultar a base de dados. Verifique sua conexão e tente novamente.'
   } finally {
     isVerifying.value = false
   }
@@ -1602,63 +1586,19 @@ function handleBirthDateChange() {
   }
 }
 
-const formattedRegistrationCode = computed(() => {
-  if (!confirmedAthlete.value || confirmedAthlete.value.id === undefined || confirmedAthlete.value.id === null) {
-    return '00000'
-  }
-  const rawId = confirmedAthlete.value.id
-  const numId = Number(rawId)
-
-  // Se for o ID numérico do banco de dados (ex: 3, 15, 42)
-  if (!isNaN(numId) && numId > 0 && numId < 1000000) {
-    return String(numId).padStart(5, '0')
-  }
-
-  // Fallback caso seja um timestamp legado
-  const idStr = String(rawId).trim()
-  return idStr.slice(-5)
-})
-
-const whatsappReceiptUrl = computed(() => {
-  if (!confirmedAthlete.value) return '#'
-
-  const athlete = confirmedAthlete.value
-  const isPaid = athlete.paymentStatus === 'completed'
-
-  const title = isPaid
-    ? `🍻 *INSCRIÇÃO OFICIAL CONCLUÍDA - BEER RUN DOS GORDOS 2026* 🏃‍♂️`
-    : `🍻 *COMPROVANTE DE PAGAMENTO (R$ 80,00) - BEER RUN DOS GORDOS 2026* 🏃‍♂️`
-
-  const intro = isPaid
-    ? `Olá comissão! Minha inscrição oficial está concluída e confirmada no site.`
-    : `Olá comissão organizadora! Acabei de realizar o pagamento da minha inscrição oficial (R$ 80,00) via PIX e estou enviando o comprovante para confirmação:`
-
-  const text = encodeURIComponent(
-    `${title}\n\n` +
-    `${intro}\n\n` +
-    `👤 *Atleta:* ${athlete.displayName || athlete.name}\n` +
-    `🔖 *Inscrição:* BRG-${formattedRegistrationCode.value}\n` +
-    `💵 *Valor da Inscrição:* R$ 80,00 (Lote Único)\n` +
-    `📄 *CPF:* ${athlete.cpf ? athlete.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.***.***-$4') : 'Cadastrado'}\n` +
-    `📱 *WhatsApp:* ${athlete.phone}\n` +
-    `🏃 *Modalidade:* ${athlete.modality === 'caminhada' ? 'Caminhada 6.37 KM' : 'Corrida 6.37 KM'}\n` +
-    `🍢 *Espetinhos Chegada (2 un):* ${athlete.skewerChoice || athlete.shirtSize || '1 Carne + 1 Frango'}\n` +
-    `🍺 *Chopp:* ${athlete.drinksBeer ? 'Sim, liberado!' : 'Apenas hidratação'}\n` +
-    `📋 *Status:* ${isPaid ? 'CONCLUÍDO (PAGO)' : 'AGUARDANDO PAGAMENTO'}\n\n` +
-    (isPaid
-      ? `_Nos vemos na largada dia 29 de Novembro de 2026! Valeu!_`
-      : `_Segue o comprovante em anexo. Podem conferir e atualizar o status para CONCLUÍDO por favor? Obrigado!_`)
-  )
-
-  return `https://wa.me/5535997500430?text=${text}`
-})
-
-function printReceipt() {
-  window.print()
-}
-
 async function handleSubmit() {
+  if (isSubmitting.value) return
+  submitErrorKind = 'validacao'
   submitError.value = ''
+
+  if (currentStep.value !== 5) {
+    goToNextStep()
+    return
+  }
+  if (couponNeedsApply.value) {
+    submitError.value = 'Aplique o cupom ou apague o código antes de confirmar.'
+    return
+  }
 
   if (!verifiedAthlete.value) {
     submitError.value = 'Sessão expirada ou não autenticada. Valide seu WhatsApp novamente.'
@@ -1687,24 +1627,35 @@ async function handleSubmit() {
     return
   }
 
+  if (!SHIRT_SIZES.includes(form.shirtSize)) {
+    currentStep.value = 3
+    stepError.value = 'Por favor, selecione o tamanho da sua camiseta.'
+    scrollToCard()
+    return
+  }
+
   if (!form.acceptedTerms) {
     submitError.value = 'Você deve ler e marcar a caixa de concordância com o regulamento oficial para confirmar sua inscrição.'
     return
   }
 
+  if (!validateStep2()) { submitError.value = stepError.value; return }
+
   isSubmitting.value = true
 
   try {
-    trackEvent('submit_inscricao_oficial', {
+    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 5 })
+    trackRegistrationEvent('submit_inscricao_oficial', {
       modalidade: form.modality,
       espetinhos: form.skewerChoice,
-      chopp: form.drinksBeer
+      chopp: form.drinksBeer,
+      camiseta: form.shirtSize,
+      com_cupom: couponQuote.value ? 'sim' : 'nao',
     })
 
-    // Garante que o nome e o telefone gravados sejam exatamente os da pré-inscrição autenticada
-    const result = await registerOfficialAthlete({
-      id: verifiedAthlete.value.id,
-      name: verifiedAthlete.value.name,
+    // Cadastros privados exigem preenchimento; a consulta por telefone nao autentica o titular.
+    const result = await submitRegistration({
+      name: verifiedAthlete.value.requiresDetails ? form.name : verifiedAthlete.value.name,
       nickname: form.nickname,
       cpf: form.cpf,
       birthDate: form.birthDate,
@@ -1714,28 +1665,30 @@ async function handleSubmit() {
       cityState: form.cityState,
       emergencyContactName: form.emergencyContactName,
       emergencyContactPhone: form.emergencyContactPhone,
-      modality: form.modality,
-      drinksBeer: form.drinksBeer,
+      modality: form.modality === 'caminhada' ? 'WALK' : 'RUN',
+      beer: form.drinksBeer,
       skewerChoice: form.skewerChoice,
-      shirtSize: form.skewerChoice,
+      shirtSize: form.shirtSize,
       medicalNotes: form.medicalNotes,
-      acceptedTerms: form.acceptedTerms
+      acceptedTerms: form.acceptedTerms,
+      ...(verifiedAthlete.value.couponEligible === true && form.couponCode ? { couponCode: form.couponCode } : {})
     })
 
-    confirmedAthlete.value = result
-    submitted.value = true
+    paymentOrder.value = result.orderId
     hasStartedWizard.value = false
     hasSavedDraft.value = false
     clearAthleteDraft(verifiedAthlete.value.phone)
+    // Mostrar o resumo e o link privado antes de sair para o checkout.
 
-    trackEvent('conversao_inscricao_oficial_sucesso', {
-      atleta: verifiedAthlete.value.name,
-      modalidade: form.modality
+    trackRegistrationOrder(result.orderId, {
+      modalidade: form.modality, camiseta: form.shirtSize, chopp: form.drinksBeer,
+      espetinhos: form.skewerChoice, com_cupom: result.discountAmount > 0 ? 'sim' : 'nao',
+      value: result.amount / 100, desconto: (result.discountAmount || 0) / 100, currency: 'BRL',
     })
 
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
-    console.error('Falha ao registrar inscrição oficial:', err)
+    submitErrorKind = analyticsErrorKind(err)
     submitError.value = err.message || 'Ocorreu um erro ao salvar sua inscrição. Tente novamente.'
   } finally {
     isSubmitting.value = false
@@ -1744,6 +1697,39 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
+.registration-kit-summary {
+  background: #faf7f0;
+  border: 1px solid #e2d9cc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.review-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.review-section-heading h3 { font-size: 0.95rem; margin: 0; }
+.review-edit-button { background: none; border: none; color: #91500c; text-decoration: underline; font: inherit; cursor: pointer; padding: 4px 0; }
+.review-kit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.review-kit-grid dt { color: #756c60; font-size: 0.82rem; margin-bottom: 3px; }
+.review-kit-grid dd { margin: 0; color: #29241d; font-weight: 700; font-size: 0.95rem; overflow-wrap: anywhere; }
+.registration-total-card { background: #27231d; color: #fff9ee; border-radius: 8px; padding: 20px; }
+.review-amounts { margin: 0; }
+.review-amounts > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.review-amounts dd { margin: 0; white-space: nowrap; }
+.review-discount { margin-top: 10px; color: #b5e4aa; }
+.review-amounts .review-total { margin-top: 16px; padding-top: 16px; border-top: 1px dashed #75654e; }
+.review-total dt { font-weight: 700; }
+.review-total dd { color: #ffbe59; font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 800; }
+.registration-total-card > p { font-size: 0.8rem; color: #ded1bd; margin: 12px 0 0; }
+.review-payment-note { display: flex; align-items: flex-start; gap: 10px; color: #655d52; margin-top: 16px; font-size: 0.9rem; line-height: 1.45; }
+.review-payment-note i { margin-top: 4px; }
+.review-payment-note p { margin: 0; }
+.review-coupon-hint { color: #87500e; margin-top: 12px; font-size: 0.88rem; }
+.btn-step-next:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+@media (max-width: 480px) {
+  .registration-kit-summary, .registration-total-card { padding: 14px; }
+  .review-kit-grid { gap: 12px; }
+  .payment-review-card .final-actions { flex-wrap: wrap; }
+  .payment-review-card .btn-submit-registration { min-width: 180px; }
+}
 .official-reg-page {
   min-height: 100vh;
   background-color: var(--bg-parchment);
@@ -1924,15 +1910,20 @@ async function handleSubmit() {
   text-transform: uppercase;
   letter-spacing: 0.4px;
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .input-with-button {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .auth-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  box-sizing: border-box;
   font-size: 1.05rem !important;
   font-weight: 700;
   padding: 9px 12px !important;
@@ -1940,11 +1931,18 @@ async function handleSubmit() {
 }
 
 .btn-auth {
+  width: 100%;
+  min-height: 52px;
+  justify-content: center;
   white-space: nowrap;
   font-size: 0.92rem;
   padding: 9px 16px;
   border-radius: 6px;
 }
+
+.auth-form .form-group { margin-bottom: 0; }
+.auth-phone-help { margin: 14px 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+.auth-input:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
 
 .auth-footer-help {
   margin-top: 22px;
@@ -2097,7 +2095,7 @@ async function handleSubmit() {
   margin-bottom: 16px;
 }
 
-/* Grid de Prévia das 4 Etapas */
+/* Grid de Prévia das 5 Etapas */
 .welcome-steps-preview {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -3739,7 +3737,7 @@ async function handleSubmit() {
 
   .input-with-button {
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
   }
 
   .welcome-athlete-card {
@@ -3822,7 +3820,7 @@ async function handleSubmit() {
     font-size: 0.72rem;
   }
 
-  /* Stepper Minimalista no Mobile: linha sutil com 4 pequenos círculos */
+  /* Stepper Minimalista no Mobile: linha sutil com 5 pequenos círculos */
   .wizard-stepper {
     max-width: 190px;
     margin: 0 auto 12px auto;

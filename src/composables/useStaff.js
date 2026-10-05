@@ -200,7 +200,7 @@ export function useStaff() {
           phone: row.phone || '',
           modality: row.modality || 'corrida',
           drinksBeer: Boolean(row.drinks_beer),
-          status: row.status || 'waiting',
+          status: row.status ?? '',
           createdAt: row.created_at
         }))
         return
@@ -226,22 +226,28 @@ export function useStaff() {
   }
 
   async function updateWaitlistStatus(waitlistId, newStatus) {
-    const item = waitlist.value.find(w => w.id === waitlistId)
-    if (item) {
-      item.status = newStatus
+    staffError.value = null
+    if (!['waiting', 'called', 'registered', 'cancelled'].includes(newStatus)) {
+      throw new Error('Status da lista de espera inválido.')
     }
+    const item = waitlist.value.find(w => w.id === waitlistId)
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase
+        const { data, error } = await supabase
           .from('athlete_waitlist')
           .update({ status: newStatus })
           .eq('id', waitlistId)
+          .select('id,status')
+          .single()
+        if (error || data?.status !== newStatus) throw error || new Error('Alteração não confirmada.')
       } catch (e) {
-        console.warn('Erro ao atualizar status da waitlist no Supabase:', e)
+        staffError.value = 'Não foi possível salvar o status da lista de espera. Tente novamente.'
+        throw new Error(staffError.value)
       }
     }
 
+    if (item) item.status = newStatus
     try {
       localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(waitlist.value))
     } catch (e) {}
@@ -455,6 +461,7 @@ export function useStaff() {
       'Telefone',
       'CPF',
       'Espetinhos Chegada',
+      'Tamanho Camiseta',
       'Data Nasc',
       'Genero',
       'Cidade/UF',
@@ -474,7 +481,8 @@ export function useStaff() {
       `"${(a.nickname || '').replace(/"/g, '""')}"`,
       `"${(a.phone || '').replace(/"/g, '""')}"`,
       `"${(a.cpf || '').replace(/"/g, '""')}"`,
-      `"${(a.skewerChoice || a.shirtSize || '').replace(/"/g, '""')}"`,
+      `"${(a.skewerChoice || '').replace(/"/g, '""')}"`,
+      `"${(a.shirtSize || '').replace(/"/g, '""')}"`,
       `"${(a.birthDate || '').replace(/"/g, '""')}"`,
       `"${(a.gender || '').replace(/"/g, '""')}"`,
       `"${(a.cityState || '').replace(/"/g, '""')}"`,

@@ -1,78 +1,94 @@
-/**
- * Google Analytics 4 (GA4) Service
- * 
- * Responsável por gerenciar o rastreamento de acessos (pageviews)
- * e eventos customizados (como cliques em "Inscrição", "Lista de Espera" e conversões).
- * 
- * Para ativar a coleta real de dados, basta adicionar no seu arquivo .env:
- * VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
- */
+import { analyticsPage, safeEventParams, safeReferrer } from './analytics-policy.js'
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-8RVHDE36SW'
+const GA_ID = import.meta.env?.VITE_GA_MEASUREMENT_ID || 'G-8RVHDE36SW'
+const debug = import.meta.env?.VITE_GA_DEBUG === 'true'
+const events = new Set([
+  'click_botao_inscricao', 'submit_formulario_inscricao', 'conversao_inscricao_sucesso',
+  'join_waitlist', 'sign_up', 'click_patrocinio', 'submit_inscricao_oficial',
+  'conversao_inscricao_oficial_sucesso', 'inscricao_visualizada', 'inscricao_consulta',
+  'inscricao_inicio', 'inscricao_etapa_visualizada', 'inscricao_etapa_concluida',
+  'inscricao_erro', 'inscricao_cupom', 'inscricao_checkout',
+])
+let initialized = false
+let lastPage = null
+let previousLocation = ''
+const reportedOrders = new Set()
 
-/**
- * Inicializa o script do Google Analytics 4 dinamicamente
- */
-export function initGA() {
-  if (typeof window === 'undefined') return
-
-  // Garante que o dataLayer exista
-  window.dataLayer = window.dataLayer || []
-
-  // Função padrão gtag se ainda não declarada
-  if (!window.gtag) {
-    window.gtag = function () {
-      window.dataLayer.push(arguments)
-    }
-  }
-
-  // Se a tag já foi inserida no index.html, não reinjeta o script
-  const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`)
-  if (existingScript) {
-    return
-  }
-
-  // Se não houver ID configurado ou for o padrão de exemplo, opera em modo seguro (mock/log em dev)
-  if (!GA_ID || GA_ID === 'G-XXXXXXXXXX' || !GA_ID.startsWith('G-')) {
-    if (import.meta.env.DEV) {
-      console.info(
-        'ℹ️ [Analytics] Google Analytics rodando em modo simulação. Adicione VITE_GA_MEASUREMENT_ID no seu .env para enviar ao Google.'
-      )
-    }
-    return
-  }
-
-  const script = document.createElement('script')
-  script.id = 'ga-gtag-script'
-  script.async = true
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
-  document.head.appendChild(script)
-
-  window.gtag('js', new Date())
-  window.gtag('config', GA_ID, {
-    send_page_view: true
-  })
-
-  console.info(`✅ [Analytics] Google Analytics 4 conectado com sucesso (${GA_ID})`)
+function enabled() {
+  if (typeof window === 'undefined') return false
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+  return /^G-[A-Z0-9]+$/.test(GA_ID) && GA_ID !== 'G-XXXXXXXXXX' &&
+    (!(import.meta.env?.DEV || local) || debug)
 }
 
-/**
- * Dispara um evento personalizado no GA4
- * @param {string} eventName Nome do evento (ex: click_botao_inscricao)
- * @param {object} eventParams Parâmetros adicionais do evento
- */
-export function trackEvent(eventName, eventParams = {}) {
-  if (typeof window === 'undefined' || !window.gtag) return
-
+export function initGA() {
+  if (!enabled() || !analyticsPage(window.location.href)) return
+  if (initialized) return
   try {
-    window.gtag('event', eventName, eventParams)
-
-    if (import.meta.env.DEV) {
-      console.log(`📊 [Analytics Evento] "${eventName}":`, eventParams)
+    window.dataLayer = window.dataLayer || []
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments) }
+    const page = analyticsPage(window.location.href)
+    previousLocation = safeReferrer(document.referrer)
+    window.gtag('js', new Date())
+    window.gtag('set', { ...page, page_referrer: previousLocation })
+    window.gtag('config', GA_ID, {
+      ...page, page_referrer: previousLocation, send_page_view: false,
+      allow_google_signals: false, allow_ad_personalization_signals: false,
+      ...(debug ? { debug_mode: true } : {}),
+    })
+    if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
+      const script = document.createElement('script')
+      script.id = 'ga-gtag-script'
+      script.async = true
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
+      document.head.appendChild(script)
     }
-  } catch (err) {
-    console.warn('[Analytics] Erro ao disparar evento:', err)
-  }
+    initialized = true
+  } catch { /* Analytics nunca pode bloquear a inscricao. */ }
+}
+
+// Chamado na navegacao do App. Deduplica entrada inicial e hashchange.
+export function trackPageView() {
+  if (!enabled()) return
+  try {
+    const page = analyticsPage(window.location.href)
+    window['ga-disable-' + GA_ID] = !page
+    if (!page) { lastPage = null; return }
+    initGA()
+    if (!initialized || lastPage === page.page_location) return
+    const fields = { ...page, page_referrer: previousLocation }
+    window.gtag('set', fields)
+    window.gtag('event', 'page_view', fields)
+    lastPage = page.page_location
+    previousLocation = page.page_location
+  } catch { /* Navegacao continua mesmo se a tag falhar. */ }
+}
+
+export function trackEvent(eventName, eventParams = {}) {
+  if (!enabled() || !events.has(eventName)) return
+  try {
+    const page = analyticsPage(window.location.href)
+    if (!page || !initialized || !window.gtag) return
+    window.gtag('event', eventName, {
+      ...safeEventParams(eventParams), ...page, transport_type: 'beacon',
+    })
+  } catch { /* Nunca interromper formulario, cupom ou checkout. */ }
+}
+
+export function trackRegistrationEvent(eventName, params = {}) {
+  trackEvent(eventName, { ...params, fluxo: 'inscricao_oficial' })
+}
+
+// Repetir a mesma resposta por idempotencia nao conta outra conversao na sessao.
+// O identificador fica apenas no navegador; nao e enviado ao Google.
+export function trackRegistrationOrder(orderId, params) {
+  if (!enabled() || !initialized || !analyticsPage(window.location.href)) return
+  if (reportedOrders.has(orderId)) return
+  const key = 'beer_run_ga_order_' + orderId
+  try { if (sessionStorage.getItem(key)) return } catch { /* Memoria como fallback. */ }
+  trackRegistrationEvent('conversao_inscricao_oficial_sucesso', params)
+  reportedOrders.add(orderId)
+  try { sessionStorage.setItem(key, '1') } catch { /* Memoria como fallback. */ }
 }
 
 /**
