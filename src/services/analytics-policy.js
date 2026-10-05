@@ -3,7 +3,7 @@ const choices = {
   fluxo: ['inscricao_oficial'],
   modalidade: ['corrida', 'caminhada', 'desconhecido', 'desconhecida'],
   espetinhos: ['1 Carne + 1 Frango', '2 Carne', '2 Frango', 'Vegetariano'],
-  camiseta: ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'],
+  camiseta: ['P', 'M', 'G', 'GG', 'EXG', 'EXGG', 'G1', 'G2', 'G3'],
   chopp: [true, false],
   bebe_cerveja: ['sim', 'nao'],
   com_cupom: ['sim', 'nao'],

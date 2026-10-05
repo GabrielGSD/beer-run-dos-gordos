@@ -34,7 +34,7 @@
             <div><dt>Modalidade</dt><dd>{{ modality }}</dd></div>
             <div><dt>Chopp</dt><dd>{{ registration.beer === true ? 'Com chopp' : registration.beer === false ? 'Sem chopp' : 'Não informado' }}</dd></div>
             <div><dt>Espetinhos</dt><dd>{{ display(registration.skewerChoice) }}</dd></div>
-            <div><dt>Camiseta</dt><dd>{{ display(registration.shirtSize) }}</dd></div>
+            <div><dt>Camiseta</dt><dd>{{ formatShirtSelection(registration.shirtModel, registration.shirtSize) }}</dd></div>
             <div><dt>Regulamento aceito em</dt><dd>{{ dateTime(registration.acceptedTermsAt) }}</dd></div>
           </dl>
         </section>
@@ -94,6 +94,7 @@
   </section>
 </template>
 <script setup>
+import { formatShirtSelection } from '../services/shirts.js'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { loadOrderContext, saveOrderContext, getOrderStatus, reconcileOrder, recoverCheckout, openCheckout, refreshOrderPayment } from '../services/checkout.js'
 import { usePaymentCheck } from '../composables/usePaymentCheck.js'

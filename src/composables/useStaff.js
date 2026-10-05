@@ -1,3 +1,4 @@
+import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 import { formatAthleteDisplayName, MAX_ATHLETES, useAthletes } from './useAthletes.js'
@@ -482,7 +483,7 @@ export function useStaff() {
       `"${(a.phone || '').replace(/"/g, '""')}"`,
       `"${(a.cpf || '').replace(/"/g, '""')}"`,
       `"${(a.skewerChoice || '').replace(/"/g, '""')}"`,
-      `"${(a.shirtSize || '').replace(/"/g, '""')}"`,
+      `"${formatShirtSelection(a.shirtModel, a.shirtSize).replace(/"/g, '""')}"`,
       `"${(a.birthDate || '').replace(/"/g, '""')}"`,
       `"${(a.gender || '').replace(/"/g, '""')}"`,
       `"${(a.cityState || '').replace(/"/g, '""')}"`,

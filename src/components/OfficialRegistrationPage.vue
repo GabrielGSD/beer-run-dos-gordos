@@ -739,12 +739,23 @@
                   </div>
                 </div>
                 <div class="form-group full-width">
-                  <label for="shirt-size" class="form-label font-condensed">TAMANHO DA CAMISETA 👕 *</label>
-                  <select id="shirt-size" v-model="form.shirtSize" class="vintage-input font-condensed" required aria-describedby="shirt-size-help">
-                    <option disabled value="">Selecione o tamanho</option>
-                    <option v-for="size in SHIRT_SIZES" :key="size" :value="size">{{ size }}</option>
+                  <label for="shirt-model" class="form-label font-condensed">MODELO DA CAMISETA 👕 *</label>
+                  <select id="shirt-model" v-model="form.shirtModel" class="vintage-input font-condensed" required @change="form.shirtSize = ''">
+                    <option disabled value="">Selecione o modelo</option>
+                    <option v-for="model in SHIRT_MODELS" :key="model.value" :value="model.value">{{ model.label }}</option>
                   </select>
-                  <small id="shirt-size-help" class="field-desc font-condensed">Camiseta incluída na inscrição de todos os atletas.</small>
+                </div>
+                <div class="form-group full-width">
+                  <label for="shirt-size" class="form-label font-condensed">TAMANHO DA CAMISETA 👕 *</label>
+                  <select id="shirt-size" v-model="form.shirtSize" class="vintage-input font-condensed" required :disabled="!form.shirtModel" aria-describedby="shirt-size-help shirt-measurements">
+                    <option disabled value="">{{ form.shirtModel ? 'Selecione o tamanho' : 'Selecione primeiro o modelo' }}</option>
+                    <option v-for="[size] in availableShirtSizes" :key="size" :value="size">{{ size }}</option>
+                  </select>
+                  <small id="shirt-size-help" class="field-desc font-condensed">Camiseta incluída na inscrição de todos os atletas. Confira as medidas antes de escolher.</small>
+                  <p id="shirt-measurements" class="font-condensed" aria-live="polite">
+                    <template v-if="selectedShirtMeasurements">{{ formatShirtSelection(form.shirtModel, form.shirtSize) }}: {{ selectedShirtMeasurements[1] }} cm de altura × {{ selectedShirtMeasurements[2] }} cm de largura.</template>
+                  </p>
+                  <ShirtSizeGuide :model="form.shirtModel" :size="form.shirtSize" />
                 </div>
               </div>
 
@@ -899,7 +910,7 @@
                 </div>
                 <dl class="review-kit-grid">
                   <div><dt>Modalidade</dt><dd>{{ form.modality === 'caminhada' ? 'Caminhada' : 'Corrida' }} · 6,37 km</dd></div>
-                  <div><dt>Camiseta</dt><dd>Tamanho {{ form.shirtSize }}</dd></div>
+                  <div><dt>Camiseta</dt><dd>{{ formatShirtSelection(form.shirtModel, form.shirtSize) }}</dd></div>
                   <div><dt>Churrasco de chegada</dt><dd>{{ formatSkewerLabel(form.skewerChoice) }}</dd></div>
                   <div><dt>Hidratação</dt><dd>{{ form.drinksBeer ? 'Com chopp artesanal' : 'Sem álcool · água e refrigerante' }}</dd></div>
                 </dl>
@@ -961,6 +972,8 @@ import { resolveRegistrationAthlete } from '../services/registration-access.js'
 import { submitRegistration } from '../services/checkout.js'
 import { trackPageView, trackRegistrationEvent, trackRegistrationOrder } from '../services/analytics.js'
 import { analyticsErrorKind } from '../services/analytics-policy.js'
+import ShirtSizeGuide from './ShirtSizeGuide.vue'
+import { SHIRT_MODELS, shirtMeasurements, formatShirtSelection } from '../services/shirts.js'
 
 const emit = defineEmits(['go-home'])
 
@@ -1020,7 +1033,6 @@ watch(submitError, value => {
 }, { flush: 'sync' })
 
 const VALID_SKEWER_CHOICES = ['1 Carne + 1 Frango', '2 Carne', '2 Frango', 'Vegetariano']
-const SHIRT_SIZES = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG']
 
 const skewerCarne = ref(1)
 const skewerFrango = ref(1)
@@ -1136,9 +1148,13 @@ const form = reactive({
   drinksBeer: true,
   skewerChoice: '1 Carne + 1 Frango',
   shirtSize: '',
+  shirtModel: '',
   acceptedTerms: false,
   couponCode: ''
 })
+
+const availableShirtSizes = computed(() => SHIRT_MODELS.find(model => model.value === form.shirtModel)?.sizes || [])
+const selectedShirtMeasurements = computed(() => shirtMeasurements(form.shirtModel, form.shirtSize))
 
 const steps = [
   { step: 1, label: '1. Identificação' },
@@ -1205,7 +1221,7 @@ function startWizard(stepOverride) {
   const target = typeof stepOverride === 'number' && stepOverride >= 1 && stepOverride <= steps.length
     ? stepOverride
     : (savedDraftStep.value || 1)
-  currentStep.value = target >= 4 && !SHIRT_SIZES.includes(form.shirtSize) ? 3
+  currentStep.value = target >= 4 && !selectedShirtMeasurements.value ? 3
     : target === 5 && !form.acceptedTerms ? 4 : target
   trackRegistrationEvent('inscricao_inicio', { retomada: hasSavedDraft.value ? 'sim' : 'nao', etapa: currentStep.value })
   hasStartedWizard.value = true
@@ -1299,8 +1315,8 @@ function validateStep2() {
 }
 
 function validateStep3() {
-  if (!SHIRT_SIZES.includes(form.shirtSize)) {
-    stepError.value = 'Por favor, selecione o tamanho da sua camiseta.'
+  if (!selectedShirtMeasurements.value) {
+    stepError.value = 'Por favor, selecione o modelo e o tamanho da sua camiseta.'
     return false
   }
   if (!form.modality) {
@@ -1393,7 +1409,8 @@ function applyVerifiedAthlete(athlete) {
   if (athlete.emergencyContactPhone) form.emergencyContactPhone = athlete.emergencyContactPhone
   const athleteSkewer = resolveValidSkewer(athlete.skewerChoice || athlete.shirtSize)
   form.skewerChoice = athleteSkewer
-  form.shirtSize = SHIRT_SIZES.includes(athlete.shirtSize) ? athlete.shirtSize : ''
+  form.shirtModel = SHIRT_MODELS.some(model => model.value === athlete.shirtModel) ? athlete.shirtModel : ''
+  form.shirtSize = shirtMeasurements(form.shirtModel, athlete.shirtSize) ? athlete.shirtSize : ''
   syncSkewersFromChoice(athleteSkewer)
   if (athlete.medicalNotes) form.medicalNotes = athlete.medicalNotes
 
@@ -1421,7 +1438,8 @@ function applyVerifiedAthlete(athlete) {
     if (df.emergencyContactPhone) form.emergencyContactPhone = df.emergencyContactPhone
     const draftSkewer = resolveValidSkewer(df.skewerChoice || df.shirtSize)
     form.skewerChoice = draftSkewer
-    form.shirtSize = SHIRT_SIZES.includes(df.shirtSize) ? df.shirtSize : ''
+    form.shirtModel = SHIRT_MODELS.some(model => model.value === df.shirtModel) ? df.shirtModel : ''
+    form.shirtSize = shirtMeasurements(form.shirtModel, df.shirtSize) ? df.shirtSize : ''
     syncSkewersFromChoice(draftSkewer)
     if (df.medicalNotes !== undefined) form.medicalNotes = df.medicalNotes
     if (df.modality) form.modality = df.modality
@@ -1627,9 +1645,9 @@ async function handleSubmit() {
     return
   }
 
-  if (!SHIRT_SIZES.includes(form.shirtSize)) {
+  if (!selectedShirtMeasurements.value) {
     currentStep.value = 3
-    stepError.value = 'Por favor, selecione o tamanho da sua camiseta.'
+    stepError.value = 'Por favor, selecione o modelo e o tamanho da sua camiseta.'
     scrollToCard()
     return
   }
@@ -1669,6 +1687,7 @@ async function handleSubmit() {
       beer: form.drinksBeer,
       skewerChoice: form.skewerChoice,
       shirtSize: form.shirtSize,
+      shirtModel: form.shirtModel,
       medicalNotes: form.medicalNotes,
       acceptedTerms: form.acceptedTerms,
       ...(verifiedAthlete.value.couponEligible === true && form.couponCode ? { couponCode: form.couponCode } : {})
@@ -2559,7 +2578,7 @@ async function handleSubmit() {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 4px;
 }
@@ -2571,6 +2590,7 @@ async function handleSubmit() {
 .form-group {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 3px;
 }
 
@@ -3883,7 +3903,7 @@ async function handleSubmit() {
   }
 
   .form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 

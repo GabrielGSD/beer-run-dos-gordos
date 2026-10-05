@@ -485,7 +485,7 @@
                             🍢 Espetinhos: <strong>{{ athlete.skewerChoice }}</strong>
                           </div>
                           <div v-if="athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
-                            👕 Camiseta: <strong>{{ athlete.shirtSize }}</strong>
+                            👕 Camiseta: <strong>{{ formatShirtSelection(athlete.shirtModel, athlete.shirtSize) }}</strong>
                           </div>
                         </div>
                       </td>
@@ -615,7 +615,7 @@
                           🍢 Espetinhos: <strong>{{ athlete.skewerChoice }}</strong>
                         </div>
                         <div v-if="athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
-                          👕 Camiseta: <strong>{{ athlete.shirtSize }}</strong>
+                          👕 Camiseta: <strong>{{ formatShirtSelection(athlete.shirtModel, athlete.shirtSize) }}</strong>
                         </div>
                       </div>
                     </div>
@@ -1556,6 +1556,7 @@
 </template>
 
 <script setup>
+import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { isActiveWaitlistEntry } from '../services/waitlist.js'
 import { useStaff } from '../composables/useStaff.js'

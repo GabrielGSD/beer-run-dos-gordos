@@ -48,7 +48,7 @@ const api=createServer(async(req,res)=>{
     assert.deepEqual(JSON.parse(raw),{phone:'(35) 99999-1234'});manualChecks++;
     res.end(JSON.stringify({action:'MISSING_REFERENCE',retryAfter:0}));return;
   }
-  assert.equal(req.url,'/api/registrations/eligibility');
+  assert.equal(req.url,'/api/registrations/eligibility',`Rota inesperada: ${req.url}; origem: ${req.headers.referer}`);
   let raw='';for await(const chunk of req)raw+=chunk;
   const body=JSON.parse(raw);
   assert.equal(body.phone,'(35) 99999-1234');requests++;
@@ -171,17 +171,46 @@ try {
   await evaluate("document.querySelector('.btn-start-wizard').click()");
   await until(()=>evaluate("!!document.querySelector('#shirt-size')"));
   assert.equal(await evaluate("document.querySelector('#shirt-size').value"),'');
-  assert.deepEqual(await evaluate("[...document.querySelector('#shirt-size').options].map(o=>o.value)"),['','PP','P','M','G','GG','XG','XGG']);
+  assert.equal(await evaluate("document.querySelector('#shirt-size').disabled"),true);
+  assert.equal(await evaluate("document.querySelector('#shirt-model').value"),'');
   await evaluate("document.querySelector('.btn-step-next').click()");
-  assert.ok((await evaluate('document.body.innerText')).includes('selecione o tamanho'));
-  await evaluate("(()=>{const s=document.querySelector('#shirt-size');s.value='XGG';s.dispatchEvent(new Event('change',{bubbles:true}));})()");
-  await until(()=>evaluate("JSON.parse(localStorage.getItem('beer_run_draft_35999991234')).form.shirtSize==='XGG'"));
+  assert.ok((await evaluate('document.body.innerText')).includes('selecione o modelo e o tamanho'));
+  const chooseShirt = async (id,value) => evaluate(`(()=>{const s=document.getElementById(${JSON.stringify(id)});s.value=${JSON.stringify(value)};s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await chooseShirt('shirt-model','UNISEX');
+  assert.deepEqual(await evaluate("[...document.querySelector('#shirt-size').options].map(o=>o.value)"),['','P','M','G','GG','EXG','EXGG','G1','G2','G3']);
+  await chooseShirt('shirt-size','G3');
+  assert.ok((await evaluate("document.querySelector('#shirt-measurements').textContent")).includes('91 cm de altura × 78 cm'));
+  await chooseShirt('shirt-model','BABYLOOK');
+  assert.equal(await evaluate("document.querySelector('#shirt-size').value"),'');
+  assert.deepEqual(await evaluate("[...document.querySelector('#shirt-size').options].map(o=>o.value)"),['','P','M','G','GG','EXG','EXGG']);
+  await chooseShirt('shirt-size','G');
+  assert.ok((await evaluate("document.querySelector('#shirt-measurements').textContent")).includes('58 cm de altura × 47 cm'));
+  await chooseShirt('shirt-size','EXGG');
+  assert.ok((await evaluate("document.querySelector('#shirt-measurements').textContent")).includes('65 cm de altura × 52 cm'));
+  await command('Page.bringToFront');
+  await evaluate("document.querySelector('.shirt-guide summary').focus()");
+  assert.equal(await evaluate("document.activeElement === document.querySelector('.shirt-guide summary')"),true);
+  await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+  await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  assert.equal(await evaluate("document.querySelector('.shirt-guide').open"),true);
+  assert.equal(await evaluate("document.querySelectorAll('.shirt-guide tr.selected').length"),1);
+  for(const width of [900,375,320]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});
+    await sleep(150);
+    const guideLayout = await evaluate("[...document.querySelectorAll('.shirt-guide table')].map(t=>{const r=t.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth,guide:document.querySelector('.shirt-guide').getBoundingClientRect().width,card:document.querySelector('.step-card').getBoundingClientRect().width}})");
+    assert.ok(guideLayout.every(r=>r.left>=0&&r.right<=r.viewport),JSON.stringify({width,guideLayout}));
+  }
+  await evaluate("document.querySelector('.shirt-guide summary').click()");
+  assert.equal(await evaluate("document.querySelector('.shirt-guide').open"),false);
+  console.log('PASS: modelos e grades, medidas, teclado e tabelas dentro da tela em 900/375/320px.');
+  await until(()=>evaluate("JSON.parse(localStorage.getItem('beer_run_draft_35999991234')).form.shirtSize==='EXGG'"));
   await load();await until(()=>evaluate("!!document.querySelector('.btn-start-wizard')"));
   await evaluate("document.querySelector('.btn-start-wizard').click()");
   await until(()=>evaluate("!!document.querySelector('#shirt-size')"));
-  assert.equal(await evaluate("document.querySelector('#shirt-size').value"),'XGG');
+  assert.equal(await evaluate("document.querySelector('#shirt-size').value"),'EXGG');
+  assert.equal(await evaluate("document.querySelector('#shirt-model').value"),'BABYLOOK');
   await evaluate("document.querySelector('.skewer-row-veg input').click()");
-  assert.equal(await evaluate("document.querySelector('#shirt-size').value"),'XGG');
+  assert.equal(await evaluate("document.querySelector('#shirt-size').value"),'EXGG');
   for(const width of [900,375]) {
     await command('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});
     await sleep(150);
@@ -209,7 +238,8 @@ try {
   assert.equal(await evaluate("!!document.querySelector('#registration-coupon')"),false);
   await evaluate("document.querySelector('.reg-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))");
   await until(()=>submittedRegistration);
-  assert.equal(submittedRegistration.shirtSize,'XGG');
+  assert.equal(submittedRegistration.shirtSize,'EXGG');
+  assert.equal(submittedRegistration.shirtModel,'BABYLOOK');
   assert.equal(submittedRegistration.skewerChoice,'Vegetariano');
   assert.equal(submittedRegistration.amount,undefined);
   assert.equal(submittedRegistration.couponCode,undefined,'Cupom antigo no rascunho nao pode ser enviado sem elegibilidade');
@@ -218,7 +248,7 @@ try {
   for(const name of ['inscricao_visualizada','inscricao_consulta','inscricao_inicio','inscricao_etapa_visualizada','inscricao_etapa_concluida','submit_inscricao_oficial','inscricao_erro']) {
     assert.ok(analyticsEvents.some(([event])=>event===name),name);
   }
-  assert.ok(analyticsEvents.some(([event,p])=>event==='inscricao_etapa_concluida'&&p.etapa===3&&p.camiseta==='XGG'));
+  assert.ok(analyticsEvents.some(([event,p])=>event==='inscricao_etapa_concluida'&&p.etapa===3&&p.camiseta==='EXGG'));
   assert.ok(!analyticsEvents.some(([event])=>event==='conversao_inscricao_oficial_sucesso'),'422 nao conta conversao');
   const sent=JSON.stringify(analyticsEvents);
   for(const privateValue of ['35999991234','52998224725','Atleta de Teste','Contato Teste','ABCDEF0123456789ABCDEF0123456789']) assert.ok(!sent.includes(privateValue));
@@ -324,7 +354,7 @@ try {
   await evaluate(`localStorage.setItem('beer_run_draft_35999991234',JSON.stringify({currentStep:5,form:{
     name:'Atleta de Teste',cpf:'52998224725',birthDate:'1990-01-01',gender:'M',email:'teste@example.com',
     phone:'35999991234',cityState:'Natercia / MG',emergencyContactName:'Contato Teste',emergencyContactPhone:'35999995678',
-    modality:'corrida',drinksBeer:false,skewerChoice:'2 Carne',shirtSize:'G',acceptedTerms:true}}))`);
+    modality:'corrida',drinksBeer:false,skewerChoice:'2 Carne',shirtSize:'G',shirtModel:'UNISEX',acceptedTerms:true}}))`);
   await load();await until(()=>evaluate("!!document.querySelector('.btn-start-wizard')"));
   await evaluate("document.querySelector('.btn-start-wizard').click()");
   await until(()=>evaluate("!!document.querySelector('.btn-submit-registration')"));
