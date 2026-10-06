@@ -3,67 +3,53 @@
     <div class="vintage-card modal-box">
       <button class="close-btn" @click="closeModal" aria-label="Fechar">&times;</button>
 
-      <!-- 1. Estado de Sucesso (Inscrição Normal ou Lista de Espera) -->
+      <!-- 1. Pré-inscrição recebida na lista de espera -->
       <div v-if="submitted" class="success-box">
-        <template v-if="wasWaitlistSubmission">
-          <div class="waitlist-ticket-card">
-            <div class="ticket-header font-condensed">
-              <span class="ticket-tag">★ PRÉ-INSCRIÇÃO RECEBIDA COM SUCESSO ★</span>
-            </div>
-            
-            <div class="ticket-body">
-              <span class="ticket-position-label font-condensed">SUA POSIÇÃO NA FILA PRIORITÁRIA</span>
-              <div class="ticket-number font-slab">
-                <span class="ticket-number-prefix font-condensed">Nº</span>{{ waitlistPosition }}
-              </div>
-              <div class="ticket-athlete-name font-slab">
-                {{ confirmedDisplayName }}
-              </div>
-            </div>
+        <div class="waitlist-ticket-card">
+          <div class="ticket-header font-condensed">
+            <span class="ticket-tag">★ PRÉ-INSCRIÇÃO RECEBIDA COM SUCESSO ★</span>
+          </div>
 
-            <div class="ticket-footer font-condensed">
-              <span class="ticket-status-pill">
-                <i class="fa-solid fa-circle-check"></i> CADASTRO REGISTRADO NA COMISSÃO
-              </span>
+          <div class="ticket-body">
+            <span class="ticket-position-label font-condensed">SUA POSIÇÃO NA FILA PRIORITÁRIA</span>
+            <div class="ticket-number font-slab">
+              <span class="ticket-number-prefix font-condensed">Nº</span>{{ waitlistPosition }}
+            </div>
+            <div class="ticket-athlete-name font-slab">
+              {{ confirmedDisplayName }}
             </div>
           </div>
 
-          <p class="waitlist-info-note font-condensed">
-            Recebemos sua pré-inscrição! Como as vagas do 1º lote foram preenchidas, você já garantiu sua posição prioritária. Havendo qualquer desistência ou remanejamento de kit, chamaremos você com prioridade no WhatsApp <strong>{{ form.phone }}</strong>!
-          </p>
-
-          <div class="soldout-actions">
-            <a
-              :href="waitlistWhatsAppUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-vintage waitlist-btn font-slab"
-            >
-              <i class="fa-brands fa-whatsapp"></i> AVISAR ORGANIZAÇÃO NO WHATSAPP
-            </a>
-            <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
+          <div class="ticket-footer font-condensed">
+            <span class="ticket-status-pill">
+              <i class="fa-solid fa-circle-check"></i> CADASTRO REGISTRADO NA COMISSÃO
+            </span>
           </div>
-        </template>
+        </div>
 
-        <template v-else>
-          <div class="stamp-circle">
-            <span>APROVADO</span>
-            <i class="fa-solid fa-beer-mug-empty"></i>
-          </div>
-          <h3 class="success-title font-slab">PRÉ-INSCRIÇÃO GARANTIDA!</h3>
-          <p class="success-desc font-condensed">
-            Parabéns <strong>{{ confirmedDisplayName }}</strong>! Você deu o primeiro passo rumo à corrida mais honesta do ano. Entraremos em contato via WhatsApp no número <strong>{{ form.phone }}</strong> com todos os detalhes e confirmação.
-          </p>
+        <p class="waitlist-info-note font-condensed">
+          Recebemos sua pré-inscrição na lista de espera! A organização entrará em contato pelo WhatsApp <strong>{{ form.phone }}</strong> quando sua inscrição for liberada. Aguarde a convocação para concluir a inscrição oficial e o pagamento. Este cadastro ainda não garante uma vaga.
+        </p>
+
+        <div class="soldout-actions">
+          <a
+            :href="waitlistWhatsAppUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-vintage waitlist-btn font-slab"
+          >
+            <i class="fa-brands fa-whatsapp"></i> AVISAR ORGANIZAÇÃO NO WHATSAPP
+          </a>
           <button class="btn-vintage modal-btn-close font-slab" @click="closeModal">FECHAR</button>
-        </template>
+        </div>
       </div>
 
-      <!-- 2. Formulário de Inscrição (Ativo ou Lista de Espera) -->
+      <!-- 2. Formulário de entrada na lista de espera -->
       <div v-else class="modal-content">
         <div class="modal-header">
           <img src="/logo.png" alt="Logo" class="modal-logo" />
           <h3 class="modal-title font-slab">PRÉ-INSCRIÇÃO</h3>
-          <p class="modal-subtitle font-condensed">Garantia de chopp gelado, churrasco e diversão!</p>
+          <p class="modal-subtitle font-condensed">Entre na lista de espera e aguarde a convocação pelo WhatsApp.</p>
         </div>
 
         <form @submit.prevent="handleSubmit" class="modal-form">
@@ -175,16 +161,11 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const {
-  addAthlete,
   addToWaitlist,
-  formatAthleteDisplayName,
-  isSoldOut,
-  remainingSpots,
-  maxAthletes
+  formatAthleteDisplayName
 } = useAthletes()
 
 const submitted = ref(false)
-const wasWaitlistSubmission = ref(false)
 const waitlistPosition = ref(1)
 const isSubmitting = ref(false)
 const submitError = ref('')
@@ -229,39 +210,26 @@ function formatPhone(event) {
 }
 
 async function handleSubmit() {
+  if (isSubmitting.value) return
   submitError.value = ''
   isSubmitting.value = true
 
   // Rastreia início da tentativa de envio do formulário
-  trackRegistrationSubmit(form.modality, isSoldOut.value)
+  trackRegistrationSubmit(form.modality, true)
 
   try {
-    if (isSoldOut.value) {
-      const res = await addToWaitlist({
-        name: form.name,
-        nickname: form.nickname,
-        phone: form.phone,
-        modality: form.modality,
-        drinksBeer: form.drinksBeer
-      })
-      if (res && res.position) {
-        waitlistPosition.value = res.position
-      }
-      wasWaitlistSubmission.value = true
-      submitted.value = true
-      trackRegistrationSuccess(form, true)
-    } else {
-      await addAthlete({
-        name: form.name,
-        nickname: form.nickname,
-        phone: form.phone,
-        modality: form.modality,
-        drinksBeer: form.drinksBeer
-      })
-      wasWaitlistSubmission.value = false
-      submitted.value = true
-      trackRegistrationSuccess(form, false)
+    const res = await addToWaitlist({
+      name: form.name,
+      nickname: form.nickname,
+      phone: form.phone,
+      modality: form.modality,
+      drinksBeer: form.drinksBeer
+    })
+    if (res && res.position) {
+      waitlistPosition.value = res.position
     }
+    submitted.value = true
+    trackRegistrationSuccess(form, true)
   } catch (err) {
     console.error('Falha ao processar inscrição / lista de espera:', err)
     if (err.message) {
@@ -276,7 +244,6 @@ async function handleSubmit() {
 
 function closeModal() {
   submitted.value = false
-  wasWaitlistSubmission.value = false
   submitError.value = ''
   isSubmitting.value = false
   emit('close')

@@ -18,7 +18,7 @@ export function formatAthleteDisplayName(name, nickname) {
 }
 
 // Limite máximo de participantes da prova
-export const MAX_ATHLETES = 500
+export const MAX_ATHLETES = 71
 
 // Mock inicial de fallback caso o Supabase não esteja configurado ainda
 const INITIAL_ATHLETES = [
@@ -327,7 +327,7 @@ export function useAthletes() {
     return newAthlete
   }
 
-  // Cadastra um atleta na lista de espera (quando as 70 vagas estiverem esgotadas)
+  // Toda nova pré-inscrição entra na lista de espera, independentemente da capacidade.
   async function addToWaitlist({ name, nickname, phone, modality, drinksBeer }) {
     error.value = null
     const cleanInputPhone = (phone || '').trim()
@@ -352,14 +352,18 @@ export function useAthletes() {
     let position = waitlistCount.value + 1
 
     if (isSupabaseConfigured && supabase) {
-      const { data, error: sbError } = await supabase
+      const { error: sbError } = await supabase
         .from('athlete_waitlist')
         .insert([waitlistRecord])
         .select()
         .single()
 
       if (sbError) {
-        console.warn('Aviso no Supabase athlete_waitlist, salvando localmente:', sbError.message)
+        const waitlistError = new Error(sbError.code === '23505'
+          ? 'Este WhatsApp já está cadastrado na lista de espera. Aguarde o contato da organização.'
+          : 'Não foi possível salvar sua pré-inscrição na lista de espera. Tente novamente.')
+        error.value = waitlistError.message
+        throw waitlistError
       } else {
         const { count } = await supabase
           .from('athlete_waitlist')
@@ -375,7 +379,7 @@ export function useAthletes() {
       }
     }
 
-    // Fallback de segurança no localStorage
+    // Cópia local após confirmação do Supabase; modo local somente sem Supabase configurado.
     const WAITLIST_STORAGE_KEY = 'beer_run_athlete_waitlist'
     try {
       const saved = JSON.parse(localStorage.getItem(WAITLIST_STORAGE_KEY) || '[]')
