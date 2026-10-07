@@ -414,7 +414,25 @@ export function useStaff() {
     const phone = sanitizePhoneForWhatsApp(athlete.phone)
     if (!phone) return null
 
-    const text = `Olá, ${athlete.name}! 🍻🏃‍♂️\n\nAqui é da organização da *Beer Run dos Gordos*!\nConfirmamos sua inscrição para a nossa corrida cervejeira oficial.\n\nFique atento aos nossos canais para informações sobre retirada de kit e horários da largada. Nos vemos na pista (e no chopp)!`
+    const text = `Olá ${athlete.name}, tudo certo?
+
+🍺🏃‍♂️ *A INSCRIÇÃO DA BEER RUN DOS GORDOS ESTÁ LIBERADA!*
+E como você fez a nossa *pré-inscrição*, chegou a sua vez primeiro! 😎
+Você tem *prioridade para garantir sua vaga* antes da abertura para o restante da galera.
+
+⏰ *Mas fique atento:* sua prioridade é válida até *12/10/2026*. Após esse prazo, caso a inscrição não tenha sido concluída, *a vaga poderá ser liberada para um atleta da lista de espera.*
+
+Então não deixa para depois! 😂🍻
+Finalize sua inscrição e garanta presença *na corrida que ninguém pediu… mas todo mundo vai querer participar.*
+
+👉 *Garanta sua vaga aqui:*
+https://gordosrun.netlify.app/#inscricao
+
+📲 *E acompanhe todas as novidades da Beer Run no Instagram:*
+https://www.instagram.com/beerrundosgordos
+
+*BEER RUN DOS GORDOS — 1ª EDIÇÃO • 2026*
+_Performance questionável. Histórias garantidas._ 🍺`
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
