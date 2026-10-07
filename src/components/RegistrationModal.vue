@@ -155,7 +155,8 @@ import { useAthletes } from '../composables/useAthletes.js'
 import { trackRegistrationSubmit, trackRegistrationSuccess } from '../services/analytics.js'
 
 const props = defineProps({
-  isOpen: Boolean
+  isOpen: Boolean,
+  initialPhone: { type: String, default: '' }
 })
 
 const emit = defineEmits(['close'])
@@ -173,7 +174,7 @@ const submitError = ref('')
 const form = reactive({
   name: '',
   nickname: '',
-  phone: '',
+  phone: props.initialPhone,
   modality: 'corrida',
   drinksBeer: true
 })

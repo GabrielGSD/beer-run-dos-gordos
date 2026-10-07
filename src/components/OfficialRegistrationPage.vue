@@ -1,5 +1,6 @@
 <template>
   <div class="official-reg-page">
+    <RegistrationModal v-if="isWaitlistOpen" :is-open="true" :initial-phone="manualPhoneInput" @close="isWaitlistOpen = false" />
     <!-- Barra Superior de Navegação -->
     <header class="reg-top-bar">
       <div class="container reg-top-content">
@@ -967,6 +968,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAthletes } from '../composables/useAthletes.js'
 import PaymentStatusPage from './PaymentStatusPage.vue'
 import PublicRegistrationStatus from './PublicRegistrationStatus.vue'
+import RegistrationModal from './RegistrationModal.vue'
 import CouponEntry from './CouponEntry.vue'
 import { resolveRegistrationAthlete } from '../services/registration-access.js'
 import { submitRegistration } from '../services/checkout.js'
@@ -1001,6 +1003,7 @@ const isVerifying = ref(false)
 const verifiedAthlete = ref(null)
 const manualPhoneInput = ref('')
 const authError = ref('')
+const isWaitlistOpen = ref(false)
 
 // Controle da Tela Inicial (Card 1) e Stepper Wizard
 const hasStartedWizard = ref(false)
@@ -1519,7 +1522,7 @@ async function handleManualAuth() {
   if (isVerifying.value) return
   authError.value = ''
   const clean = manualPhoneInput.value.replace(/\D/g, '')
-  if (clean.length !== 11) {
+  if (!/^[1-9]\d9\d{8}$/.test(clean)) {
     authError.value = 'Por favor, informe um número de celular/WhatsApp válido com DDD.'
     return
   }
@@ -1534,7 +1537,7 @@ async function handleManualAuth() {
     } else if (found) {
       applyVerifiedAthlete(found)
     } else {
-      authError.value = 'Número não encontrado na lista de pré-inscrições ou lista de espera. Verifique se digitou o DDD correto ou fale com a organização.'
+      isWaitlistOpen.value = true
     }
   } catch (err) {
     authError.value = err.message || 'Erro ao consultar a base de dados. Verifique sua conexão e tente novamente.'

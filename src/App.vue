@@ -36,7 +36,6 @@
       @open-official-registration="enterOfficialRegistrationMode"
     />
 
-    <RegistrationModal :is-open="isRegistrationOpen" @close="isRegistrationOpen = false" />
     <SponsorshipModal :is-open="isSponsorshipOpen" @close="isSponsorshipOpen = false" />
   </div>
 </template>
@@ -54,7 +53,6 @@ import KitSection from './components/KitSection.vue'
 import ConfirmedAthletesSection from './components/ConfirmedAthletesSection.vue'
 import SponsorsSection from './components/SponsorsSection.vue'
 import Footer from './components/Footer.vue'
-import RegistrationModal from './components/RegistrationModal.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
 import StaffDashboard from './components/StaffDashboard.vue'
 import OfficialRegistrationPage from './components/OfficialRegistrationPage.vue'
@@ -65,14 +63,13 @@ const { isSoldOut } = useAthletes()
 
 const isPaymentReturn = ref(window.location.pathname === '/pagamento-concluido')
 function exitPaymentReturn() { window.location.assign('/') }
-const isRegistrationOpen = ref(false)
 const isSponsorshipOpen = ref(false)
 const isStaffMode = ref(false)
 const isOfficialRegistrationMode = ref(false)
 
 function openRegistration(source = 'geral') {
-  isRegistrationOpen.value = true
   trackRegistrationClick(source, isSoldOut.value)
+  enterOfficialRegistrationMode()
 }
 
 function openSponsorship(source = 'geral') {

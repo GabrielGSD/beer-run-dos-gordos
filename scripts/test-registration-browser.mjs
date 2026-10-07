@@ -22,6 +22,9 @@ const api=createServer(async(req,res)=>{
   res.setHeader('access-control-allow-methods','GET,POST,OPTIONS');
   if(req.method==='OPTIONS'){res.writeHead(204).end();return;}
   res.setHeader('content-type','application/json');
+  if(req.url==='/api/athletes') {
+    res.end(JSON.stringify({athletes:[],summary:{total:0}}));return;
+  }
   if(req.url==='/api/coupons/quote') {
     let raw='';for await(const chunk of req)raw+=chunk;
     const body=JSON.parse(raw);
@@ -151,16 +154,23 @@ try {
   await until(()=>evaluate("document.body.innerText.includes('cadastro precisa de')"));
   assert.equal(await evaluate("!!document.querySelector('.btn-start-wizard')"),false);
   action='NOT_FOUND';await load();
-  await until(()=>evaluate("document.body.innerText.includes('encontrado na lista')"));
+  await until(()=>evaluate("!!document.querySelector('.modal-form')"));
+  assert.equal(await evaluate("document.querySelector('.modal-form input[type=tel]').value"),'(35) 99999-1234');
+  assert.ok((await evaluate('document.body.innerText')).includes('Entre na lista de espera'));
+  await evaluate("document.querySelector('.close-btn').click()");
+  await until(()=>evaluate("!document.querySelector('.modal-overlay')"));
+  assert.equal(await evaluate("document.querySelector('.auth-input').value"),'(35) 99999-1234');
   fail=true;await load();
   await until(()=>evaluate("document.body.innerText.includes('Nao foi possivel verificar')"));
   assert.ok(!(await evaluate('document.body.innerText')).includes('encontrado na lista'));
   assert.equal(requests,4);
+  assert.equal(await evaluate("!!document.querySelector('.modal-form')"),false);
   fail=false;
   action='WAITLIST_NOT_CALLED';await load();
   await until(()=>evaluate("document.body.innerText.includes('Aguarde a convocação')"));
   assert.equal(await evaluate("!!document.querySelector('.btn-start-wizard')"),false);
   assert.equal(await evaluate("!!document.querySelector('.reg-form')"),false);
+  assert.equal(await evaluate("!!document.querySelector('.modal-form')"),false);
   // Rascunho anterior a camiseta retorna a etapa 3; espetinhos nao viram tamanho.
   action='CONTINUE';
   await evaluate(`localStorage.setItem('beer_run_draft_35999991234',JSON.stringify({currentStep:4,form:{
@@ -370,6 +380,28 @@ try {
   console.log('PASS: pre-inscricao preenche nome e apelido editaveis; CPF e nascimento vazios; recuperacao e falha nao viram numero inexistente.');
   console.log('PASS: consulta unica, layout desktop/mobile e retomada de pedido validada pelo backend.');
   console.log('PASS: consulta publica sem chave, checkout existente, revalidacao antes de pagar e ambiguidade.');
+  // Botao principal usa a mesma consulta de /#inscricao antes da lista de espera.
+  action='NOT_FOUND';
+  await evaluate('localStorage.clear()');
+  await command('Page.navigate',{url:'http://127.0.0.1:'+port+'/'});
+  await until(()=>evaluate("!!document.querySelector('.hero-btn')"));
+  await evaluate("document.querySelector('.hero-btn').click()");
+  await until(()=>evaluate("!!document.querySelector('.auth-input')"));
+  assert.equal(await evaluate('location.hash'),'#inscricao');
+  assert.equal(await evaluate("!!document.querySelector('.modal-form')"),false);
+  const beforeInvalid=requests;
+  for(const invalid of ['359999','35899991234']) {
+    await evaluate(`(()=>{const input=document.querySelector('.auth-input');input.value='${invalid}';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await evaluate("document.querySelector('.auth-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))");
+    await until(()=>evaluate("document.body.innerText.includes('válido com DDD')"));
+    assert.equal(await evaluate("!!document.querySelector('.modal-form')"),false);
+  }
+  assert.equal(requests,beforeInvalid);
+  await evaluate("(()=>{const input=document.querySelector('.auth-input');input.value='35999991234';input.dispatchEvent(new Event('input',{bubbles:true}));})()");
+  await evaluate("document.querySelector('.auth-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))");
+  await until(()=>evaluate("!!document.querySelector('.modal-form')"));
+  assert.equal(await evaluate("document.querySelector('.modal-form input[type=tel]').value"),'(35) 99999-1234');
+  console.log('PASS: botao principal abre consulta; celular invalido pede correcao; nao encontrado abre lista com WhatsApp preenchido.');
 } finally {
   try { if(ws?.readyState===WebSocket.OPEN)await command('Browser.close'); } catch {}
   ws?.close();
