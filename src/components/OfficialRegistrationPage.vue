@@ -20,6 +20,15 @@
     <main class="container reg-main-content">
       <PaymentStatusPage v-if="paymentOrder" :order-id="paymentOrder" @go-home="$emit('go-home')" />
       <PublicRegistrationStatus v-else-if="publicLookup" :key="publicLookup.phone" :phone="publicLookup.phone" :initial-status="publicLookup.publicStatus" @back="publicLookup = null" @resume="paymentOrder = $event" />
+      <section v-else-if="waitlistLookup" class="auth-barrier-section waitlist-status" aria-label="Sua posição na lista de espera">
+        <div class="vintage-card auth-card">
+          <WaitlistTicket :position="waitlistLookup.waitlist.position" title="★ SUA PRÉ-INSCRIÇÃO ESTÁ NA FILA ★" status-label="AGUARDANDO CONVOCAÇÃO" />
+          <p class="auth-subtitle font-condensed">WhatsApp consultado: <strong>{{ waitlistLookup.phone }}</strong></p>
+          <p class="auth-subtitle font-condensed">Aguarde a convocação da organização pelo WhatsApp para concluir sua inscrição e o pagamento. Estar na lista de espera ainda não garante uma vaga.</p>
+          <p class="auth-phone-help font-condensed">Esta é sua posição atual na fila e pode mudar conforme as inscrições forem confirmadas ou canceladas.</p>
+          <button class="btn-vintage btn-auth font-slab" @click="waitlistLookup = null">CONSULTAR OUTRO NÚMERO</button>
+        </div>
+      </section>
 
       <!-- 2. CARREGAMENTO / VERIFICAÇÃO AUTOMÁTICA EM ANDAMENTO -->
       <section v-else-if="isAutoVerifying" class="auth-barrier-section">
@@ -969,6 +978,7 @@ import { useAthletes } from '../composables/useAthletes.js'
 import PaymentStatusPage from './PaymentStatusPage.vue'
 import PublicRegistrationStatus from './PublicRegistrationStatus.vue'
 import RegistrationModal from './RegistrationModal.vue'
+import WaitlistTicket from './WaitlistTicket.vue'
 import CouponEntry from './CouponEntry.vue'
 import { resolveRegistrationAthlete } from '../services/registration-access.js'
 import { submitRegistration } from '../services/checkout.js'
@@ -1016,6 +1026,7 @@ const stepError = ref('')
 const isSubmitting = ref(false)
 const paymentOrder = ref('')
 const publicLookup = ref(null)
+const waitlistLookup = ref(null)
 const submitError = ref('')
 let submitErrorKind = 'validacao'
 const athleteAge = ref(null)
@@ -1491,6 +1502,9 @@ async function checkHashParams() {
         } else if (found?.publicStatus) {
           publicLookup.value = found
           return
+        } else if (found?.waitlist) {
+          waitlistLookup.value = found
+          return
         } else if (found) {
           applyVerifiedAthlete(found)
           return
@@ -1534,6 +1548,8 @@ async function handleManualAuth() {
       paymentOrder.value = found.orderId
     } else if (found?.publicStatus) {
       publicLookup.value = found
+    } else if (found?.waitlist) {
+      waitlistLookup.value = found
     } else if (found) {
       applyVerifiedAthlete(found)
     } else {

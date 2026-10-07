@@ -5,6 +5,19 @@ import { resolveRegistrationAthlete } from '../src/services/registration-access.
 test('lista nao convocada bloqueia com mensagem de espera', async () => {
   await assert.rejects(resolveRegistrationAthlete('35999991234', async () => ({ action: 'WAITLIST_NOT_CALLED' })), /Aguarde a convocação/)
 })
+
+test('waiting com posicao retorna cartao da fila sem liberar formulario', async () => {
+  assert.deepEqual(await resolveRegistrationAthlete('35999991234', async () => ({
+    action: 'WAITLIST_NOT_CALLED', waitlist: { status: 'waiting', position: 7, name: 'Nao expor' },
+  })), { phone: '35999991234', waitlist: { status: 'waiting', position: 7 } })
+})
+
+test('posicao invalida ou outro status mantem bloqueio de convocacao', async () => {
+  for (const waitlist of [{ status: 'waiting', position: 0 }, { status: 'waiting', position: '7' },
+    { status: 'waiting', position: 1.5 }, { status: 'cancelled', position: 7 }]) {
+    await assert.rejects(resolveRegistrationAthlete('35999991234', async () => ({ action: 'WAITLIST_NOT_CALLED', waitlist })), /Aguarde a convocação/)
+  }
+})
 test('telefone ausente nao usa cadastro antigo do navegador para liberar', async () => {
   assert.equal(await resolveRegistrationAthlete('35999991234', async () => ({ action: 'NOT_FOUND' })), null)
 })

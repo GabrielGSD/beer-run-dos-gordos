@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
 let action='CONTINUE',fail=false,requests=0;
 let manualChecks=0;
+let waitlist;
 let submittedRegistration;
 let registrationSuccess=false;
 const athlete={name:'Atleta de Teste',nickname:'Corredor Teste',modality:'caminhada',drinksBeer:false,couponEligible:false};
@@ -57,7 +58,7 @@ const api=createServer(async(req,res)=>{
   assert.equal(body.phone,'(35) 99999-1234');requests++;
   if(body.orderId){assert.equal(body.orderId,orderId);assert.equal(req.headers['idempotency-key'],key);}
   if(fail)res.writeHead(503).end(JSON.stringify({error:{message:'Nao foi possivel verificar sua pre-inscricao.'}}));
-  else res.end(JSON.stringify({action,...(action==='CONTINUE'?{athlete}:{}),...(action==='RESUME_ORDER'?{orderId}:{}),...(action==='STATUS_AVAILABLE'?{summary}:{})}));
+  else res.end(JSON.stringify({action,...(action==='CONTINUE'?{athlete}:{}),...(action==='RESUME_ORDER'?{orderId}:{}),...(action==='STATUS_AVAILABLE'?{summary}:{}),...(action==='WAITLIST_NOT_CALLED'&&waitlist?{waitlist}:{})}));
 });
 await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
 const apiPort=api.address().port;
@@ -171,6 +172,23 @@ try {
   assert.equal(await evaluate("!!document.querySelector('.btn-start-wizard')"),false);
   assert.equal(await evaluate("!!document.querySelector('.reg-form')"),false);
   assert.equal(await evaluate("!!document.querySelector('.modal-form')"),false);
+  waitlist={status:'waiting',position:7};await load();
+  await until(()=>evaluate("!!document.querySelector('.waitlist-status .ticket-number')"));
+  assert.equal(await evaluate("document.querySelector('.ticket-number').textContent"),'Nº7');
+  assert.ok((await evaluate('document.body.innerText')).includes('AGUARDANDO CONVOCAÇÃO'));
+  assert.equal(await evaluate("!!document.querySelector('.btn-start-wizard, .reg-form, .modal-form')"),false);
+  for(const width of [900,375,320]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
+    assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'),false);
+  }
+  await evaluate("document.querySelector('.waitlist-status button').click()");
+  await until(()=>evaluate("!!document.querySelector('.auth-input')"));
+  // O mesmo resultado deve funcionar pelo link de consulta automatica.
+  await command('Page.navigate',{url:'http://127.0.0.1:'+port+'/registration-test#inscricao?tel='+encodeURIComponent('(35) 99999-1234')});
+  await until(()=>evaluate("!!document.querySelector('.waitlist-status .ticket-number')"));
+  assert.equal(await evaluate("document.querySelector('.ticket-number').textContent"),'Nº7');
+  waitlist=undefined;
+  console.log('PASS: waiting mostra posicao atual em desktop/mobile e link direto, sem liberar inscricao ou duplicar pre-inscricao.');
   // Rascunho anterior a camiseta retorna a etapa 3; espetinhos nao viram tamanho.
   action='CONTINUE';
   await evaluate(`localStorage.setItem('beer_run_draft_35999991234',JSON.stringify({currentStep:4,form:{

@@ -5,6 +5,9 @@ export async function resolveRegistrationAthlete(phone, checkEligibility = getRe
   if (result.action === 'RESUME_ORDER' && typeof result.orderId === 'string') return { orderId: result.orderId }
   if (result.action === 'STATUS_AVAILABLE' && result.summary) return { publicStatus: result.summary, phone }
   if (result.action === 'WAITLIST_NOT_CALLED') {
+    if (result.waitlist?.status === 'waiting' && Number.isSafeInteger(result.waitlist.position) && result.waitlist.position > 0) {
+      return { waitlist: { status: 'waiting', position: result.waitlist.position }, phone }
+    }
     throw new Error('Sua inscrição pela lista de espera ainda não está liberada. Aguarde a convocação da organização.')
   }
   if (result.action === 'AMBIGUOUS') {

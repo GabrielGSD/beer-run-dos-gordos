@@ -5,27 +5,7 @@
 
       <!-- 1. Pré-inscrição recebida na lista de espera -->
       <div v-if="submitted" class="success-box">
-        <div class="waitlist-ticket-card">
-          <div class="ticket-header font-condensed">
-            <span class="ticket-tag">★ PRÉ-INSCRIÇÃO RECEBIDA COM SUCESSO ★</span>
-          </div>
-
-          <div class="ticket-body">
-            <span class="ticket-position-label font-condensed">SUA POSIÇÃO NA FILA PRIORITÁRIA</span>
-            <div class="ticket-number font-slab">
-              <span class="ticket-number-prefix font-condensed">Nº</span>{{ waitlistPosition }}
-            </div>
-            <div class="ticket-athlete-name font-slab">
-              {{ confirmedDisplayName }}
-            </div>
-          </div>
-
-          <div class="ticket-footer font-condensed">
-            <span class="ticket-status-pill">
-              <i class="fa-solid fa-circle-check"></i> CADASTRO REGISTRADO NA COMISSÃO
-            </span>
-          </div>
-        </div>
+        <WaitlistTicket :position="waitlistPosition" :display-name="confirmedDisplayName" />
 
         <p class="waitlist-info-note font-condensed">
           Recebemos sua pré-inscrição na lista de espera! A organização entrará em contato pelo WhatsApp <strong>{{ form.phone }}</strong> quando sua inscrição for liberada. Aguarde a convocação para concluir a inscrição oficial e o pagamento. Este cadastro ainda não garante uma vaga.
@@ -151,6 +131,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import WaitlistTicket from './WaitlistTicket.vue'
 import { useAthletes } from '../composables/useAthletes.js'
 import { trackRegistrationSubmit, trackRegistrationSuccess } from '../services/analytics.js'
 
@@ -546,100 +527,6 @@ function closeModal() {
   font-size: 1.3rem;
 }
 
-/* Waitlist Ticket Card in Modal */
-.waitlist-ticket-card {
-  width: 100%;
-  background-color: #fffaf0;
-  border: 2px dashed #1c1b18;
-  border-radius: 8px;
-  padding: 16px 14px;
-  margin: 6px 0 16px 0;
-  text-align: center;
-  position: relative;
-  box-sizing: border-box;
-  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.08);
-}
-
-.ticket-header {
-  margin-bottom: 8px;
-}
-
-.ticket-tag {
-  display: inline-block;
-  background-color: #1c1b18;
-  color: #d8812a;
-  font-size: 0.86rem;
-  font-weight: 900;
-  padding: 4px 14px;
-  border-radius: 14px;
-  letter-spacing: 0.8px;
-}
-
-.ticket-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-
-.ticket-position-label {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #3b362f;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-.ticket-number {
-  font-size: 3.6rem;
-  font-weight: 900;
-  color: #d8812a;
-  line-height: 1;
-  text-shadow: 2px 2px 0px #1c1b18;
-  margin: 4px 0 6px;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px;
-}
-
-.ticket-number-prefix {
-  font-size: 1.6rem;
-  font-weight: 900;
-  color: #1c1b18;
-  text-shadow: none;
-}
-
-.ticket-athlete-name {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: #1c1b18;
-  line-height: 1.25;
-  word-break: break-word;
-}
-
-.ticket-footer {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(28, 27, 24, 0.2);
-  display: flex;
-  justify-content: center;
-}
-
-.ticket-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: rgba(216, 129, 42, 0.15);
-  color: #8c4202;
-  border: 1px solid rgba(216, 129, 42, 0.4);
-  font-size: 0.88rem;
-  font-weight: 800;
-  padding: 5px 14px;
-  border-radius: 14px;
-}
-
 .waitlist-info-note {
   font-size: 1.05rem;
   font-weight: 700;
@@ -789,30 +676,6 @@ function closeModal() {
 
   .toggle-btn {
     font-size: 0.76rem;
-  }
-
-  .ticket-tag {
-    font-size: 0.8rem;
-  }
-
-  .ticket-position-label {
-    font-size: 0.88rem;
-  }
-
-  .ticket-number {
-    font-size: 3.0rem;
-  }
-
-  .ticket-number-prefix {
-    font-size: 1.35rem;
-  }
-
-  .ticket-athlete-name {
-    font-size: 1.18rem;
-  }
-
-  .ticket-status-pill {
-    font-size: 0.82rem;
   }
 
   .waitlist-info-note {
