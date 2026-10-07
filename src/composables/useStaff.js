@@ -441,9 +441,7 @@ _Performance questionável. Histórias garantidas._ 🍺`
     if (!phone) return null
 
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://gordosrun.netlify.app'
-    const nameParam = encodeURIComponent(athlete.name || '')
-    const phoneParam = encodeURIComponent(athlete.phone || '')
-    const regUrl = `${baseUrl}/#inscricao?nome=${nameParam}&tel=${phoneParam}`
+    const regUrl = `${baseUrl}/#inscricao`
 
     const text = `🍺🏃‍♂️ *A SUA VEZ CHEGOU!*
 Você estava na *lista de espera da Beer Run dos Gordos* e temos uma boa notícia: *uma vaga foi liberada para você!* 😎🍻
