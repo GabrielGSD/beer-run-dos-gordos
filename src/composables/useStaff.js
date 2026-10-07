@@ -436,7 +436,7 @@ _Performance questionável. Histórias garantidas._ 🍺`
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
-  function getWaitlistWhatsAppLink(athlete, position) {
+  function getWaitlistWhatsAppLink(athlete) {
     const phone = sanitizePhoneForWhatsApp(athlete.phone)
     if (!phone) return null
 
@@ -445,7 +445,20 @@ _Performance questionável. Histórias garantidas._ 🍺`
     const phoneParam = encodeURIComponent(athlete.phone || '')
     const regUrl = `${baseUrl}/#inscricao?nome=${nameParam}&tel=${phoneParam}`
 
-    const text = `Fala, ${athlete.name}! 🍻🏃‍♂️\n\nBoas notícias da comissão da *Beer Run dos Gordos*!\nUma vaga foi liberada para você (posição #${position || 1} da Lista de Espera)!\n\nPara oficializar sua inscrição, escolher o tamanho da sua camiseta do kit oficial e ler/aceitar o regulamento da prova, acesse o link de inscrição abaixo:\n\n👉 ${regUrl}\n\nFicamos no seu aguardo para garantir sua vaga e seu kit! Qualquer dúvida pode nos chamar por aqui.`
+    const text = `🍺🏃‍♂️ *A SUA VEZ CHEGOU!*
+Você estava na *lista de espera da Beer Run dos Gordos* e temos uma boa notícia: *uma vaga foi liberada para você!* 😎🍻
+Agora você já pode finalizar sua inscrição e garantir presença na corrida que ninguém pediu… mas todo mundo vai querer participar. 😂
+
+⏰ *Mas fique atento:* essa vaga ficará reservada para você até *13/10/2026*. Após esse prazo, caso a inscrição não tenha sido concluída, *ela poderá ser liberada para o próximo atleta da lista de espera.*
+
+👉 *Garanta sua vaga aqui:*
+${regUrl}
+
+📲 *E acompanhe todas as novidades da Beer Run no Instagram:*
+https://www.instagram.com/beerrundosgordos
+
+*BEER RUN DOS GORDOS — 1ª EDIÇÃO • 2026*
+_Performance questionável. Histórias garantidas._ 🍺`
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
