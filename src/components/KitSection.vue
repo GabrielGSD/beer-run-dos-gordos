@@ -1,5 +1,5 @@
 <template>
-  <section id="kit" class="kit-section ">
+  <section id="kit" class="kit-section">
     <div class="container">
       <h2 class="section-title">KIT DO ATLETA</h2>
 
@@ -18,7 +18,8 @@
             </div>
             <h4 class="kit-item-title font-slab">MEDALHA DE CONCLUSÃO</h4>
             <p class="kit-item-desc font-condensed">
-              Pesada, colecionável e em relevo 3D. Apenas para os sobreviventes que cruzarem a linha de chegada.
+              Pesada, colecionável e em metal. Apenas para os sobreviventes que
+              cruzarem a linha de chegada.
             </p>
           </div>
 
@@ -38,27 +39,29 @@
               Copo de vidro personalizado para brindar e comemorar o pós prova.
             </p>
           </div>
-          
-          <!-- Item 3: Taça Oficial da Prova -->
+
+          <!-- Item 3: Camiseta do Evento -->
           <div class="kit-item">
             <div class="kit-image-box">
-              <span class="kit-badge font-condensed">ITEM COLECIONÁVEL</span>
+              <span class="kit-badge font-condensed">CAMISETA DO EVENTO</span>
               <img
-                src="/images/kit/taca.png"
-                alt="Taça Oficial Beer Run dos Gordos"
+                src="/images/kit/camiseta.png"
+                alt="Camiseta preta do evento Beer Run dos Gordos com logo branco no peito"
                 class="kit-img"
                 loading="lazy"
               />
             </div>
-            <h4 class="kit-item-title font-slab">TAÇA OFICIAL DA PROVA</h4>
+            <h4 class="kit-item-title font-slab">CAMISETA DO EVENTO</h4>
             <p class="kit-item-desc font-condensed">
-              Taça especial para brindar e comemorar o pós prova.
+              Camiseta da Beer Run dos Gordos para vestir a resenha. Escolha seu
+              modelo e tamanho na inscrição.
             </p>
           </div>
         </div>
 
         <div class="kit-footer-tag font-condensed">
-          MEDALHA DE CONCLUSÃO • COPO & TAÇA • BRINDES DE APOIADORES • SORTEIOS
+          MEDALHA DE CONCLUSÃO • COPO • CAMISETA • BRINDES DE APOIADORES •
+          SORTEIOS
         </div>
       </div>
     </div>
@@ -91,7 +94,8 @@
   border: 1.5px solid rgba(44, 39, 31, 0.25);
   border-radius: 8px;
   padding: 16px 14px 20px 14px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .kit-item:hover {
@@ -105,7 +109,12 @@
   position: relative;
   width: 100%;
   height: 240px;
-  background: radial-gradient(circle at center, #ffffff 0%, #f4eade 70%, #ebdcb9 100%);
+  background: radial-gradient(
+    circle at center,
+    #ffffff 0%,
+    #f4eade 70%,
+    #ebdcb9 100%
+  );
   border: 2px solid var(--accent-border);
   border-radius: 6px;
   display: flex;
@@ -140,7 +149,8 @@
   max-height: 200px;
   object-fit: contain;
   filter: drop-shadow(0 8px 14px rgba(25, 23, 20, 0.25));
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.35s ease;
 }
 
 .kit-item:hover .kit-img {
