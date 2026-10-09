@@ -58,7 +58,7 @@
               <button type="button" class="btn-cancel font-condensed" @click="$emit('exit-staff')">
                 Voltar ao Site
               </button>
-              <button type="submit" class="btn-vintage btn-submit font-slab">
+              <button type="submit" class="btn-vintage btn-submit font-slab" :disabled="athletesLoading">
                 <i class="fa-solid fa-key"></i> ENTRAR NO PAINEL
               </button>
             </div>
@@ -95,7 +95,7 @@
           </div>
 
           <div class="header-right">
-            <button class="btn-tool font-condensed" @click="refreshAll" :disabled="isLoading" title="Recarregar Dados">
+            <button class="btn-tool font-condensed" @click="refreshAll" :disabled="isLoading || athletesLoading" title="Recarregar Dados">
               <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': isLoading }"></i>
               <span class="btn-label-desktop">Atualizar</span>
             </button>
@@ -169,22 +169,41 @@
       <!-- Main Body Container -->
       <main class="staff-content-body">
         <div class="staff-page-content-wrapper">
+          <div v-if="athletesError" class="error-banner font-condensed" role="alert">
+            {{ athletesError }}
+            <button type="button" class="btn-vintage btn-sm" @click="fetchStaffAthletes()">Tentar novamente</button>
+          </div>
           <!-- TAB 1: VISÃO GERAL -->
           <section v-if="activeTab === 'overview'" class="tab-pane animate-fade-in">
             <div class="kpi-grid">
+              <div class="kpi-card vintage-card" data-testid="confirmed-kpi">
+                <div class="kpi-header">
+                  <span class="kpi-tag font-condensed">ATLETAS CONFIRMADOS (PAGANTES)</span>
+                  <i class="fa-solid fa-circle-check kpi-icon text-green"></i>
+                </div>
+                <div class="kpi-value font-slab text-green">{{ athleteSummary ? athleteSummary.confirmedCount : '—' }}</div>
+                <p class="kpi-desc font-condensed">Inscrições com pagamento confirmado.</p>
+              </div>
+              <div class="kpi-card vintage-card" data-testid="revenue-kpi">
+                <div class="kpi-header">
+                  <span class="kpi-tag font-condensed">TOTAL RECEBIDO EM INSCRIÇÕES</span>
+                  <i class="fa-solid fa-brazilian-real-sign kpi-icon text-green"></i>
+                </div>
+                <div class="kpi-value kpi-money font-slab text-green">{{ athleteSummary ? formatMoney(athleteSummary.totalReceivedCents) : '—' }}</div>
+                <p class="kpi-desc font-condensed">Valor das inscrições pagas, após cupons e sem acréscimos do checkout.</p>
+                <div v-if="athleteSummary?.confirmedWithoutPaymentCount" class="kpi-footer font-condensed">
+                  {{ athleteSummary.confirmedWithoutPaymentCount }} pagante(s) sem pedido pago registrado; seus valores não estão incluídos no total.
+                </div>
+              </div>
               <!-- Card 1: Inscrições -->
               <div class="kpi-card vintage-card">
                 <div class="kpi-header">
-                  <span class="kpi-tag font-condensed">OCUPAÇÃO DO EVENTO</span>
+                  <span class="kpi-tag font-condensed">ATLETAS CADASTRADOS</span>
                   <i class="fa-solid fa-users kpi-icon"></i>
                 </div>
-                <div class="kpi-value font-slab">{{ athletes.length }} <span>/ {{ maxAthletes }}</span></div>
-                <div class="kpi-progress-bar">
-                  <div class="progress-fill" :style="{ width: `${Math.min(100, (athletes.length / maxAthletes) * 100)}%` }"></div>
-                </div>
+                <div class="kpi-value font-slab">{{ athletesError || athletesLoading ? '—' : athletes.length }}</div>
                 <div class="kpi-footer font-condensed">
-                  <span v-if="athletes.length >= maxAthletes" class="text-danger font-bold">⚠️ Vagas Esgotadas!</span>
-                  <span v-else class="text-success font-bold">{{ maxAthletes - athletes.length }} vagas restantes</span>
+                  Todos os cadastros, incluindo inscrições ainda não pagas.
                 </div>
               </div>
 
@@ -524,8 +543,8 @@
                       <td>
                         <div class="status-cell-wrap font-condensed">
                           <template v-if="athlete.paymentStatus === 'completed'">
-                            <span class="tag-badge tag-paid" title="Pagamento confirmado pelo Staff">
-                              <i class="fa-solid fa-circle-check"></i> Concluído
+                            <span class="tag-badge tag-paid" title="Pagamento confirmado">
+                              <i class="fa-solid fa-circle-check"></i> Concluído (Pago)
                             </span>
                             <button
                               type="button"
@@ -1560,16 +1579,10 @@ import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { isActiveWaitlistEntry } from '../services/waitlist.js'
 import { useStaff } from '../composables/useStaff.js'
-import { useAthletes } from '../composables/useAthletes.js'
 import { useSponsors } from '../composables/useSponsors.js'
 import { isSupabaseConfigured } from '../lib/supabase.js'
 
 defineEmits(['exit-staff'])
-
-const {
-  athletes,
-  fetchAthletes
-} = useAthletes()
 
 const {
   allSponsors,
@@ -1582,6 +1595,12 @@ const {
 
 const {
   isAuthenticated,
+  athletes,
+  athleteSummary,
+  athletesLoading,
+  athletesError,
+  staffError,
+  fetchStaffAthletes,
   waitlist,
   proposals,
   isLoading,
@@ -1617,6 +1636,7 @@ const athleteFilterPaymentStatus = ref('all')
 const paymentStatusToast = ref('')
 
 const athletesCompletedCount = computed(() => athletes.value.filter(a => a.paymentStatus === 'completed').length)
+const formatMoney = cents => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 const athletesPendingPaymentCount = computed(() => athletes.value.filter(a => a.paymentStatus === 'pending_payment' || (a.acceptedTermsAt && a.paymentStatus !== 'completed')).length)
 const athletesPreRegistrationCount = computed(() => athletes.value.filter(a => !a.acceptedTermsAt && a.paymentStatus !== 'completed' && a.paymentStatus !== 'pending_payment').length)
 
@@ -1727,14 +1747,15 @@ const showPassword = ref(false)
 const loginErrorMessage = ref('')
 const pinInputRef = ref(null)
 
-function handleLoginSubmit() {
+async function handleLoginSubmit() {
+  if (athletesLoading.value) return
   loginErrorMessage.value = ''
-  const success = login(pinInput.value)
+  const success = await login(pinInput.value)
   if (success) {
     pinInput.value = ''
     refreshAll()
   } else {
-    loginErrorMessage.value = 'Senha incorreta! Verifique com a comissão organizadora.'
+    loginErrorMessage.value = staffError.value || 'Senha incorreta! Verifique com a comissão organizadora.'
   }
 }
 
@@ -1971,7 +1992,7 @@ function formatDate(isoString) {
 
 async function refreshAll() {
   await Promise.all([
-    fetchAthletes(),
+    fetchStaffAthletes(),
     fetchWaitlist(),
     fetchProposals(),
     fetchSponsors()
@@ -1985,7 +2006,10 @@ function handleLogout() {
 let waitlistRefreshTimer
 onMounted(() => {
   waitlistRefreshTimer = setInterval(() => {
-    if (isAuthenticated.value && document.visibilityState === 'visible') fetchWaitlist()
+    if (isAuthenticated.value && document.visibilityState === 'visible') {
+      fetchWaitlist()
+      if (!athletesLoading.value) fetchStaffAthletes()
+    }
   }, 30000)
   if (isAuthenticated.value) {
     refreshAll()
@@ -1997,6 +2021,7 @@ onUnmounted(() => clearInterval(waitlistRefreshTimer))
 </script>
 
 <style scoped>
+.kpi-value.kpi-money { font-size: clamp(1.4rem, 3vw, 2rem); overflow-wrap: anywhere; }
 /* Toast de Atualização de Pagamento */
 .payment-toast-banner {
   background-color: #27ae60;

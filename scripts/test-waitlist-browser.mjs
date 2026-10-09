@@ -19,7 +19,7 @@ const api=createServer(async(req,res)=>{
   assert.equal(req.headers['idempotency-key'],undefined);
   requests++;
   if(fail)res.writeHead(503).end('{}');
-  else res.end(JSON.stringify({athletes:confirmedOnly?[runner]:[runner,walker],summary:{total:confirmedOnly?1:2,drinkers:1,nonDrinkers:confirmedOnly?0:1,waitlistCount:33,capacity:2}}));
+  else res.end(JSON.stringify({athletes:confirmedOnly?[runner]:[runner,walker],summary:{total:confirmedOnly?1:2,drinkers:1,nonDrinkers:confirmedOnly?0:1,preRegisteredCount:confirmedOnly?1:0,waitlistCount:33,capacity:2}}));
 });
 await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
 const apiPort=api.address().port;
@@ -54,7 +54,7 @@ const harness = {
 };
 try {
   vite=await createViteServer({root,envDir:false,configFile:false,plugins:[harness,(await import('@vitejs/plugin-vue')).default()],
-    define:{'import.meta.env.VITE_API_URL':JSON.stringify('http://127.0.0.1:'+apiPort),
+    define:{'import.meta.env.VITE_API_URL':'""',
       'import.meta.env.VITE_SUPABASE_URL':'""','import.meta.env.VITE_SUPABASE_ANON_KEY':'""','import.meta.env.VITE_GA_MEASUREMENT_ID':'"G-XXXXXXXXXX"'},
     server:{host:'127.0.0.1',port:0},logLevel:'error'});
   await vite.listen();const port=vite.httpServer.address().port;

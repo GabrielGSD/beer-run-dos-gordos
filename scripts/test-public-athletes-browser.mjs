@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
 let fail=false,confirmedOnly=false,requests=0;
 const runner={name:'Joao Teste',nickname:'Relampago',modality:'corrida',drinksBeer:true};
-const walker={name:'Atleta Pendente',nickname:'Passo Leve',modality:'caminhada',drinksBeer:false};
+const walker={name:'Atleta Confirmado',nickname:'Passo Leve',modality:'caminhada',drinksBeer:false};
 const api=createServer(async(req,res)=>{
   res.setHeader('access-control-allow-origin','*');
   res.setHeader('content-type','application/json');
@@ -19,7 +19,7 @@ const api=createServer(async(req,res)=>{
   assert.equal(req.headers['idempotency-key'],undefined);
   requests++;
   if(fail)res.writeHead(503).end('{}');
-  else res.end(JSON.stringify({athletes:confirmedOnly?[runner]:[runner,walker],summary:{total:confirmedOnly?1:2,drinkers:1,nonDrinkers:confirmedOnly?0:1,waitlistCount:33,capacity:2}}));
+  else res.end(JSON.stringify({athletes:confirmedOnly?[runner]:[runner,walker],summary:{total:confirmedOnly?1:2,drinkers:1,nonDrinkers:confirmedOnly?0:1,preRegisteredCount:confirmedOnly?1:0,waitlistCount:33,capacity:2}}));
 });
 await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
 const apiPort=api.address().port;
@@ -83,6 +83,7 @@ try {
   assert.equal(await evaluate("document.querySelectorAll('.drinks-yes').length"),1);
   assert.equal(await evaluate("document.querySelectorAll('.drinks-no').length"),1);
   assert.ok((await evaluate("document.querySelector('.pill-waitlist').textContent")).includes('33'));
+  assert.equal((await evaluate("document.querySelector('.pill-pre-registered').textContent")).trim(),'0 PRÉ INSCRITOS');
   assert.equal(await evaluate("document.querySelector('.athlete-name').textContent"),'Joao "Relampago" Teste');
   const initial=await evaluate("document.querySelector('.athletes-list').textContent");
   await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
@@ -114,6 +115,8 @@ try {
   await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===1"));
   assert.equal(await evaluate("document.querySelectorAll('[role=tab], [aria-pressed]').length"),0);
+  assert.equal((await evaluate("document.querySelector('.pill-pre-registered').textContent")).trim(),'1 PRÉ INSCRITOS');
+  assert.equal(await evaluate("document.querySelector('.counter-number').textContent"),'01');
   fail=true;
   await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
   await until(()=>evaluate("!!document.querySelector('[role=alert]')"));
@@ -122,7 +125,7 @@ try {
   await evaluate("document.querySelector('[role=alert] button').click()");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
   assert.equal(requests,5);
-  console.log('PASS: original layout, unified list, no status controls, server rule, counters, search, desktop/mobile, retry.');
+  console.log('PASS: original layout, confirmed list, pre-registration counter including zero, server rule, counters, search, desktop/mobile, retry.');
 } finally {
   try { if(ws?.readyState===WebSocket.OPEN)await command('Browser.close'); } catch {}
   ws?.close();

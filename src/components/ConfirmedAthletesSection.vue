@@ -16,6 +16,9 @@
               <span class="pill pill-soft" title="Participantes sem bebida alcoólica">
                 <i class="fa-solid fa-bottle-water" aria-hidden="true"></i> {{ summary.nonDrinkers }} NÃO BEBEM
               </span>
+              <span class="pill pill-pre-registered" title="Atletas sem pagamento confirmado">
+                <i class="fa-solid fa-user-clock" aria-hidden="true"></i> {{ summary.preRegisteredCount }} PRÉ INSCRITOS
+              </span>
               <span v-if="summary.waitlistCount > 0" class="pill pill-waitlist" title="Atletas na lista de espera">
                 <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> {{ summary.waitlistCount }} NA FILA DE ESPERA
               </span>
@@ -115,6 +118,7 @@ const filteredAthletes = computed(() => {
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: .88rem; font-weight: 800; letter-spacing: .3px; border: 1.5px solid var(--accent-border); }
 .pill-beer { background: rgba(217,130,43,.2); color: #793f06; border-color: var(--accent-gold); }
 .pill-soft { background: rgba(56,75,40,.15); color: var(--accent-green); border-color: var(--accent-green); }
+.pill-pre-registered { background: rgba(61,83,105,.12); color: #3d5369; border-color: #3d5369; }
 .pill-waitlist { background: rgba(140,35,35,.12); color: #8c2323; border-color: #8c2323; }
 .athletes-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .search-box { position: relative; display: flex; align-items: center; }

@@ -56,7 +56,7 @@ function loadSavedLocalAthletes() {
   return INITIAL_ATHLETES
 }
 
-function mapDatabaseAthlete(row) {
+export function mapDatabaseAthlete(row) {
   const isOfficial = Boolean(row.accepted_terms_at && (row.shirt_size || row.cpf))
   return {
     id: row.id,

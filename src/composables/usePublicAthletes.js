@@ -22,6 +22,7 @@ export function usePublicAthletes() {
       if (!response.ok) throw new Error('Consulta indisponível')
       const data = await response.json()
       if (!Array.isArray(data.athletes) || !data.summary || data.summary.total !== data.athletes.length) throw new Error('Resposta inválida')
+      if (!Number.isInteger(data.summary.preRegisteredCount) || data.summary.preRegisteredCount < 0) throw new Error('Resposta inválida')
       athletes.value = data.athletes
       summary.value = data.summary
     } catch {

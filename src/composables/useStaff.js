@@ -1,33 +1,81 @@
 import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
-import { formatAthleteDisplayName, MAX_ATHLETES, useAthletes } from './useAthletes.js'
+import { formatAthleteDisplayName, mapDatabaseAthlete, MAX_ATHLETES, useAthletes } from './useAthletes.js'
 
 const STAFF_PIN = import.meta.env.VITE_STAFF_PIN || 'admin@beerrun2026'
 const AUTH_STORAGE_KEY = 'beer_run_staff_auth'
+const PIN_STORAGE_KEY = 'beer_run_staff_pin'
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const ATHLETES_STORAGE_KEY = 'beer_run_confirmed_athletes'
 const WAITLIST_STORAGE_KEY = 'beer_run_athlete_waitlist'
 const PROPOSALS_STORAGE_KEY = 'beer_run_sponsorship_proposals'
 
 // Estado reativo singleton
-const isAuthenticated = ref(sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true')
+const isAuthenticated = ref(sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true' && (!API_URL || !!sessionStorage.getItem(PIN_STORAGE_KEY)))
+const athletes = ref([])
+const athleteSummary = ref(null)
+const athletesLoading = ref(false)
+const athletesError = ref('')
 const waitlist = ref([])
 const proposals = ref([])
 const isLoading = ref(false)
 const staffError = ref(null)
 
 export function useStaff() {
-  const {
-    athletes,
-    fetchAthletes: refreshPublicAthletes,
-    updateAthletePaymentStatus
-  } = useAthletes()
+  async function fetchStaffAthletes(pin = sessionStorage.getItem(PIN_STORAGE_KEY)) {
+    athletesLoading.value = true
+    athletesError.value = ''
+    try {
+      if (!API_URL) {
+        if (isSupabaseConfigured) throw new Error('Configure a URL da API para consultar todos os atletas.')
+        athletes.value = useAthletes().athletes.value
+        athleteSummary.value = null
+        return true
+      }
+      const response = await fetch(API_URL + '/api/staff/athletes', {
+        headers: { Authorization: 'Bearer ' + (pin || '') },
+        cache: 'no-store', credentials: 'omit', signal: AbortSignal.timeout(15000),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        if (response.status === 401) logout()
+        throw new Error(data.error?.message || 'Não foi possível carregar os dados do staff.')
+      }
+      const summary = data.summary
+      if (!Array.isArray(data.athletes) || !summary || summary.total !== data.athletes.length ||
+        !['total', 'confirmedCount', 'totalReceivedCents', 'confirmedWithoutPaymentCount', 'capacity'].every(key => Number.isSafeInteger(summary[key]) && summary[key] >= 0) || summary.currency !== 'BRL') {
+        throw new Error('Resposta inválida ao carregar os dados do staff.')
+      }
+      athletes.value = data.athletes.map(mapDatabaseAthlete)
+      athleteSummary.value = summary
+      return true
+    } catch (error) {
+      athletes.value = []
+      athleteSummary.value = null
+      athletesError.value = error.message || 'Não foi possível carregar os dados do staff.'
+      return false
+    } finally {
+      athletesLoading.value = false
+    }
+  }
 
   // --------------------------------------------------------------------------
   // AUTENTICAÇÃO
   // --------------------------------------------------------------------------
-  function login(pin) {
+  async function login(pin) {
     const entered = (pin || '').trim()
+    if (API_URL) {
+      if (!await fetchStaffAthletes(entered)) {
+        staffError.value = athletesError.value
+        return false
+      }
+      sessionStorage.setItem(PIN_STORAGE_KEY, entered)
+      isAuthenticated.value = true
+      sessionStorage.setItem(AUTH_STORAGE_KEY, 'true')
+      staffError.value = null
+      return true
+    }
     if (entered === STAFF_PIN || entered === 'admin@beerrun2026' || entered === 'beerrun2026') {
       isAuthenticated.value = true
       sessionStorage.setItem(AUTH_STORAGE_KEY, 'true')
@@ -41,16 +89,34 @@ export function useStaff() {
   function logout() {
     isAuthenticated.value = false
     sessionStorage.removeItem(AUTH_STORAGE_KEY)
+    sessionStorage.removeItem(PIN_STORAGE_KEY)
+    athletes.value = []
+    athleteSummary.value = null
   }
 
   function verifyAdminPassword(pin) {
     const entered = (pin || '').trim()
+    if (API_URL) return !!entered && entered === sessionStorage.getItem(PIN_STORAGE_KEY)
     return entered === STAFF_PIN || entered === 'admin@beerrun2026' || entered === 'beerrun2026'
   }
 
   // --------------------------------------------------------------------------
   // ATLETAS CONFIRMADOS
   // --------------------------------------------------------------------------
+  async function updateAthletePaymentStatus(athleteId, paymentStatus) {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('athletes')
+        .update({ payment_status: paymentStatus, ...(paymentStatus === 'completed' ? { registration_type: 'official' } : {}) })
+        .eq('id', athleteId).select('id').single()
+      if (error) throw new Error('Não foi possível alterar o pagamento. Inscrições oficiais devem ser confirmadas pelo fluxo de pagamento.')
+    }
+    if (API_URL) {
+      if (!await fetchStaffAthletes()) throw new Error(athletesError.value)
+    } else {
+      const athlete = athletes.value.find(item => item.id === athleteId)
+      if (athlete) athlete.paymentStatus = paymentStatus
+    }
+  }
   async function deleteAthlete(athleteId, confirmationPin) {
     staffError.value = null
 
@@ -76,7 +142,7 @@ export function useStaff() {
     // Atualiza estado local
     athletes.value = athletes.value.filter(a => a.id !== athleteId)
     try {
-      localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
+      if (!API_URL) localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
     } catch (e) {
       console.warn('Erro ao atualizar localStorage de atletas:', e)
     }
@@ -144,7 +210,7 @@ export function useStaff() {
 
     athletes.value.unshift(localAthlete)
     try {
-      localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
+      if (!API_URL) localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
     } catch (e) {}
 
     return localAthlete
@@ -172,7 +238,7 @@ export function useStaff() {
     }
 
     try {
-      localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
+      if (!API_URL) localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
     } catch (e) {}
   }
 
@@ -489,42 +555,24 @@ _Performance questionável. Histórias garantidas._ 🍺`
       'Nome',
       'Apelido',
       'Telefone',
-      'CPF',
       'Espetinhos Chegada',
       'Tamanho Camiseta',
-      'Data Nasc',
-      'Genero',
-      'Cidade/UF',
-      'Contato Emergencia',
-      'Tel Emergencia',
       'Modalidade',
       'Bebe Cerveja',
-      'Tipo Inscricao',
       'Status Pagamento',
-      'Termos Aceitos Em',
-      'Check-in Realizado',
-      'Data Cadastro'
+      'Check-in Realizado'
     ]
     const rows = athletes.value.map((a, i) => [
       i + 1,
       `"${(a.name || '').replace(/"/g, '""')}"`,
       `"${(a.nickname || '').replace(/"/g, '""')}"`,
       `"${(a.phone || '').replace(/"/g, '""')}"`,
-      `"${(a.cpf || '').replace(/"/g, '""')}"`,
       `"${(a.skewerChoice || '').replace(/"/g, '""')}"`,
       `"${formatShirtSelection(a.shirtModel, a.shirtSize).replace(/"/g, '""')}"`,
-      `"${(a.birthDate || '').replace(/"/g, '""')}"`,
-      `"${(a.gender || '').replace(/"/g, '""')}"`,
-      `"${(a.cityState || '').replace(/"/g, '""')}"`,
-      `"${(a.emergencyContactName || '').replace(/"/g, '""')}"`,
-      `"${(a.emergencyContactPhone || '').replace(/"/g, '""')}"`,
       a.modality === 'caminhada' ? 'Caminhada' : 'Corrida',
       a.drinksBeer ? 'Sim' : 'Nao',
-      a.registrationType === 'official' ? 'Oficial Completa' : 'Pre-Inscricao',
       a.paymentStatus === 'completed' ? 'Concluido (Pago)' : (a.paymentStatus === 'pending_payment' ? 'Aguardando Pagamento' : 'Pre-Inscricao'),
-      a.acceptedTermsAt ? new Date(a.acceptedTermsAt).toLocaleString('pt-BR') : 'Nao registrado',
-      a.isCheckedIn ? 'Sim' : 'Nao',
-      a.createdAt ? new Date(a.createdAt).toLocaleString('pt-BR') : ''
+      a.isCheckedIn ? 'Sim' : 'Nao'
     ])
 
     const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
@@ -566,12 +614,17 @@ _Performance questionável. Histórias garantidas._ 🍺`
   }
 
   return {
+    athletes,
+    athleteSummary,
+    athletesLoading,
+    athletesError,
+    fetchStaffAthletes,
     isAuthenticated,
     waitlist,
     proposals,
     isLoading,
     staffError,
-    maxAthletes: MAX_ATHLETES,
+    maxAthletes: computed(() => athleteSummary.value?.capacity ?? MAX_ATHLETES),
     login,
     logout,
     verifyAdminPassword,

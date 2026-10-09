@@ -24,7 +24,7 @@ const api=createServer(async(req,res)=>{
   if(req.method==='OPTIONS'){res.writeHead(204).end();return;}
   res.setHeader('content-type','application/json');
   if(req.url==='/api/athletes') {
-    res.end(JSON.stringify({athletes:[],summary:{total:0}}));return;
+    res.end(JSON.stringify({athletes:[],summary:{total:0,drinkers:0,nonDrinkers:0,preRegisteredCount:0,waitlistCount:0,capacity:100}}));return;
   }
   if(req.url==='/api/coupons/quote') {
     let raw='';for await(const chunk of req)raw+=chunk;
