@@ -480,25 +480,23 @@ export function useStaff() {
     const phone = sanitizePhoneForWhatsApp(athlete.phone)
     if (!phone) return null
 
-    const text = `Olá ${athlete.name}, tudo certo?
+    const firstName = athlete.name?.trim().split(/\s+/)[0] || 'atleta'
 
-🍺🏃‍♂️ *A INSCRIÇÃO DA BEER RUN DOS GORDOS ESTÁ LIBERADA!*
-E como você fez a nossa *pré-inscrição*, chegou a sua vez primeiro! 😎
-Você tem *prioridade para garantir sua vaga* antes da abertura para o restante da galera.
+    const text = `🍺🏃‍♂️ *Ei, ${firstName}! Tá faltando você nessa história!* 😂
+Passando aqui porque sentimos falta do seu nome na lista de atletas confirmados da *BEER RUN DOS GORDOS!* 👀🍻
+Vimos que você fez a sua *pré-inscrição*, mas ainda não concluiu a inscrição oficial.
 
-⏰ *Mas fique atento:* sua prioridade é válida até *12/10/2026*. Após esse prazo, caso a inscrição não tenha sido concluída, *a vaga poderá ser liberada para um atleta da lista de espera.*
+⚠️ *Só pra lembrar:* a pré-inscrição foi apenas uma manifestação de interesse. Para garantir sua participação, é necessário finalizar a inscrição pelo nosso site!
 
-Então não deixa para depois! 😂🍻
-Finalize sua inscrição e garanta presença *na corrida que ninguém pediu… mas todo mundo vai querer participar.*
+A gente tá preparando tudo com muito carinho para essa primeira edição e queremos você fazendo parte dessa resenha! 💛
 
-👉 *Garanta sua vaga aqui:*
+👉 *Garanta sua inscrição aqui:*
 https://gordosrun.netlify.app/#inscricao
 
-📲 *E acompanhe todas as novidades da Beer Run no Instagram:*
-https://www.instagram.com/beerrundosgordos
+Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
 
 *BEER RUN DOS GORDOS — 1ª EDIÇÃO • 2026*
-_Performance questionável. Histórias garantidas._ 🍺`
+*Performance questionável. Histórias garantidas.*`
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
@@ -508,21 +506,23 @@ _Performance questionável. Histórias garantidas._ 🍺`
 
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://gordosrun.netlify.app'
     const regUrl = `${baseUrl}/#inscricao`
+    const firstName = athlete.name?.trim().split(/\s+/)[0] || 'atleta'
 
-    const text = `🍺🏃‍♂️ *A SUA VEZ CHEGOU!*
-Você estava na *lista de espera da Beer Run dos Gordos* e temos uma boa notícia: *uma vaga foi liberada para você!* 😎🍻
-Agora você já pode finalizar sua inscrição e garantir presença na corrida que ninguém pediu… mas todo mundo vai querer participar. 😂
+    const text = `🍺🏃‍♂️ *Ei, ${firstName}! A SUA VEZ CHEGOU!* 🎉
+Temos uma boa notícia pra você! 😎🍻
+Você estava na *lista de espera da BEER RUN DOS GORDOS* e agora *sua inscrição está liberada!*
 
-⏰ *Mas fique atento:* essa vaga ficará reservada para você até *13/10/2026*. Após esse prazo, caso a inscrição não tenha sido concluída, *ela poderá ser liberada para o próximo atleta da lista de espera.*
+A gente tá preparando tudo com muito carinho para essa primeira edição e queremos você fazendo parte dessa história! 💛
 
-👉 *Garanta sua vaga aqui:*
+⚠️ *Só pra lembrar:* estar na lista de espera não garante sua participação. Para confirmar sua vaga, é necessário finalizar a inscrição pelo nosso site!
+
+👉 *Garanta sua inscrição aqui:*
 ${regUrl}
 
-📲 *E acompanhe todas as novidades da Beer Run no Instagram:*
-https://www.instagram.com/beerrundosgordos
+Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
 
 *BEER RUN DOS GORDOS — 1ª EDIÇÃO • 2026*
-_Performance questionável. Histórias garantidas._ 🍺`
+*Performance questionável. Histórias garantidas.*`
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
