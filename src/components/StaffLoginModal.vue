@@ -29,6 +29,7 @@
               v-model="pinInput"
               placeholder="Digite o PIN da organização..."
               autocomplete="current-password"
+              :disabled="isLoggingIn"
               class="form-input font-condensed"
               required
             />
@@ -52,8 +53,8 @@
           <button type="button" class="btn-cancel font-condensed" @click="$emit('close')">
             CANCELAR
           </button>
-          <button type="submit" class="btn-vintage btn-submit font-slab">
-            <i class="fa-solid fa-key"></i> ENTRAR NO PAINEL
+          <button type="submit" class="btn-vintage btn-submit font-slab" :disabled="isLoggingIn">
+            <i class="fa-solid fa-key"></i> {{ isLoggingIn ? 'VERIFICANDO...' : 'ENTRAR NO PAINEL' }}
           </button>
         </div>
       </form>
@@ -74,11 +75,12 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'authenticated'])
 
-const { login } = useStaff()
+const { login, staffError } = useStaff()
 
 const pinInput = ref('')
 const showPassword = ref(false)
 const errorMessage = ref('')
+const isLoggingIn = ref(false)
 const pinInputRef = ref(null)
 
 watch(() => props.isOpen, (newVal) => {
@@ -94,15 +96,23 @@ watch(() => props.isOpen, (newVal) => {
   }
 })
 
-function handleLogin() {
+async function handleLogin() {
+  if (isLoggingIn.value) return
   errorMessage.value = ''
-  const success = login(pinInput.value)
-  if (success) {
-    pinInput.value = ''
-    emit('authenticated')
-    emit('close')
-  } else {
-    errorMessage.value = 'Senha incorreta! Verifique com a comissão organizadora.'
+  isLoggingIn.value = true
+  try {
+    const success = await login(pinInput.value)
+    if (success) {
+      pinInput.value = ''
+      emit('authenticated')
+      emit('close')
+    } else {
+      errorMessage.value = staffError.value || 'Senha incorreta! Verifique com a comissão organizadora.'
+    }
+  } catch {
+    errorMessage.value = 'Não foi possível acessar o painel. Tente novamente.'
+  } finally {
+    isLoggingIn.value = false
   }
 }
 </script>

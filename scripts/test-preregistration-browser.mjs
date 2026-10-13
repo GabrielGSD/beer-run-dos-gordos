@@ -1,4 +1,4 @@
-// Formulario real, Supabase simulado e rede externa bloqueada. Nao usa .env real.
+// Formulario real, API simulada e rede externa bloqueada. Nao usa .env real.
 import { createServer as createViteServer } from 'vite';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
@@ -19,18 +19,15 @@ const api = createServer(async (req, res) => {
   res.setHeader('content-type', 'application/json');
   if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
   const path = new URL(req.url, 'http://localhost').pathname;
-  if (path === '/rest/v1/athlete_waitlist' && req.method === 'POST') {
+  if (path === '/api/waitlist' && req.method === 'POST') {
     let raw = ''; for await (const chunk of req) raw += chunk;
-    const [record] = JSON.parse(raw);
+    const record = JSON.parse(raw);
+    assert.equal(record.status, undefined);
     attempts.push(record);
     if (fail) { res.writeHead(403).end(JSON.stringify({ code: '42501', message: 'Simulated failure' })); return; }
-    saved.push(record);
-    res.writeHead(201).end(JSON.stringify({ id: crypto.randomUUID(), ...record }));
+    saved.push({ ...record, status: 'waiting' });
+    res.writeHead(201).end(JSON.stringify({ success: true, position: saved.length }));
     return;
-  }
-  if (path === '/rest/v1/athlete_waitlist' && req.method === 'HEAD') {
-    res.setHeader('content-range', `0-${saved.length - 1}/${saved.length}`);
-    res.writeHead(200).end(); return;
   }
   unexpected.push({ path, method: req.method });
   res.writeHead(400).end('{}');
@@ -146,7 +143,7 @@ try {
   await until(() => evaluate("!!document.querySelector('.waitlist-ticket-card')"));
   assert.equal(saved.length, before + 1);
   assert.deepEqual(unexpected, [], 'Nao deve ler/gravar athletes nem criar pedido na pre-inscricao');
-  console.log('PASS: erro no Supabase nao gera sucesso ou fallback local; dados preservados para nova tentativa.');
+  console.log('PASS: erro na API nao gera sucesso ou fallback local; dados preservados para nova tentativa.');
 } finally {
   try { if (ws?.readyState === WebSocket.OPEN) await command('Browser.close'); } catch {}
   ws?.close();

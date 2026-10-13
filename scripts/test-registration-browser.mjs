@@ -18,6 +18,11 @@ let summary={status:'PENDING_PAYMENT',checkoutUrl:'https://checkout.infinitepay.
 const orderId='11365080-47dc-4ec7-9d40-ab1766dbaf83', key='c97a89c4-1c2b-4e8a-b0ba-15d2edb33720';
 let expectedOrderKey=key;
 const api=createServer(async(req,res)=>{
+  if(req.url==='/api/sponsors') {
+    res.setHeader('access-control-allow-origin','*');
+    res.setHeader('content-type','application/json');
+    res.end(JSON.stringify({rows:[]})); return;
+  }
   res.setHeader('access-control-allow-origin','*');
   res.setHeader('access-control-allow-headers','content-type,idempotency-key');
   res.setHeader('access-control-allow-methods','GET,POST,OPTIONS');

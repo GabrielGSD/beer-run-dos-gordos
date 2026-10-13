@@ -1,18 +1,8 @@
 import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed } from 'vue'
-import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
-import { formatAthleteDisplayName, mapDatabaseAthlete, MAX_ATHLETES, useAthletes } from './useAthletes.js'
+import { formatAthleteDisplayName, mapDatabaseAthlete, MAX_ATHLETES } from './useAthletes.js'
+import { staffAuthenticated as isAuthenticated, staffRequest, staffMutation, loginStaff, logoutStaff, restoreStaffSession, onStaffReset } from '../services/staff-api.js'
 
-const STAFF_PIN = import.meta.env.VITE_STAFF_PIN || 'admin@beerrun2026'
-const AUTH_STORAGE_KEY = 'beer_run_staff_auth'
-const PIN_STORAGE_KEY = 'beer_run_staff_pin'
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
-const ATHLETES_STORAGE_KEY = 'beer_run_confirmed_athletes'
-const WAITLIST_STORAGE_KEY = 'beer_run_athlete_waitlist'
-const PROPOSALS_STORAGE_KEY = 'beer_run_sponsorship_proposals'
-
-// Estado reativo singleton
-const isAuthenticated = ref(sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true' && (!API_URL || !!sessionStorage.getItem(PIN_STORAGE_KEY)))
 const athletes = ref([])
 const athleteSummary = ref(null)
 const athletesLoading = ref(false)
@@ -21,448 +11,70 @@ const waitlist = ref([])
 const proposals = ref([])
 const isLoading = ref(false)
 const staffError = ref(null)
+onStaffReset(() => { athletes.value = []; athleteSummary.value = null; waitlist.value = []; proposals.value = []; athletesError.value = ''; staffError.value = null })
 
 export function useStaff() {
-  async function fetchStaffAthletes(pin = sessionStorage.getItem(PIN_STORAGE_KEY)) {
+  async function fetchStaffAthletes() {
     athletesLoading.value = true
     athletesError.value = ''
     try {
-      if (!API_URL) {
-        if (isSupabaseConfigured) throw new Error('Configure a URL da API para consultar todos os atletas.')
-        athletes.value = useAthletes().athletes.value
-        athleteSummary.value = null
-        return true
-      }
-      const response = await fetch(API_URL + '/api/staff/athletes', {
-        headers: { Authorization: 'Bearer ' + (pin || '') },
-        cache: 'no-store', credentials: 'omit', signal: AbortSignal.timeout(15000),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        if (response.status === 401) logout()
-        throw new Error(data.error?.message || 'Não foi possível carregar os dados do staff.')
-      }
+      const data = await staffRequest('athletes')
       const summary = data.summary
       if (!Array.isArray(data.athletes) || !summary || summary.total !== data.athletes.length ||
-        !['total', 'confirmedCount', 'totalReceivedCents', 'confirmedWithoutPaymentCount', 'capacity'].every(key => Number.isSafeInteger(summary[key]) && summary[key] >= 0) || summary.currency !== 'BRL') {
-        throw new Error('Resposta inválida ao carregar os dados do staff.')
-      }
+        !['total', 'confirmedCount', 'totalReceivedCents', 'confirmedWithoutPaymentCount', 'capacity'].every(key => Number.isSafeInteger(summary[key]) && summary[key] >= 0) || summary.currency !== 'BRL') throw new Error('Resposta inválida ao carregar os dados do staff.')
       athletes.value = data.athletes.map(mapDatabaseAthlete)
       athleteSummary.value = summary
       return true
     } catch (error) {
-      athletes.value = []
-      athleteSummary.value = null
-      athletesError.value = error.message || 'Não foi possível carregar os dados do staff.'
+      athletes.value = []; athleteSummary.value = null
+      athletesError.value = error.message
       return false
-    } finally {
-      athletesLoading.value = false
-    }
+    } finally { athletesLoading.value = false }
   }
-
-  // --------------------------------------------------------------------------
-  // AUTENTICAÇÃO
-  // --------------------------------------------------------------------------
   async function login(pin) {
-    const entered = (pin || '').trim()
-    if (API_URL) {
-      if (!await fetchStaffAthletes(entered)) {
-        staffError.value = athletesError.value
-        return false
-      }
-      sessionStorage.setItem(PIN_STORAGE_KEY, entered)
-      isAuthenticated.value = true
-      sessionStorage.setItem(AUTH_STORAGE_KEY, 'true')
-      staffError.value = null
-      return true
-    }
-    if (entered === STAFF_PIN || entered === 'admin@beerrun2026' || entered === 'beerrun2026') {
-      isAuthenticated.value = true
-      sessionStorage.setItem(AUTH_STORAGE_KEY, 'true')
-      staffError.value = null
-      return true
-    }
-    staffError.value = 'PIN de acesso incorreto!'
-    return false
+    isLoading.value = true
+    try { await loginStaff((pin || '').trim()); staffError.value = null; return true }
+    catch (error) { staffError.value = error.message; return false }
+    finally { isLoading.value = false }
   }
-
-  function logout() {
-    isAuthenticated.value = false
-    sessionStorage.removeItem(AUTH_STORAGE_KEY)
-    sessionStorage.removeItem(PIN_STORAGE_KEY)
-    athletes.value = []
-    athleteSummary.value = null
+  const restoreSession = restoreStaffSession
+  const logout = logoutStaff
+  async function refreshAthletes() { if (!await fetchStaffAthletes()) throw new Error(athletesError.value) }
+  async function updateAthletePaymentStatus(id, paymentStatus) {
+    await staffMutation('athlete.payment', id, { payment_status: paymentStatus }); await refreshAthletes()
   }
-
-  function verifyAdminPassword(pin) {
-    const entered = (pin || '').trim()
-    if (API_URL) return !!entered && entered === sessionStorage.getItem(PIN_STORAGE_KEY)
-    return entered === STAFF_PIN || entered === 'admin@beerrun2026' || entered === 'beerrun2026'
-  }
-
-  // --------------------------------------------------------------------------
-  // ATLETAS CONFIRMADOS
-  // --------------------------------------------------------------------------
-  async function updateAthletePaymentStatus(athleteId, paymentStatus) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('athletes')
-        .update({ payment_status: paymentStatus, ...(paymentStatus === 'completed' ? { registration_type: 'official' } : {}) })
-        .eq('id', athleteId).select('id').single()
-      if (error) throw new Error('Não foi possível alterar o pagamento. Inscrições oficiais devem ser confirmadas pelo fluxo de pagamento.')
-    }
-    if (API_URL) {
-      if (!await fetchStaffAthletes()) throw new Error(athletesError.value)
-    } else {
-      const athlete = athletes.value.find(item => item.id === athleteId)
-      if (athlete) athlete.paymentStatus = paymentStatus
-    }
-  }
-  async function deleteAthlete(athleteId, confirmationPin) {
-    staffError.value = null
-
-    if (!verifyAdminPassword(confirmationPin)) {
-      const err = new Error('Senha de administrador incorreta!')
-      staffError.value = err.message
-      throw err
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase
-        .from('athletes')
-        .delete()
-        .eq('id', athleteId)
-
-      if (error) {
-        console.error('Erro ao deletar atleta no Supabase:', error)
-        staffError.value = error.message
-        throw error
-      }
-    }
-
-    // Atualiza estado local
-    athletes.value = athletes.value.filter(a => a.id !== athleteId)
-    try {
-      if (!API_URL) localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
-    } catch (e) {
-      console.warn('Erro ao atualizar localStorage de atletas:', e)
-    }
-
-    return true
-  }
-
+  async function deleteAthlete(id, pin) { await staffMutation('athlete.delete', id, undefined, pin); await refreshAthletes(); return true }
   async function addAthleteManual({ name, nickname, phone, modality, drinksBeer }) {
-    staffError.value = null
-    const cleanPhone = (phone || '').trim()
-
-    if (!name || !name.trim()) {
-      throw new Error('O nome do atleta é obrigatório.')
-    }
-
-    const payload = {
-      name: name.trim(),
-      nickname: nickname?.trim() || null,
-      phone: cleanPhone || 'Não informado',
-      modality: modality || 'corrida',
-      drinks_beer: Boolean(drinksBeer),
-      is_checked_in: false
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from('athletes')
-        .insert([payload])
-        .select()
-        .single()
-
-      if (error) {
-        staffError.value = error.message
-        throw error
-      }
-
-      const formatted = {
-        id: data.id,
-        name: data.name,
-        nickname: data.nickname || '',
-        displayName: formatAthleteDisplayName(data.name, data.nickname),
-        phone: data.phone || '',
-        modality: data.modality || 'corrida',
-        drinksBeer: Boolean(data.drinks_beer),
-        isCheckedIn: Boolean(data.is_checked_in),
-        createdAt: data.created_at || new Date().toISOString()
-      }
-
-      athletes.value.unshift(formatted)
-      return formatted
-    }
-
-    // Fallback local
-    const localAthlete = {
-      id: Date.now(),
-      name: name.trim(),
-      nickname: nickname?.trim() || '',
-      displayName: formatAthleteDisplayName(name, nickname),
-      phone: cleanPhone || 'Não informado',
-      modality: modality || 'corrida',
-      drinksBeer: Boolean(drinksBeer),
-      isCheckedIn: false,
-      createdAt: new Date().toISOString()
-    }
-
-    athletes.value.unshift(localAthlete)
-    try {
-      if (!API_URL) localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
-    } catch (e) {}
-
-    return localAthlete
+    const { result } = await staffMutation('athlete.add', null, { name, nickname: nickname || null, phone, modality: modality || 'corrida', drinks_beer: Boolean(drinksBeer) })
+    await refreshAthletes()
+    return athletes.value.find(item => item.id === result.id)
   }
-
-  async function toggleCheckIn(athleteId, isCheckedIn) {
-    const athlete = athletes.value.find(a => a.id === athleteId)
-    if (athlete) {
-      athlete.isCheckedIn = isCheckedIn
-      athlete.checkedInAt = isCheckedIn ? new Date().toISOString() : null
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('athletes')
-          .update({
-            is_checked_in: isCheckedIn,
-            checked_in_at: isCheckedIn ? new Date().toISOString() : null
-          })
-          .eq('id', athleteId)
-      } catch (e) {
-        console.warn('Supabase toggleCheckIn aviso:', e)
-      }
-    }
-
-    try {
-      if (!API_URL) localStorage.setItem(ATHLETES_STORAGE_KEY, JSON.stringify(athletes.value))
-    } catch (e) {}
+  async function toggleCheckIn(id, value) {
+    await staffMutation('athlete.checkin', id, { is_checked_in: value }); await refreshAthletes()
   }
-
-  // --------------------------------------------------------------------------
-  // LISTA DE ESPERA (WAITLIST)
-  // --------------------------------------------------------------------------
   async function fetchWaitlist() {
     isLoading.value = true
-    staffError.value = null
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('athlete_waitlist')
-          .select('*')
-          .order('created_at', { ascending: true })
-
-        if (error) throw error
-
-        waitlist.value = (data || []).map((row, index) => ({
-          id: row.id,
-          position: index + 1,
-          name: row.name,
-          nickname: row.nickname || '',
-          displayName: formatAthleteDisplayName(row.name, row.nickname),
-          phone: row.phone || '',
-          modality: row.modality || 'corrida',
-          drinksBeer: Boolean(row.drinks_beer),
-          status: row.status ?? '',
-          createdAt: row.created_at
-        }))
-        return
-      } catch (err) {
-        console.warn('Erro ao carregar waitlist do Supabase, carregando local:', err)
-      } finally {
-        isLoading.value = false
-      }
-    }
-
     try {
-      const saved = JSON.parse(localStorage.getItem(WAITLIST_STORAGE_KEY) || '[]')
-      waitlist.value = saved.map((row, idx) => ({
-        ...row,
-        position: idx + 1,
-        displayName: row.displayName || formatAthleteDisplayName(row.name, row.nickname)
-      }))
-    } catch (e) {
-      waitlist.value = []
-    } finally {
-      isLoading.value = false
-    }
+      const { rows } = await staffRequest('waitlist')
+      waitlist.value = rows.map((row, index) => ({ id: row.id, position: index + 1, name: row.name, nickname: row.nickname || '', displayName: formatAthleteDisplayName(row.name, row.nickname), phone: row.phone || '', modality: row.modality || 'corrida', drinksBeer: Boolean(row.drinks_beer), status: row.status, createdAt: row.created_at }))
+    } catch (error) { waitlist.value = []; staffError.value = error.message; throw error }
+    finally { isLoading.value = false }
   }
-
-  async function updateWaitlistStatus(waitlistId, newStatus) {
-    staffError.value = null
-    if (!['waiting', 'called', 'registered', 'cancelled'].includes(newStatus)) {
-      throw new Error('Status da lista de espera inválido.')
-    }
-    const item = waitlist.value.find(w => w.id === waitlistId)
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('athlete_waitlist')
-          .update({ status: newStatus })
-          .eq('id', waitlistId)
-          .select('id,status')
-          .single()
-        if (error || data?.status !== newStatus) throw error || new Error('Alteração não confirmada.')
-      } catch (e) {
-        staffError.value = 'Não foi possível salvar o status da lista de espera. Tente novamente.'
-        throw new Error(staffError.value)
-      }
-    }
-
-    if (item) item.status = newStatus
-    try {
-      localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(waitlist.value))
-    } catch (e) {}
+  async function updateWaitlistStatus(id, status) { await staffMutation('waitlist.status', id, { status }); await fetchWaitlist() }
+  async function promoteAthleteToConfirmed(item) {
+    await staffMutation('waitlist.promote', item.id); await Promise.all([refreshAthletes(), fetchWaitlist()])
   }
-
-  async function promoteAthleteToConfirmed(waitlistAthlete) {
-    staffError.value = null
-
-    // 1. Cadastra nos atletas confirmados
-    const newAthlete = await addAthleteManual({
-      name: waitlistAthlete.name,
-      nickname: waitlistAthlete.nickname,
-      phone: waitlistAthlete.phone,
-      modality: waitlistAthlete.modality,
-      drinksBeer: waitlistAthlete.drinksBeer
-    })
-
-    // 2. Atualiza o status na lista de espera para 'registered'
-    await updateWaitlistStatus(waitlistAthlete.id, 'registered')
-
-    return newAthlete
-  }
-
-  async function deleteWaitlist(waitlistId, confirmationPin) {
-    if (!verifyAdminPassword(confirmationPin)) {
-      throw new Error('Senha de administrador incorreta!')
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      await supabase
-        .from('athlete_waitlist')
-        .delete()
-        .eq('id', waitlistId)
-    }
-
-    waitlist.value = waitlist.value.filter(w => w.id !== waitlistId)
-    try {
-      localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(waitlist.value))
-    } catch (e) {}
-  }
-
-  // --------------------------------------------------------------------------
-  // PROPOSTAS DE PATROCÍNIO
-  // --------------------------------------------------------------------------
-  // Status definidos pelo usuário:
-  // - pending: Aguardando contato / Análise
-  // - approved: Aprovado (Aguardando Pagamento / Envio de Material)
-  // - finished: Concluído / Patrocínio Fechado
-  // - rejected: Recusado
+  async function deleteWaitlist(id, pin) { await staffMutation('waitlist.delete', id, undefined, pin); await fetchWaitlist() }
   async function fetchProposals() {
     isLoading.value = true
-    staffError.value = null
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('sponsorship_proposals')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (error) throw error
-
-        proposals.value = (data || []).map(row => ({
-          id: row.id,
-          companyName: row.company_name,
-          contactName: row.contact_name,
-          phone: row.phone,
-          websiteInstagram: row.website_instagram,
-          sponsorshipType: row.sponsorship_type,
-          amount: row.amount,
-          itemsDescription: row.items_description,
-          activations: Array.isArray(row.activations) ? row.activations : [],
-          notes: row.notes,
-          logoUrl: row.logo_url,
-          status: row.status || 'pending',
-          createdAt: row.created_at
-        }))
-        return
-      } catch (err) {
-        console.warn('Erro ao buscar propostas do Supabase, buscando local:', err)
-      } finally {
-        isLoading.value = false
-      }
-    }
-
     try {
-      const saved = JSON.parse(localStorage.getItem(PROPOSALS_STORAGE_KEY) || '[]')
-      proposals.value = saved.map(p => ({
-        id: p.id,
-        companyName: p.company_name || p.companyName,
-        contactName: p.contact_name || p.contactName,
-        phone: p.phone,
-        websiteInstagram: p.website_instagram || p.websiteInstagram,
-        sponsorshipType: p.sponsorship_type || p.sponsorshipType,
-        amount: p.amount,
-        itemsDescription: p.items_description || p.itemsDescription,
-        activations: p.activations || [],
-        notes: p.notes,
-        logoUrl: p.logo_url || p.logoUrl,
-        status: p.status || 'pending',
-        createdAt: p.created_at || p.createdAt || new Date().toISOString()
-      }))
-    } catch (e) {
-      proposals.value = []
-    } finally {
-      isLoading.value = false
-    }
+      const { rows } = await staffRequest('proposals')
+      proposals.value = rows.map(row => ({ id: row.id, companyName: row.company_name, contactName: row.contact_name, phone: row.phone, websiteInstagram: row.website_instagram, sponsorshipType: row.sponsorship_type, amount: row.amount, itemsDescription: row.items_description, activations: row.activations || [], notes: row.notes, logoUrl: row.logo_url, status: row.status, createdAt: row.created_at }))
+    } catch (error) { proposals.value = []; staffError.value = error.message; throw error }
+    finally { isLoading.value = false }
   }
-
-  async function updateProposalStatus(proposalId, newStatus) {
-    const item = proposals.value.find(p => p.id === proposalId)
-    if (item) {
-      item.status = newStatus
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
-          .from('sponsorship_proposals')
-          .update({ status: newStatus })
-          .eq('id', proposalId)
-      } catch (e) {
-        console.warn('Erro ao atualizar status de patrocínio no Supabase:', e)
-      }
-    }
-
-    try {
-      localStorage.setItem(PROPOSALS_STORAGE_KEY, JSON.stringify(proposals.value))
-    } catch (e) {}
-  }
-
-  async function deleteProposal(proposalId, confirmationPin) {
-    if (!verifyAdminPassword(confirmationPin)) {
-      throw new Error('Senha de administrador incorreta!')
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      await supabase
-        .from('sponsorship_proposals')
-        .delete()
-        .eq('id', proposalId)
-    }
-
-    proposals.value = proposals.value.filter(p => p.id !== proposalId)
-    try {
-      localStorage.setItem(PROPOSALS_STORAGE_KEY, JSON.stringify(proposals.value))
-    } catch (e) {}
-  }
+  async function updateProposalStatus(id, status) { await staffMutation('proposal.status', id, { status }); await fetchProposals() }
+  async function deleteProposal(id, pin) { await staffMutation('proposal.delete', id, undefined, pin); await fetchProposals() }
 
   // --------------------------------------------------------------------------
   // LINKS INTELIGENTES PARA WHATSAPP
@@ -627,7 +239,7 @@ Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
     maxAthletes: computed(() => athleteSummary.value?.capacity ?? MAX_ATHLETES),
     login,
     logout,
-    verifyAdminPassword,
+    restoreSession,
     deleteAthlete,
     addAthleteManual,
     toggleCheckIn,

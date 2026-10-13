@@ -1,7 +1,7 @@
 import { ref } from 'vue'
+import { publicRequest } from '../services/public-api.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 
-const LOCAL_STORAGE_KEY = 'beer_run_sponsorship_proposals'
 const WHATSAPP_ORGANIZATION_NUMBER = '5535997500430'
 
 export function useSponsorshipProposal() {
@@ -60,6 +60,7 @@ export function useSponsorshipProposal() {
   // Upload opcional do arquivo de logo para o Supabase Storage
   async function uploadLogoFile(file, companyName) {
     if (!file || !isSupabaseConfigured || !supabase) return null
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5242880) throw new Error('Use um logo PNG, JPG ou WebP de até 5 MB.')
 
     try {
       const sanitizedCompany = (companyName || 'patrocinador')
@@ -77,7 +78,7 @@ export function useSponsorshipProposal() {
         .from('sponsor-logos')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true,
+          upsert: false,
           contentType: file.type || 'image/png'
         })
 
@@ -124,35 +125,10 @@ export function useSponsorshipProposal() {
         items_description: proposalData.itemsDescription?.trim() || null,
         activations: proposalData.activations || [],
         notes: proposalData.notes?.trim() || null,
-        logo_url: finalLogoUrl,
-        created_at: new Date().toISOString()
+        logo_url: finalLogoUrl
       }
 
-      // 1. Grava no Supabase se configurado
-      if (isSupabaseConfigured && supabase) {
-        const { data, error: sbError } = await supabase
-          .from('sponsorship_proposals')
-          .insert([proposalRecord])
-          .select()
-          .single()
-
-        if (sbError) {
-          console.error('Erro ao salvar proposta no Supabase:', sbError)
-          throw new Error(`Erro ao salvar no banco: ${sbError.message || 'Verifique as permissões de RLS no Supabase.'}`)
-        }
-      }
-
-      // 2. Fallback de segurança no localStorage
-      try {
-        const saved = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]')
-        saved.unshift({
-          id: Date.now(),
-          ...proposalRecord
-        })
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saved))
-      } catch (storageErr) {
-        console.warn('Aviso ao salvar proposta no localStorage:', storageErr)
-      }
+      await publicRequest('sponsorship-proposals', proposalRecord)
 
       return {
         success: true,

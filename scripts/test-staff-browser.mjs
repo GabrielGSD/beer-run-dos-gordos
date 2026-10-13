@@ -17,13 +17,28 @@ const rows=[
  {id:3,name:'Pre Teste',payment_status:null,modality:'corrida',drinks_beer:false},
  {id:4,name:'Pago Legado',payment_status:'completed',modality:'corrida',drinks_beer:true},
 ].map(row=>({nickname:null,phone:'35999991234',shirt_model:null,shirt_size:null,skewer_choice:null,accepted_terms_at:null,is_checked_in:false,...row}));
+let sessionActive = false;
+const csrfToken = 'b'.repeat(64);
 const api=createServer(async(req,res)=>{
- res.setHeader('access-control-allow-origin','*');
- res.setHeader('access-control-allow-headers','authorization');
  res.setHeader('content-type','application/json');
- if(req.method==='OPTIONS'){res.writeHead(204).end();return;}
- assert.equal(req.url,'/api/staff/athletes');
- if(req.headers.authorization!=='Bearer '+staffPin){res.writeHead(401).end(JSON.stringify({error:{message:'Senha incorreta'}}));return;}
+ res.setHeader('cache-control','no-store');
+ let body=''; for await (const chunk of req) body+=chunk;
+ if(req.url==='/api/staff/login') {
+   if(JSON.parse(body).pin!==staffPin){res.writeHead(401).end(JSON.stringify({error:{message:'Senha incorreta'}}));return;}
+   sessionActive=true;
+   res.setHeader('set-cookie','beer_run_staff=test-browser-session; Path=/; HttpOnly; SameSite=Strict');
+   res.end(JSON.stringify({csrfToken,expiresAt:new Date(Date.now()+3600000).toISOString()}));return;
+ }
+ assert.equal(req.headers.authorization,undefined);
+ if(!sessionActive || !req.headers.cookie?.includes('beer_run_staff=test-browser-session')){res.writeHead(401).end(JSON.stringify({error:{message:'Entre novamente'}}));return;}
+ if(req.url==='/api/staff/session'){res.end(JSON.stringify({csrfToken,expiresAt:new Date(Date.now()+3600000).toISOString()}));return;}
+ if(req.url==='/api/staff/logout') {
+   assert.equal(req.headers['x-staff-csrf'],csrfToken);
+   sessionActive=false;
+   res.setHeader('set-cookie','beer_run_staff=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+   res.end(JSON.stringify({success:true}));return;
+ }
+ if(req.url!=='/api/staff/athletes'){res.end(JSON.stringify({rows:[]}));return;}
  if(fail){res.writeHead(503).end(JSON.stringify({error:{message:'Dados indisponiveis'}}));return;}
  res.end(JSON.stringify({athletes:rows,summary:{total:4,confirmedCount:2,totalReceivedCents:7505,confirmedWithoutPaymentCount:1,currency:'BRL',capacity:100}}));
 });
@@ -62,7 +77,7 @@ try {
   vite=await createViteServer({root,envDir:false,configFile:false,plugins:[harness,(await import('@vitejs/plugin-vue')).default()],
     define:{'import.meta.env.VITE_API_URL':JSON.stringify('http://127.0.0.1:'+apiPort),
       'import.meta.env.VITE_SUPABASE_URL':'""','import.meta.env.VITE_SUPABASE_ANON_KEY':'""','import.meta.env.VITE_GA_MEASUREMENT_ID':'"G-XXXXXXXXXX"'},
-    server:{host:'127.0.0.1',port:0},logLevel:'error'});
+    server:{host:'127.0.0.1',port:0,proxy:{'/api/staff':{target:'http://127.0.0.1:'+apiPort,changeOrigin:true}}},logLevel:'error'});
   await vite.listen();const port=vite.httpServer.address().port;
   const binary=process.env.BROWSER_BINARY||'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   if(!existsSync(binary))throw new Error('Configure BROWSER_BINARY com o caminho do Chrome/Edge.');
@@ -85,6 +100,7 @@ try {
   await command('Page.navigate',{url:'http://127.0.0.1:'+port+'/athletes-test'});
 
   await until(()=>evaluate("!!document.querySelector('#staff-pin-page')"));
+  await until(()=>evaluate("document.querySelector('.login-form button[type=submit]')?.disabled===false"));
   const submitPin=async pin=>evaluate("(()=>{const input=document.querySelector('#staff-pin-page');input.value="+JSON.stringify(pin)+";input.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('.login-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));})()");
   await submitPin('incorrect');
   await until(()=>evaluate("!!document.querySelector('.login-form .error-banner')"));
@@ -92,6 +108,12 @@ try {
   await submitPin(staffPin);
   await until(()=>evaluate("document.querySelector('[data-testid=confirmed-kpi] .kpi-value')?.textContent==='2'"));
   assert.equal((await evaluate("document.querySelector('[data-testid=revenue-kpi] .kpi-value').textContent")).replace(/\s/g,''),'R$75,05');
+  assert.equal(await evaluate("document.cookie.includes('beer_run_staff')"),false);
+  assert.equal(await evaluate("sessionStorage.getItem('beer_run_staff_pin')"),null);
+  assert.equal(await evaluate("JSON.stringify(localStorage).includes('private-browser-test')"),false);
+  await command('Page.reload');
+  await until(()=>evaluate("document.querySelector('[data-testid=confirmed-kpi] .kpi-value')?.textContent==='2'"));
+
   assert.ok((await evaluate("document.querySelector('[data-testid=revenue-kpi]').textContent")).includes('1 pagante(s)'));
   for(const width of [1100,375]) {
     await command('Emulation.setDeviceMetricsOverride',{width,height:950,deviceScaleFactor:1,mobile:false});

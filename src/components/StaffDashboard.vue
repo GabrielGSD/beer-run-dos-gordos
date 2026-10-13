@@ -58,7 +58,7 @@
               <button type="button" class="btn-cancel font-condensed" @click="$emit('exit-staff')">
                 Voltar ao Site
               </button>
-              <button type="submit" class="btn-vintage btn-submit font-slab" :disabled="athletesLoading">
+              <button type="submit" class="btn-vintage btn-submit font-slab" :disabled="isLoading || athletesLoading">
                 <i class="fa-solid fa-key"></i> ENTRAR NO PAINEL
               </button>
             </div>
@@ -69,6 +69,7 @@
 
     <!-- TELA 2: DASHBOARD COMPLETO EM TELA CHEIA (AUTENTICADO) -->
     <div v-else class="staff-app-container">
+      <div v-if="staffError" class="error-banner" role="alert">{{ staffError }}</div>
       <!-- Sticky Header + Nav Bar Group (Elimina gaps e magic numbers) -->
       <div class="staff-sticky-top">
         <!-- Top App Bar -->
@@ -86,10 +87,10 @@
                 <span class="brand-title-full">BEER RUN STAFF</span>
                 <span class="brand-title-short">STAFF</span>
               </h1>
-              <div class="db-status-pill font-condensed" :class="{ 'status-online': isSupabaseConfigured, 'status-local': !isSupabaseConfigured }">
+              <div class="db-status-pill font-condensed" :class="{ 'status-online': !athletesError && !staffError, 'status-local': athletesError || staffError }">
                 <span class="status-dot"></span>
-                <span class="status-text-full">{{ isSupabaseConfigured ? 'Supabase Conectado' : 'Modo Offline / Local' }}</span>
-                <span class="status-text-short">{{ isSupabaseConfigured ? 'Online' : 'Offline' }}</span>
+                <span class="status-text-full">{{ athletesError || staffError ? 'Falha ao atualizar' : 'Sessão autenticada' }}</span>
+                <span class="status-text-short">{{ athletesError || staffError ? 'Erro' : 'Online' }}</span>
               </div>
             </div>
           </div>
@@ -582,7 +583,7 @@
                         <button
                           class="checkin-badge-btn font-condensed"
                           :class="{ 'is-checked': athlete.isCheckedIn }"
-                          @click="toggleCheckIn(athlete.id, !athlete.isCheckedIn)"
+                          @click="handleCheckIn(athlete.id, !athlete.isCheckedIn)"
                           :title="athlete.isCheckedIn ? 'Kit Entregue! Clique para desmarcar' : 'Clique para registrar entrega do kit'"
                         >
                           <i :class="athlete.isCheckedIn ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"></i>
@@ -706,7 +707,7 @@
                     <button
                       class="mobile-checkin-btn font-condensed"
                       :class="{ 'is-checked': athlete.isCheckedIn }"
-                      @click="toggleCheckIn(athlete.id, !athlete.isCheckedIn)"
+                      @click="handleCheckIn(athlete.id, !athlete.isCheckedIn)"
                     >
                       <i :class="athlete.isCheckedIn ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"></i>
                       {{ athlete.isCheckedIn ? 'Kit Retirado (OK)' : 'Pendente de Entrega' }}
@@ -1232,7 +1233,7 @@
                             type="button"
                             class="checkin-badge-btn font-condensed"
                             :class="{ 'is-checked': sponsor.isActive }"
-                            @click="toggleSponsorActive(sponsor.id, !sponsor.isActive)"
+                            @click="handleSponsorActive(sponsor.id, !sponsor.isActive)"
                             :title="sponsor.isActive ? 'Clique para ocultar do carrossel' : 'Clique para exibir no carrossel'"
                           >
                             <i :class="sponsor.isActive ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
@@ -1310,7 +1311,7 @@
                         type="button"
                         class="checkin-badge-btn font-condensed w-full"
                         :class="{ 'is-checked': sponsor.isActive }"
-                        @click="toggleSponsorActive(sponsor.id, !sponsor.isActive)"
+                        @click="handleSponsorActive(sponsor.id, !sponsor.isActive)"
                       >
                         <i :class="sponsor.isActive ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"></i>
                         {{ sponsor.isActive ? 'Exibindo no Site (Ativo)' : 'Oculto / Pausado' }}
@@ -1375,7 +1376,7 @@
                   <button
                     class="btn-checkin-big font-slab"
                     :class="{ 'btn-checkin-active': athlete.isCheckedIn }"
-                    @click="toggleCheckIn(athlete.id, !athlete.isCheckedIn)"
+                    @click="handleCheckIn(athlete.id, !athlete.isCheckedIn)"
                   >
                     <i :class="athlete.isCheckedIn ? 'fa-solid fa-check-double' : 'fa-solid fa-box-open'"></i>
                     {{ athlete.isCheckedIn ? 'KIT ENTREGUE (OK)' : 'ENTREGAR KIT' }}
@@ -1580,13 +1581,12 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { isActiveWaitlistEntry } from '../services/waitlist.js'
 import { useStaff } from '../composables/useStaff.js'
 import { useSponsors } from '../composables/useSponsors.js'
-import { isSupabaseConfigured } from '../lib/supabase.js'
 
 defineEmits(['exit-staff'])
 
 const {
   allSponsors,
-  fetchSponsors,
+  fetchStaffSponsors,
   publishProposalToSponsors,
   toggleSponsorActive,
   deleteSponsor: removeSponsorFromSite,
@@ -1607,6 +1607,7 @@ const {
   maxAthletes,
   login,
   logout,
+  restoreSession,
   deleteAthlete,
   addAthleteManual,
   toggleCheckIn,
@@ -1673,15 +1674,16 @@ const publishToastMessage = ref('')
 const activeSponsorsCount = computed(() => allSponsors.value.filter(s => s.isActive).length)
 
 async function handleProposalStatusChange(prop, newStatus) {
-  await updateProposalStatus(prop.id, newStatus)
-  if (newStatus === 'finished') {
-    try {
-      await publishProposalToSponsors(prop)
-      publishToastMessage.value = `🎉 Proposta da marca "${prop.companyName}" foi concluída e adicionada automaticamente aos Patrocinadores da Landing Page!`
+  try {
+    await updateProposalStatus(prop.id, newStatus)
+    if (newStatus === 'finished') {
+      await fetchStaffSponsors()
+      publishToastMessage.value = `Proposta da marca "${prop.companyName}" concluída e publicada!`
       setTimeout(() => { publishToastMessage.value = '' }, 6000)
-    } catch (e) {
-      console.warn('Aviso ao publicar patrocinador:', e)
     }
+  } catch (err) {
+    window.alert(err.message)
+    await fetchProposals().catch(() => {})
   }
 }
 
@@ -1748,7 +1750,7 @@ const loginErrorMessage = ref('')
 const pinInputRef = ref(null)
 
 async function handleLoginSubmit() {
-  if (athletesLoading.value) return
+  if (isLoading.value || athletesLoading.value) return
   loginErrorMessage.value = ''
   const success = await login(pinInput.value)
   if (success) {
@@ -1939,8 +1941,9 @@ async function executeDeletion() {
     } else if (targetDeleteType.value === 'Proposta de Patrocínio') {
       await deleteProposal(targetDeleteId.value, deleteConfirmPassword.value)
     } else if (targetDeleteType.value === 'Patrocinador Oficial do Site') {
-      await removeSponsorFromSite(targetDeleteId.value)
+      await removeSponsorFromSite(targetDeleteId.value, deleteConfirmPassword.value)
     }
+    deleteConfirmPassword.value = ''
     showDeleteModal.value = false
   } catch (err) {
     deleteError.value = err.message || 'Senha incorreta ou erro ao excluir!'
@@ -1990,24 +1993,38 @@ function formatDate(isoString) {
   }
 }
 
+async function handleCheckIn(id, value) {
+  try { await toggleCheckIn(id, value) } catch (err) { window.alert(err.message) }
+}
+async function handleSponsorActive(id, value) {
+  try { await toggleSponsorActive(id, value) } catch (err) { window.alert(err.message) }
+}
+
 async function refreshAll() {
-  await Promise.all([
+  staffError.value = null
+  const results = await Promise.allSettled([
     fetchStaffAthletes(),
     fetchWaitlist(),
     fetchProposals(),
-    fetchSponsors()
+    fetchStaffSponsors()
   ])
+  const failure = results.find(result => result.status === 'rejected')
+  if (failure) staffError.value = failure.reason.message
 }
 
-function handleLogout() {
-  logout()
+async function handleLogout() {
+  try { await logout(); pinInput.value = ''; deleteConfirmPassword.value = '' }
+  catch (err) { window.alert(err.message) }
 }
 
 let waitlistRefreshTimer
-onMounted(() => {
+onMounted(async () => {
+  isLoading.value = true
+  await restoreSession()
+  isLoading.value = false
   waitlistRefreshTimer = setInterval(() => {
     if (isAuthenticated.value && document.visibilityState === 'visible') {
-      fetchWaitlist()
+      fetchWaitlist().catch(error => { staffError.value = error.message })
       if (!athletesLoading.value) fetchStaffAthletes()
     }
   }, 30000)

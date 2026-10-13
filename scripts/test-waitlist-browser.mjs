@@ -8,18 +8,26 @@ import {join,dirname,basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
-let fail=false,confirmedOnly=false,requests=0;
-const runner={name:'Joao Teste',nickname:'Relampago',modality:'corrida',drinksBeer:true};
-const walker={name:'Atleta Pendente',nickname:'Passo Leve',modality:'caminhada',drinksBeer:false};
+const csrfToken='c'.repeat(64);
+const waitlistRows=[
+  {id:'00000000-0000-4000-8000-000000000001',name:'Aguardando Teste',status:'waiting',phone:'35999991231'},
+  {id:'00000000-0000-4000-8000-000000000002',name:'Convocado Teste',status:'called',phone:'35999991232'},
+  {id:'00000000-0000-4000-8000-000000000003',name:'Inscrito Teste',status:'registered',phone:'35999991233'},
+  {id:'00000000-0000-4000-8000-000000000004',name:'Cancelado Teste',status:'cancelled',phone:'35999991234'},
+];
 const api=createServer(async(req,res)=>{
-  res.setHeader('access-control-allow-origin','*');
   res.setHeader('content-type','application/json');
-  assert.equal(req.url,'/api/athletes');
-  assert.equal(req.method,'GET');
-  assert.equal(req.headers['idempotency-key'],undefined);
-  requests++;
-  if(fail)res.writeHead(503).end('{}');
-  else res.end(JSON.stringify({athletes:confirmedOnly?[runner]:[runner,walker],summary:{total:confirmedOnly?1:2,drinkers:1,nonDrinkers:confirmedOnly?0:1,preRegisteredCount:confirmedOnly?1:0,waitlistCount:33,capacity:2}}));
+  if(req.url==='/api/staff/session'){res.end(JSON.stringify({csrfToken,expiresAt:new Date(Date.now()+3600000).toISOString()}));return;}
+  if(req.url==='/api/staff/athletes'){res.end(JSON.stringify({athletes:[],summary:{total:0,confirmedCount:0,totalReceivedCents:0,confirmedWithoutPaymentCount:0,currency:'BRL',capacity:100}}));return;}
+  if(req.url==='/api/staff/operations') {
+    assert.equal(req.headers['x-staff-csrf'],csrfToken);
+    let body='';for await(const chunk of req)body+=chunk;
+    const data=JSON.parse(body);
+    assert.equal(data.action,'waitlist.status');
+    waitlistRows.find(row=>row.id===data.id).status=data.data.status;
+    res.end(JSON.stringify({success:true}));return;
+  }
+  res.end(JSON.stringify({rows:req.url==='/api/staff/waitlist'?waitlistRows:[]}));
 });
 await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
 const apiPort=api.address().port;
@@ -56,7 +64,7 @@ try {
   vite=await createViteServer({root,envDir:false,configFile:false,plugins:[harness,(await import('@vitejs/plugin-vue')).default()],
     define:{'import.meta.env.VITE_API_URL':'""',
       'import.meta.env.VITE_SUPABASE_URL':'""','import.meta.env.VITE_SUPABASE_ANON_KEY':'""','import.meta.env.VITE_GA_MEASUREMENT_ID':'"G-XXXXXXXXXX"'},
-    server:{host:'127.0.0.1',port:0},logLevel:'error'});
+    server:{host:'127.0.0.1',port:0,proxy:{'/api/staff':{target:'http://127.0.0.1:'+apiPort,changeOrigin:true}}},logLevel:'error'});
   await vite.listen();const port=vite.httpServer.address().port;
   const binary=process.env.BROWSER_BINARY||'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   if(!existsSync(binary))throw new Error('Configure BROWSER_BINARY com o caminho do Chrome/Edge.');
@@ -76,15 +84,6 @@ try {
     }
   });
   await command('Page.enable');await command('Fetch.enable',{patterns:[{urlPattern:'*'}]});
-  await command('Page.addScriptToEvaluateOnNewDocument',{source:`
-    sessionStorage.setItem('beer_run_staff_auth','true');
-    localStorage.setItem('beer_run_athlete_waitlist',JSON.stringify([
-      {id:1,name:'Aguardando Teste',status:'waiting',phone:'35999991231'},
-      {id:2,name:'Convocado Teste',status:'called',phone:'35999991232'},
-      {id:3,name:'Inscrito Teste',status:'registered',phone:'35999991233'},
-      {id:4,name:'Cancelado Teste',status:'cancelled',phone:'35999991234'}
-    ]));
-  `});
   await command('Page.navigate',{url:'http://127.0.0.1:'+port+'/athletes-test'});
   await until(()=>evaluate("!!document.querySelector('.tab-badge.badge-warning')"));
   await evaluate("document.querySelector('.tab-badge.badge-warning').closest('button').click()");
@@ -94,7 +93,7 @@ try {
   assert.ok((await listText()).includes('Convocado Teste'));
   assert.ok(!(await listText()).includes('Inscrito Teste'));
   assert.ok(!(await listText()).includes('Cancelado Teste'));
-  await evaluate("window.testStaff.updateWaitlistStatus(2,'registered')");
+  await evaluate("window.testStaff.updateWaitlistStatus('00000000-0000-4000-8000-000000000002','registered')");
   await until(()=>evaluate("document.querySelector('.tab-badge.badge-warning').textContent==='1'"));
   assert.ok(!(await listText()).includes('Convocado Teste'));
   for(const width of [1100,375]) {
