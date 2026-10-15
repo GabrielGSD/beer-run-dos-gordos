@@ -151,7 +151,7 @@
       </section>
       <div v-else class="reg-container">
         <details
-          v-if="!hideLookupPanel"
+          v-if="!hideLookupPanel && lookupOpen"
           class="auth-form-box lookup-panel"
           :open="lookupOpen"
           @toggle="lookupOpen = $event.target.open"
@@ -196,33 +196,12 @@
           </form>
         </details>
         <p
-          v-if="draftRestored"
+          v-if="draftNoticeVisible"
           class="draft-resume-box font-condensed"
           role="status"
         >
-          PROGRESSO RECUPERADO • Confira seus dados antes de pagar.
+          Progresso recuperado. Confira seus dados.
         </p>
-        <div
-          class="wizard-stepper font-condensed"
-          aria-label="Etapas da inscrição"
-        >
-          <button
-            v-for="(item, index) in steps"
-            :key="item.id"
-            type="button"
-            :class="[
-              'step-tab',
-              { active: step === index + 1, completed: step > index + 1 },
-            ]"
-            :disabled="busy || index + 1 > furthestStep"
-            @click="goToStep(index + 1)"
-            :aria-label="`Etapa ${index + 1}: ${item.label}`"
-            :aria-current="step === index + 1 ? 'step' : undefined"
-          >
-            <span class="step-badge">{{ index + 1 }}</span
-            ><span class="step-name">{{ item.label }}</span>
-          </button>
-        </div>
         <form
           class="reg-form registration-form"
           novalidate
@@ -1362,7 +1341,8 @@ const hideLookupPanel = ref(false);
 const paymentOrder = ref(""),
   publicLookup = ref(null),
   checkoutNotice = ref(""),
-  draftRestored = ref(false);
+  draftRestored = ref(false),
+  draftNoticeVisible = ref(false);
 const couponEligible = ref(false),
   couponQuote = ref(null),
   existingRegistration = ref(null);
@@ -1420,6 +1400,7 @@ const couponNeedsApply = computed(
   () => couponEligible.value && !!form.couponCode && !couponQuote.value
 );
 let draftTimer,
+  draftNoticeTimer,
   lookupRevision = 0,
   disposed = false,
   started = false,
@@ -1491,6 +1472,11 @@ function restoreDraft(draft) {
   step.value = restoredStep;
   furthestStep.value = restoredStep;
   draftRestored.value = true;
+  draftNoticeVisible.value = true;
+  clearTimeout(draftNoticeTimer);
+  draftNoticeTimer = setTimeout(() => {
+    draftNoticeVisible.value = false;
+  }, 5000);
 }
 watch(
   form,
@@ -1854,6 +1840,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   disposed = true;
+  clearTimeout(draftNoticeTimer);
   lookupRevision++;
   saveOnExit();
   window.removeEventListener("pagehide", saveOnExit);
@@ -2535,14 +2522,14 @@ const athleteAge = computed(() =>
 
 /* Caixa de Rascunho Recuperado */
 .draft-resume-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
   background-color: #fff9ed;
-  border: 1px solid #e67e22;
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin-top: 14px;
+  border-left: 2px solid #e67e22;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 0 0 8px;
+  color: #5d4037;
+  font-size: 0.82rem;
+  line-height: 1.4;
   text-align: left;
 }
 

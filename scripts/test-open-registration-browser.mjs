@@ -75,7 +75,7 @@ try {
     await command('Page.navigate', { url: origin + '/' });
     await until(() => evaluate("!!document.querySelector('.hero-btn')"), 'home');
     if (clear) await evaluate('localStorage.clear();sessionStorage.clear()');
-    if (hash) { await evaluate(`location.hash=${JSON.stringify(hash)}`); await until(() => evaluate("!!document.querySelector('.lookup-panel')"), 'inscricao'); }
+    if (hash) { await evaluate(`location.hash=${JSON.stringify(hash)}`); await until(() => evaluate("!!document.querySelector('.registration-form, .consultation-page')"), 'inscricao'); }
   };
   for (const width of [320, 390, 768, 1440]) {
     await command('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 500 });
@@ -156,7 +156,10 @@ try {
   assert.equal(await evaluate("document.querySelector('#reg-name').value"), 'Atleta Teste');
   assert.equal(await evaluate("document.querySelector('#reg-acceptedTerms').checked"), false, 'Aceite deve ser revisado ao retomar');
   assert.equal(await evaluate("document.querySelector('#rules-title').offsetParent !== null"), true, 'Retomada do resumo pede aceite novamente');
-  await click('.step-tab:nth-child(2)');
+  await click('.btn-step-back');
+  await until(() => evaluate("document.querySelector('#contact-title').offsetParent !== null"));
+  await click('.btn-step-back');
+  await until(() => evaluate("document.querySelector('#details-title').offsetParent !== null"));
   await set('#reg-cpf', '11111111111'); await click('.next-button');
   await until(() => evaluate("document.activeElement.id === 'reg-cpf'"));
   assert.equal(created, 0);
