@@ -8,7 +8,7 @@
     @exit-staff="exitStaffMode"
   />
 
-  <!-- Tela Dedicada de Inscrição Oficial (para lista de espera e links diretos) -->
+  <!-- Tela Dedicada de Inscrição Oficial -->
   <OfficialRegistrationPage
     v-else-if="isOfficialRegistrationMode"
     @go-home="exitOfficialRegistrationMode"
@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { defineAsyncComponent, ref, onMounted, onUnmounted } from 'vue'
 import PaymentStatusPage from './components/PaymentStatusPage.vue'
 import Navbar from './components/Navbar.vue'
 import HeroSection from './components/HeroSection.vue'
@@ -54,12 +54,9 @@ import ConfirmedAthletesSection from './components/ConfirmedAthletesSection.vue'
 import SponsorsSection from './components/SponsorsSection.vue'
 import Footer from './components/Footer.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
-import StaffDashboard from './components/StaffDashboard.vue'
-import OfficialRegistrationPage from './components/OfficialRegistrationPage.vue'
-import { useAthletes } from './composables/useAthletes.js'
+const StaffDashboard = defineAsyncComponent(() => import('./components/StaffDashboard.vue'))
+const OfficialRegistrationPage = defineAsyncComponent(() => import('./components/OfficialRegistrationPage.vue'))
 import { trackPageView, trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
-
-const { isSoldOut } = useAthletes()
 
 const isPaymentReturn = ref(window.location.pathname === '/pagamento-concluido')
 function exitPaymentReturn() { window.location.assign('/') }
@@ -68,7 +65,7 @@ const isStaffMode = ref(false)
 const isOfficialRegistrationMode = ref(false)
 
 function openRegistration(source = 'geral') {
-  trackRegistrationClick(source, isSoldOut.value)
+  trackRegistrationClick(source, false)
   enterOfficialRegistrationMode()
 }
 

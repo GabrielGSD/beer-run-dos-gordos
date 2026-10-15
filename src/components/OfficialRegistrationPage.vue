@@ -1,7 +1,5 @@
 <template>
   <div class="official-reg-page">
-    <RegistrationModal v-if="isWaitlistOpen" :is-open="true" :initial-phone="manualPhoneInput" @close="isWaitlistOpen = false" />
-    <!-- Barra Superior de Navegação -->
     <header class="reg-top-bar">
       <div class="container reg-top-content">
         <button class="btn-back-home font-condensed" @click="$emit('go-home')">
@@ -17,565 +15,296 @@
       </div>
     </header>
 
-    <main class="container reg-main-content">
-      <PaymentStatusPage v-if="paymentOrder" :order-id="paymentOrder" @go-home="$emit('go-home')" />
-      <PublicRegistrationStatus v-else-if="publicLookup" :key="publicLookup.phone" :phone="publicLookup.phone" :initial-status="publicLookup.publicStatus" @back="publicLookup = null" @resume="paymentOrder = $event" />
-      <section v-else-if="waitlistLookup" class="auth-barrier-section waitlist-status" aria-label="Sua posição na lista de espera">
-        <div class="vintage-card auth-card">
-          <WaitlistTicket :position="waitlistLookup.waitlist.position" title="★ SUA PRÉ-INSCRIÇÃO ESTÁ NA FILA ★" status-label="AGUARDANDO CONVOCAÇÃO" />
-          <p class="auth-subtitle font-condensed">WhatsApp consultado: <strong>{{ waitlistLookup.phone }}</strong></p>
-          <p class="auth-subtitle font-condensed">Aguarde a convocação da organização pelo WhatsApp para concluir sua inscrição e o pagamento. Estar na lista de espera ainda não garante uma vaga.</p>
-          <p class="auth-phone-help font-condensed">Esta é sua posição atual na fila e pode mudar conforme as inscrições forem confirmadas ou canceladas.</p>
-          <button class="btn-vintage btn-auth font-slab" @click="waitlistLookup = null">CONSULTAR OUTRO NÚMERO</button>
-        </div>
-      </section>
-
-      <!-- 2. CARREGAMENTO / VERIFICAÇÃO AUTOMÁTICA EM ANDAMENTO -->
-      <section v-else-if="isAutoVerifying" class="auth-barrier-section">
-        <div class="vintage-card auth-card text-center">
-          <div class="auth-icon-box">
-            <i class="fa-solid fa-spinner fa-spin auth-icon"></i>
-          </div>
-          <h2 class="auth-title font-slab">VERIFICANDO CONVOCAÇÃO...</h2>
-          <p class="auth-subtitle font-condensed">
-            Validando sua vaga junto à base de atletas pré-inscritos da Beer Run dos Gordos.
-          </p>
-        </div>
-      </section>
-
-      <!-- 3. BARREIRA DE SEGURANÇA (CASO NÃO TENHA LINK VÁLIDO OU ACESSO DIRETO) -->
-      <section v-else-if="!verifiedAthlete" class="auth-barrier-section">
+    <main class="container reg-main-content registration-main">
+      <template v-if="paymentOrder"
+        ><p
+          v-if="checkoutNotice"
+          class="auth-error-banner font-condensed"
+          role="status"
+        >
+          {{ checkoutNotice }}
+        </p>
+        <PaymentStatusPage :order-id="paymentOrder" @go-home="$emit('go-home')"
+      /></template>
+      <PublicRegistrationStatus
+        v-else-if="publicLookup"
+        :key="publicLookup.phone"
+        :phone="publicLookup.phone"
+        :initial-status="publicLookup.publicStatus"
+        @back="
+          publicLookup = null;
+          lookupOpen = true;
+        "
+        @resume="paymentOrder = $event"
+      />
+      <section
+        v-else-if="consultationOnly"
+        class="auth-barrier-section consultation-page"
+        aria-labelledby="consultation-title"
+      >
         <div class="vintage-card auth-card">
           <div class="auth-badge font-condensed">
-            <i class="fa-solid fa-ticket"></i> INSCRIÇÕES BEER RUN
+            <i class="fa-solid fa-ticket" aria-hidden="true"></i> INSCRIÇÕES
+            BEER RUN
           </div>
-
           <div class="auth-header">
             <div class="auth-icon-circle">
-              <i class="fa-solid fa-user-shield"></i>
+              <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
             </div>
             <div>
-              <h1 class="auth-title font-slab">CONSULTE SUA INSCRIÇÃO</h1>
+              <h1 id="consultation-title" class="auth-title font-slab">
+                CONSULTE SUA INSCRIÇÃO
+              </h1>
               <p class="auth-subtitle font-condensed">
-                Informe o WhatsApp usado na pré-inscrição para continuar ou consultar seu pedido.
+                Informe o WhatsApp usado na inscrição para continuar o pagamento
+                ou consultar seu pedido.
               </p>
             </div>
           </div>
-
-          <div class="auth-form-box">
-            <div v-if="authError" role="alert" class="auth-error-banner font-condensed">
-              <i class="fa-solid fa-circle-exclamation"></i>
-              <span>{{ authError }}</span>
-            </div>
-
-            <form @submit.prevent="handleManualAuth" class="auth-form">
+          <div class="auth-form-box lookup-panel">
+            <p
+              v-if="lookupMessage"
+              role="status"
+              class="auth-error-banner font-condensed"
+            >
+              {{ lookupMessage }}
+            </p>
+            <form class="auth-form" @submit.prevent="lookupRegistration">
               <div class="form-group">
-                <label for="registration-phone" class="auth-label font-condensed">
-                  WHATSAPP CADASTRADO
-                </label>
-                <div class="input-with-button">
+                <label for="lookup-phone" class="auth-label font-condensed"
+                  >WHATSAPP CADASTRADO</label
+                >
+                <div class="input-with-button lookup-controls">
                   <input
-                    id="registration-phone"
+                    id="lookup-phone"
+                    v-model="lookupPhone"
                     type="tel"
                     autocomplete="tel-national"
                     inputmode="tel"
-                    aria-describedby="registration-phone-help"
-                    v-model="manualPhoneInput"
-                    @input="formatManualPhone"
+                    aria-describedby="consultation-phone-help"
                     maxlength="15"
                     required
                     placeholder="(35) 99999-9999"
                     class="vintage-input auth-input font-condensed"
-                    :disabled="isVerifying"
+                    :disabled="lookupBusy"
+                    @input="
+                      lookupPhone = formatPhone($event.target.value);
+                      lookupMessage = '';
+                      lookupNotFound = false;
+                    "
                   />
                   <button
                     type="submit"
                     class="btn-vintage btn-auth font-slab"
-                    :disabled="isVerifying"
+                    :disabled="lookupBusy"
                   >
-                    <i v-if="isVerifying" class="fa-solid fa-spinner fa-spin"></i>
-                    <i v-else class="fa-solid fa-magnifying-glass"></i>
-                    <span>{{ isVerifying ? 'CONSULTANDO...' : 'CONSULTAR INSCRIÇÃO' }}</span>
+                    <i
+                      :class="
+                        lookupBusy
+                          ? 'fa-solid fa-spinner fa-spin'
+                          : 'fa-solid fa-magnifying-glass'
+                      "
+                      aria-hidden="true"
+                    ></i>
+                    <span>{{
+                      lookupBusy ? "CONSULTANDO..." : "CONSULTAR INSCRIÇÃO"
+                    }}</span>
                   </button>
                 </div>
               </div>
-              <p id="registration-phone-help" class="auth-phone-help font-condensed">Use o mesmo número da pré-inscrição, com DDD.</p>
+              <p
+                id="consultation-phone-help"
+                class="auth-phone-help font-condensed"
+              >
+                Use o mesmo número da inscrição, com DDD.
+              </p>
+              <a
+                v-if="lookupNotFound"
+                href="#inscricao"
+                class="link-btn font-condensed"
+                >Fazer minha inscrição →</a
+              >
             </form>
-
             <div class="auth-footer-help font-condensed">
               <span>Precisa de ajuda com sua inscrição?</span>
               <div class="auth-help-actions">
-                <button class="link-btn" @click="$emit('go-home')">
+                <button
+                  type="button"
+                  class="link-btn"
+                  @click="$emit('go-home')"
+                >
                   ← Acessar Página Inicial
                 </button>
                 <a
-                  href="https://wa.me/5535997500430?text=Olá,%20gostaria%20de%20saber%20sobre%20minha%20vaga%20na%20Beer%20Run%20dos%20Gordos!"
+                  href="https://wa.me/5535997500430?text=Preciso%20de%20ajuda%20com%20minha%20inscri%C3%A7%C3%A3o%20na%20Beer%20Run."
                   target="_blank"
                   rel="noopener noreferrer"
                   class="link-btn wa-help"
                 >
-                  <i class="fa-brands fa-whatsapp"></i> Falar com a Organização
+                  <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Falar
+                  com a Organização
                 </a>
               </div>
             </div>
           </div>
         </div>
       </section>
-
-      <!-- 4. TELA INICIAL ISOLADA: APENAS O PRIMEIRO CARD DE CONVOCAÇÃO -->
-      <section v-else-if="!hasStartedWizard" class="welcome-card-section">
-        <div class="vintage-card welcome-athlete-card">
-          <!-- Cabeçalho do Card -->
-          <div class="welcome-header">
-            <div class="welcome-shield-circle">
-              <i class="fa-solid fa-circle-check"></i>
-            </div>
-            <span class="welcome-tag font-condensed">★ PRÉ-INSCRIÇÃO LOCALIZADA ★</span>
-            <h1 class="welcome-name font-slab">{{ verifiedAthlete.displayName || verifiedAthlete.name }}</h1>
-            
-            <div class="welcome-phone font-condensed">
-              <i class="fa-solid fa-lock"></i> WhatsApp: <strong>{{ verifiedAthlete.phone }}</strong>
-              <span class="lock-pill"><i class="fa-solid fa-shield"></i> Vaga Intransferível</span>
-            </div>
-          </div>
-
-          <div class="welcome-divider"></div>
-
-          <!-- Mensagem e Instruções -->
-          <div class="welcome-body font-condensed">
-            <p v-if="verifiedAthlete.requiresDetails" class="welcome-lead">
-              Localizamos sua pré-inscrição. Confira e complete os dados para continuar.
-            </p>
-            <p v-else class="welcome-lead">
-              Sua vaga para a <strong>1ª Edição da Beer Run dos Gordos (29 de Novembro de 2026)</strong> está liberada! Seus dados de pré-inscrição já foram importados com sucesso.
-            </p>
-            <p class="welcome-instruction">
-              Para oficializar sua participação na prova, complete as <strong>5 etapas rápidas</strong> abaixo:
-            </p>
-
-            <!-- Preview Visual das 5 Etapas -->
-            <div class="welcome-steps-preview">
-              <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 1, 'preview-done': savedDraftStep > 1 }">
-                <span class="preview-num">
-                  <i v-if="savedDraftStep > 1" class="fa-solid fa-check"></i>
-                  <span v-else>1</span>
-                </span>
-                <div class="preview-text">
-                  <strong>1. Identificação</strong>
-                  <span>CPF, data de nascimento e cidade</span>
-                </div>
-              </div>
-
-              <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 2, 'preview-done': savedDraftStep > 2 }">
-                <span class="preview-num">
-                  <i v-if="savedDraftStep > 2" class="fa-solid fa-check"></i>
-                  <span v-else>2</span>
-                </span>
-                <div class="preview-text">
-                  <strong>2. Emergência</strong>
-                  <span>Contato de apoio e saúde</span>
-                </div>
-              </div>
-
-              <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 3, 'preview-done': savedDraftStep > 3 }">
-                <span class="preview-num">
-                  <i v-if="savedDraftStep > 3" class="fa-solid fa-check"></i>
-                  <span v-else>3</span>
-                </span>
-                <div class="preview-text">
-                  <strong>3. Modalidade & Brindes</strong>
-                  <span>Modalidade, camiseta, espetinhos e chopp</span>
-                </div>
-              </div>
-
-              <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 4, 'preview-done': savedDraftStep > 4 }">
-                <span class="preview-num">
-                  <i v-if="savedDraftStep > 4" class="fa-solid fa-check"></i>
-                  <span v-else>4</span>
-                </span>
-                <div class="preview-text">
-                  <strong>4. Regulamento</strong>
-                  <span>Leitura e aceite dos termos da prova</span>
-                </div>
-              </div>
-              <div class="preview-step-item" :class="{ 'preview-active': savedDraftStep === 5 }">
-                <span class="preview-num">5</span>
-                <div class="preview-text">
-                  <strong>5. Resumo e pagamento</strong>
-                  <span>Confira seu kit, desconto e valor total</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Aviso se houver rascunho recuperado -->
-            <div v-if="hasSavedDraft" class="draft-resume-box">
-              <div class="draft-resume-icon">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-              </div>
-              <div class="draft-resume-info">
-                <strong>PROGRESSO ANTERIOR RECUPERADO!</strong>
-                <span>Você já iniciou o preenchimento e parou na <strong>Etapa {{ savedDraftStep }} ({{ steps[savedDraftStep - 1]?.label || 'Identificação' }})</strong>. Seus dados continuam salvos e você pode continuar exatamente de onde parou.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ação Principal: Botão Começar / Continuar -->
-          <div class="welcome-actions">
-            <button
-              type="button"
-              class="btn-vintage btn-start-wizard font-slab"
-              @click="startWizard(savedDraftStep)"
-            >
-              <i v-if="hasSavedDraft" class="fa-solid fa-play"></i>
-              <i v-else class="fa-solid fa-flag-checkered"></i>
-              <span>{{ hasSavedDraft ? `CONTINUAR INSCRIÇÃO (ETAPA ${savedDraftStep} DE 5)` : 'COMEÇAR INSCRIÇÃO' }}</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </button>
-
-            <button
-              v-if="hasSavedDraft && savedDraftStep > 1"
-              type="button"
-              class="btn-restart-draft font-condensed"
-              @click="startWizard(1)"
-            >
-              <i class="fa-solid fa-rotate-left"></i> Começar da Etapa 1 (Identificação)
-            </button>
-          </div>
-
-          <div class="welcome-footer-guarantee font-condensed">
-            <i class="fa-solid fa-shield-halved"></i>
-            <span>Seu progresso é gravado automaticamente a cada etapa para você não perder nenhum dado.</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- 5. FORMULÁRIO DESBLOQUEADO EM ETAPAS (WIZARD: EXIBIDO APÓS CLICAR EM COMEÇAR) -->
       <div v-else class="reg-container">
-        <!-- Barra de Identificação Rápida do Atleta (2 Linhas Alinhadas) -->
-        <div class="athlete-mini-bar font-condensed">
-          <!-- Linha 1: Nome do Atleta e Selo de Convocação -->
-          <div class="mini-bar-top">
-            <div class="mini-bar-name-wrap">
-              <i class="fa-solid fa-circle-check text-green"></i>
-              <span class="mini-bar-name font-slab">{{ verifiedAthlete.displayName || verifiedAthlete.name }}</span>
-            </div>
-            <span class="mini-bar-badge font-condensed">
-              <i class="fa-solid fa-shield-halved"></i>
-              <span>Vaga Confirmada</span>
-            </span>
-          </div>
-
-          <!-- Linha 2: Telefone Vinculado e Ação para Ver Convocação -->
-          <div class="mini-bar-bottom">
-            <div class="mini-bar-phone-wrap">
-              <span class="mini-bar-phone">
-                <i class="fa-solid fa-lock"></i>
-                <span class="phone-label">WhatsApp:</span>
-                <strong>{{ verifiedAthlete.phone }}</strong>
-              </span>
-            </div>
-            <button
-              type="button"
-              class="btn-mini-back font-condensed"
-              @click="backToWelcome"
-              title="Voltar ao resumo da convocação"
-            >
-              <i class="fa-solid fa-id-card"></i>
-              <span>Ver Convocação</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Barra de Progresso / Stepper Visual (Apenas Números) -->
-        <div class="wizard-stepper font-condensed" role="tablist" aria-label="Etapas da inscrição">
-          <button
-            type="button"
-            v-for="(stepInfo, index) in steps"
-            :key="index"
-            :class="['step-tab', { active: currentStep === index + 1, completed: currentStep > index + 1 }]"
-            @click="canNavigateTo(index + 1) && goToStep(index + 1)"
-            :disabled="!canNavigateTo(index + 1)"
-            :title="`Etapa ${index + 1}: ${stepInfo.label}`"
-            :aria-label="`Etapa ${index + 1}: ${stepInfo.label}`"
+        <details
+          v-if="!hideLookupPanel"
+          class="auth-form-box lookup-panel"
+          :open="lookupOpen"
+          @toggle="lookupOpen = $event.target.open"
+        >
+          <summary class="auth-label font-condensed">
+            JÁ ME INSCREVI • CONSULTAR OU PAGAR
+          </summary>
+          <form
+            class="auth-form lookup-form"
+            @submit.prevent="lookupRegistration"
           >
-            <span class="step-badge">
-              <i v-if="currentStep > index + 1" class="fa-solid fa-check"></i>
-              <span v-else>{{ index + 1 }}</span>
-            </span>
+            <label class="auth-label font-condensed" for="lookup-phone"
+              >WHATSAPP CADASTRADO</label
+            >
+            <div class="input-with-button lookup-controls">
+              <input
+                id="lookup-phone"
+                v-model="lookupPhone"
+                class="vintage-input auth-input font-condensed"
+                type="tel"
+                autocomplete="tel-national"
+                inputmode="tel"
+                maxlength="15"
+                required
+                placeholder="(35) 99999-9999"
+                @input="lookupPhone = formatPhone($event.target.value)"
+              />
+              <button
+                class="btn-vintage btn-auth font-slab"
+                :disabled="lookupBusy"
+              >
+                {{ lookupBusy ? "CONSULTANDO..." : "CONSULTAR INSCRIÇÃO" }}
+              </button>
+            </div>
+            <p
+              v-if="lookupMessage"
+              role="status"
+              class="auth-phone-help font-condensed"
+            >
+              {{ lookupMessage }}
+            </p>
+          </form>
+        </details>
+        <p
+          v-if="draftRestored"
+          class="draft-resume-box font-condensed"
+          role="status"
+        >
+          PROGRESSO RECUPERADO • Confira seus dados antes de pagar.
+        </p>
+        <div
+          class="wizard-stepper font-condensed"
+          aria-label="Etapas da inscrição"
+        >
+          <button
+            v-for="(item, index) in steps"
+            :key="item.id"
+            type="button"
+            :class="[
+              'step-tab',
+              { active: step === index + 1, completed: step > index + 1 },
+            ]"
+            :disabled="busy || index + 1 > furthestStep"
+            @click="goToStep(index + 1)"
+            :aria-label="`Etapa ${index + 1}: ${item.label}`"
+            :aria-current="step === index + 1 ? 'step' : undefined"
+          >
+            <span class="step-badge">{{ index + 1 }}</span
+            ><span class="step-name">{{ item.label }}</span>
           </button>
         </div>
-
-        <!-- Formulário Oficial Multi-Etapas -->
-        <form @submit.prevent="handleSubmit" class="reg-form" novalidate>
-          <div v-if="stepError" class="error-banner font-condensed">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span>{{ stepError }}</span>
-          </div>
-
-          <!-- TELA 1: IDENTIFICAÇÃO DO ATLETA -->
-          <transition name="step-fade" mode="out-in">
-            <div v-if="currentStep === 1" key="step1" class="form-section-card step-card" role="region" aria-label="Dados Pessoais do Atleta">
-              <div class="step-header">
-                <h2 class="section-title font-slab">
-                  <span class="step-num font-condensed">1</span> DADOS PESSOAIS DO ATLETA
-                </h2>
-                <p class="step-subtitle font-condensed">
-                  Etapa 1 de 5 • Confirme sua identificação para o número de peito e classificação
-                </p>
-              </div>
-
-              <div class="form-grid">
-                <!-- NOME COMPLETO (BLOQUEADO / READONLY) -->
-                <div class="form-group full-width">
-                  <label class="form-label font-condensed">
-                    NOME COMPLETO *
-                    <span v-if="!verifiedAthlete.requiresDetails" class="locked-hint">
-                      <i class="fa-solid fa-lock"></i> Nome oficial da pré-inscrição (vaga intransferível)
-                    </span>
-                  </label>
-                  <div class="input-locked-wrapper">
-                    <input
-                      type="text"
-                      v-model="form.name"
-                      :readonly="!verifiedAthlete.requiresDetails"
-                      :disabled="isSubmitting"
-                      required
-                      maxlength="120"
-                      class="vintage-input font-condensed"
-                      :class="{ 'input-locked': !verifiedAthlete.requiresDetails }"
-                      :title="verifiedAthlete.requiresDetails ? 'Informe seu nome completo.' : 'Nome da pré-inscrição.'"
-                    />
-                    <span v-if="!verifiedAthlete.requiresDetails" class="lock-indicator" title="Campo bloqueado">
-                      <i class="fa-solid fa-lock"></i>
-                    </span>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label font-condensed ">
-                    APELIDO / NOME DE GUERRA
-                  </label>
-                  <input
-                    type="text"
-                    v-model="form.nickname"
-                    placeholder="Ex: Mestre Cervejeiro, Gordo Raiz..."
-                    class="vintage-input font-condensed"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label font-condensed">
-                    CPF *
-                    <span class="field-desc">(para identificação e seguro atleta)</span>
-                  </label>
-                  <input
-                    type="text"
-                    v-model="form.cpf"
-                    @input="formatCpf"
-                    maxlength="14"
-                    required
-                    placeholder="000.000.000-00"
-                    class="vintage-input font-condensed"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label font-condensed">
-                    DATA DE NASCIMENTO *
-                  </label>
-                  <input
-                    type="date"
-                    v-model="form.birthDate"
-                    @change="handleBirthDateChange"
-                    required
-                    class="vintage-input font-condensed"
-                  />
-                  <span v-if="athleteAge !== null" class="age-badge font-condensed">
-                    Idade na prova: <strong>{{ athleteAge }} anos</strong>
-                    <span v-if="athleteAge < 18" class="text-warning"> (Menor de 18 anos - Proibido consumo de chopp)</span>
-                  </span>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label font-condensed">
-                    SEXO / GÊNERO *
-                  </label>
-                  <div class="toggle-options-row font-condensed">
-                    <button
-                      type="button"
-                      :class="['toggle-pill', { active: form.gender === 'M' }]"
-                      @click="form.gender = 'M'"
-                    >
-                      <i class="fa-solid fa-mars"></i> MASCULINO
-                    </button>
-                    <button
-                      type="button"
-                      :class="['toggle-pill', { active: form.gender === 'F' }]"
-                      @click="form.gender = 'F'"
-                    >
-                      <i class="fa-solid fa-venus"></i> FEMININO
-                    </button>
-                  </div>
-                </div>
-
-                <div class="form-group full-width">
-                  <label class="form-label font-condensed">
-                    CIDADE E ESTADO *
-                  </label>
-                  <input
-                    type="text"
-                    v-model="form.cityState"
-                    placeholder="Ex: Natércia/MG, Pouso Alegre/MG, São Paulo/SP..."
-                    class="vintage-input font-condensed"
-                  />
-                </div>
-              </div>
-
-              <!-- Botão da Etapa 1 -->
-              <div class="step-footer-actions">
-                <button
-                  type="button"
-                  class="btn-vintage btn-step-back font-slab"
-                  @click="backToWelcome"
-                >
-                  <i class="fa-solid fa-arrow-left"></i>
-                  <span class="btn-text-desktop">CONVOCAÇÃO</span>
-                  <span class="btn-text-mobile">VOLTAR</span>
-                </button>
-                <button
-                  type="button"
-                  class="btn-vintage btn-step-next font-slab"
-                  @click="goToNextStep"
-                >
-                  <span>CONTINUAR</span>
-                  <i class="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
+        <form
+          class="reg-form registration-form"
+          novalidate
+          @submit.prevent="submitStep"
+        >
+          <fieldset class="registration-fields" :disabled="busy">
+            <legend class="sr-only">Inscrição Beer Run dos Gordos</legend>
+            <div
+              v-if="Object.keys(errors).length"
+              class="error-banner font-condensed"
+              role="alert"
+            >
+              {{ Object.values(errors).join(" ") }}
             </div>
-
-            <!-- TELA 2: CONTATO E EMERGÊNCIA -->
-            <div v-else-if="currentStep === 2" key="step2" class="form-section-card step-card" role="region" aria-label="Contato e Emergência">
+            <div
+              v-show="step === 1"
+              class="form-section-card step-card"
+              aria-labelledby="kit-title"
+            >
               <div class="step-header">
-                <h2 class="section-title font-slab">
-                  <span class="step-num font-condensed">2</span> CONTATO & EMERGÊNCIA
+                <h2
+                  id="kit-title"
+                  tabindex="-1"
+                  class="section-title font-slab"
+                >
+                  <span class="step-num font-condensed">1</span> ESCOLHA SEU KIT
                 </h2>
                 <p class="step-subtitle font-condensed">
-                  Etapa 2 de 5 • Dados de segurança obrigatórios para atendimento no percurso rural
+                  Etapa 1 de 5 • Selecione sua modalidade e personalize seu kit.
                 </p>
               </div>
 
-              <div class="form-grid">
-                <div class="form-group full-width">
-                  <label class="form-label font-condensed">E-MAIL *</label>
-                  <input v-model="form.email" type="email" required maxlength="254" class="vintage-input font-condensed" placeholder="voce@exemplo.com" />
-                </div>
-                <!-- CELULAR / WHATSAPP (BLOQUEADO / READONLY) -->
-                <div class="form-group">
-                  <label class="form-label font-condensed">
-                    CELULAR / WHATSAPP *
-                    <span class="locked-hint">
-                      <i class="fa-solid fa-lock"></i> Número vinculado (não editável)
-                    </span>
-                  </label>
-                  <div class="input-locked-wrapper">
-                    <input
-                      type="tel"
-                      :value="form.phone"
-                      readonly
-                      class="vintage-input font-condensed input-locked"
-                    />
-                    <span class="lock-indicator" title="Número autenticado">
-                      <i class="fa-solid fa-lock"></i>
-                    </span>
+              <section
+                class="font-condensed registration-offer"
+                aria-label="Benefícios e valores da inscrição"
+              >
+                <p class="offer-benefits">
+                  <strong>Nas duas opções, você leva:</strong><br />camiseta,
+                  medalha, copo e espetinhos pós prova.
+                </p>
+                <ul class="offer-extras">
+                  <li v-for="benefit in kitExtras" :key="benefit">
+                    {{ benefit }}
+                  </li>
+                </ul>
+                <dl class="offer-prices">
+                  <div>
+                    <dt>SEM CHOPP</dt>
+                    <dd class="font-slab">
+                      {{ money(registrationPrice(false)) }}
+                    </dd>
                   </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label font-condensed">
-                    NOME DO CONTATO DE EMERGÊNCIA *
-                    <span class="field-desc">(familiar ou amigo para sobreaviso)</span>
-                  </label>
-                  <input
-                    type="text"
-                    v-model="form.emergencyContactName"
-                    required
-                    placeholder="Ex: Maria Silva (Esposa / Irmão / Amigo)"
-                    class="vintage-input font-condensed"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label font-condensed">
-                    TELEFONE DO CONTATO DE EMERGÊNCIA *
-                  </label>
-                  <input
-                    type="tel"
-                    v-model="form.emergencyContactPhone"
-                    @input="formatEmergencyPhone"
-                    maxlength="15"
-                    required
-                    placeholder="(35) 99999-9999"
-                    class="vintage-input font-condensed"
-                  />
-                </div>
-
-                <div class="form-group full-width">
-                  <label class="form-label font-condensed">
-                    OBSERVAÇÕES MÉDICAS OU ALERGIAS
-                    <span class="optional-tag">(OPCIONAL)</span>
-                  </label>
-                  <input
-                    type="text"
-                    v-model="form.medicalNotes"
-                    placeholder="Ex: Alergia a picada de insetos, medicamentos contínuos, intolerâncias..."
-                    class="vintage-input font-condensed"
-                  />
-                </div>
-              </div>
-
-              <!-- Botões da Etapa 2 -->
-              <div class="step-footer-actions">
-                <button
-                  type="button"
-                  class="btn-vintage btn-step-back font-slab"
-                  @click="goToPrevStep"
-                >
-                  <i class="fa-solid fa-arrow-left"></i>
-                  <span>VOLTAR</span>
-                </button>
-                <button
-                  type="button"
-                  class="btn-vintage btn-step-next font-slab"
-                  @click="goToNextStep"
-                >
-                  <span>CONTINUAR</span>
-                  <i class="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- TELA 3: MODALIDADE & CONFRATERNIZAÇÃO -->
-            <div v-else-if="currentStep === 3" key="step3" class="form-section-card step-card" role="region" aria-label="Modalidade e Confraternização do Atleta">
-              <div class="step-header">
-                <h2 class="section-title font-slab">
-                  <span class="step-num font-condensed">3</span> MODALIDADE & BRINDES
-                </h2>
-                <p class="step-subtitle font-condensed">
-                  Etapa 3 de 5 • Selecione sua modalidade, camiseta, espetinhos e hidratação
-                </p>
-              </div>
-
-              <div class="form-grid">
+                  <div>
+                    <dt>COM CHOPP</dt>
+                    <dd class="font-slab">
+                      {{ money(registrationPrice(true)) }}
+                    </dd>
+                  </div>
+                </dl>
+                <AthleteKitPreview />
+              </section>
+              <div class="form-grid kit-grid">
                 <!-- MODALIDADE (2 COLUNAS LADO A LADO) -->
                 <div class="form-group full-width">
-                  <label class="form-label font-condensed">MODALIDADE NA PROVA *</label>
+                  <label class="form-label font-condensed"
+                    >MODALIDADE NA PROVA *</label
+                  >
                   <div class="choice-cards-row font-condensed">
-                    <label :class="['choice-card', { selected: form.modality === 'corrida' }]">
+                    <label
+                      :class="[
+                        'choice-card',
+                        { selected: form.modality === 'corrida' },
+                      ]"
+                    >
                       <input
                         type="radio"
                         v-model="form.modality"
                         value="corrida"
+                        name="modality"
                         class="sr-only"
+                        id="reg-modality"
+                        :aria-invalid="!!errors.modality"
                       />
                       <div class="choice-icon">🏃‍♂️</div>
                       <div class="choice-text">
@@ -584,12 +313,20 @@
                       </div>
                     </label>
 
-                    <label :class="['choice-card', { selected: form.modality === 'caminhada' }]">
+                    <label
+                      :class="[
+                        'choice-card',
+                        { selected: form.modality === 'caminhada' },
+                      ]"
+                    >
                       <input
                         type="radio"
                         v-model="form.modality"
                         value="caminhada"
+                        name="modality"
                         class="sr-only"
+                        id="reg-modality-walk"
+                        :aria-invalid="!!errors.modality"
                       />
                       <div class="choice-icon">🚶‍♂️</div>
                       <div class="choice-text">
@@ -604,34 +341,51 @@
                 <div class="form-group full-width">
                   <label class="form-label font-condensed">
                     CONSUMO DE CHOPP ARTESANAL? 🍺 *
-                    <span class="field-desc">(Artigo 6.3: Facultativo e restrito a +18)</span>
+                    <span class="field-desc"
+                      >(Artigo 6.3: Facultativo e restrito a +18)</span
+                    >
                   </label>
                   <div class="choice-cards-row font-condensed">
-                    <label :class="['choice-card', { selected: form.drinksBeer === true }]">
+                    <label
+                      :class="[
+                        'choice-card',
+                        { selected: form.drinksBeer === true },
+                      ]"
+                    >
                       <input
                         type="radio"
                         :checked="form.drinksBeer === true"
+                        name="beer"
+                        value="true"
+                        :disabled="isMinor"
                         @change="form.drinksBeer = true"
                         class="sr-only"
                       />
                       <div class="choice-icon">🍺</div>
                       <div class="choice-text">
                         <strong>QUERO CHOPP!</strong>
-                        <span>Liberado na prova</span>
+                        <span>Kit completo por R$ 100</span>
                       </div>
                     </label>
 
-                    <label :class="['choice-card', { selected: form.drinksBeer === false }]">
+                    <label
+                      :class="[
+                        'choice-card',
+                        { selected: form.drinksBeer === false },
+                      ]"
+                    >
                       <input
                         type="radio"
                         :checked="form.drinksBeer === false"
+                        name="beer"
+                        value="false"
                         @change="form.drinksBeer = false"
                         class="sr-only"
                       />
                       <div class="choice-icon">💧</div>
                       <div class="choice-text">
                         <strong>SEM ÁLCOOL</strong>
-                        <span>Água e refrigerante</span>
+                        <span>Kit completo por R$ 90</span>
                       </div>
                     </label>
                   </div>
@@ -641,13 +395,19 @@
                 <div class="form-group full-width">
                   <label class="form-label font-condensed">
                     CHURRASCO DE CHEGADA: 2 ESPETINHOS 🍢 *
-                    <span class="field-desc">(Defina a combinação dos seus 2 espetinhos de chegada)</span>
+                    <span class="field-desc"
+                      >(Defina a combinação dos seus 2 espetinhos de
+                      chegada)</span
+                    >
                   </label>
-                  
+
                   <div class="skewer-box">
                     <div class="skewer-rows-list">
                       <!-- Linha 1: Carne -->
-                      <div class="skewer-row-item" :class="{ 'is-disabled': skewerIsVegetarian }">
+                      <div
+                        class="skewer-row-item"
+                        :class="{ 'is-disabled': skewerIsVegetarian }"
+                      >
                         <div class="skewer-item-label">
                           <span class="skewer-icon">🥩</span>
                           <div class="skewer-item-names">
@@ -666,7 +426,9 @@
                           >
                             <i class="fa-solid fa-minus"></i>
                           </button>
-                          <span class="stepper-count font-slab">{{ skewerIsVegetarian ? 0 : skewerCarne }}</span>
+                          <span class="stepper-count font-slab">{{
+                            skewerIsVegetarian ? 0 : skewerCarne
+                          }}</span>
                           <button
                             type="button"
                             class="btn-stepper font-slab"
@@ -681,7 +443,10 @@
                       </div>
 
                       <!-- Linha 2: Frango -->
-                      <div class="skewer-row-item" :class="{ 'is-disabled': skewerIsVegetarian }">
+                      <div
+                        class="skewer-row-item"
+                        :class="{ 'is-disabled': skewerIsVegetarian }"
+                      >
                         <div class="skewer-item-label">
                           <span class="skewer-icon">🍗</span>
                           <div class="skewer-item-names">
@@ -700,7 +465,9 @@
                           >
                             <i class="fa-solid fa-minus"></i>
                           </button>
-                          <span class="stepper-count font-slab">{{ skewerIsVegetarian ? 0 : skewerFrango }}</span>
+                          <span class="stepper-count font-slab">{{
+                            skewerIsVegetarian ? 0 : skewerFrango
+                          }}</span>
                           <button
                             type="button"
                             class="btn-stepper font-slab"
@@ -715,7 +482,10 @@
                       </div>
 
                       <!-- Linha 3: Vegetariano -->
-                      <label class="skewer-row-item skewer-row-veg" :class="{ active: skewerIsVegetarian }">
+                      <label
+                        class="skewer-row-item skewer-row-veg"
+                        :class="{ active: skewerIsVegetarian }"
+                      >
                         <input
                           type="checkbox"
                           :checked="skewerIsVegetarian"
@@ -726,12 +496,20 @@
                           <span class="skewer-icon">🌱</span>
                           <div class="skewer-item-names">
                             <strong>Vegetariano</strong>
-                            <small>Não consumo carne / refeição sem carne</small>
+                            <small
+                              >Não consumo carne / refeição sem carne</small
+                            >
                           </div>
                         </div>
                         <div class="veg-toggle-action">
-                          <span class="veg-switch" :class="{ checked: skewerIsVegetarian }">
-                            <i v-if="skewerIsVegetarian" class="fa-solid fa-check"></i>
+                          <span
+                            class="veg-switch"
+                            :class="{ checked: skewerIsVegetarian }"
+                          >
+                            <i
+                              v-if="skewerIsVegetarian"
+                              class="fa-solid fa-check"
+                            ></i>
                           </span>
                         </div>
                       </label>
@@ -740,86 +518,418 @@
                     <!-- Resumo inline sutil -->
                     <div class="skewer-summary-bar font-condensed">
                       <span v-if="skewerIsVegetarian" class="text-veg">
-                        <i class="fa-solid fa-seedling"></i> Opção Vegetariana confirmada (sem carne)
+                        <i class="fa-solid fa-seedling"></i> Opção Vegetariana
+                        confirmada (sem carne)
                       </span>
                       <span v-else class="text-standard">
-                        <i class="fa-solid fa-utensils"></i> Seleção: <strong>{{ formatSkewerLabel(form.skewerChoice) }}</strong> (2 espetinhos inclusos)
+                        <i class="fa-solid fa-utensils"></i> Seleção:
+                        <strong>{{
+                          formatSkewerLabel(form.skewerChoice)
+                        }}</strong>
+                        (2 espetinhos inclusos)
                       </span>
                     </div>
                   </div>
                 </div>
                 <div class="form-group full-width">
-                  <label for="shirt-model" class="form-label font-condensed">MODELO DA CAMISETA 👕 *</label>
-                  <select id="shirt-model" v-model="form.shirtModel" class="vintage-input font-condensed" required @change="form.shirtSize = ''">
+                  <label for="shirt-model" class="form-label font-condensed"
+                    >MODELO DA CAMISETA 👕 *</label
+                  >
+                  <select
+                    id="shirt-model"
+                    v-model="form.shirtModel"
+                    class="vintage-input font-condensed"
+                    required
+                    @change="form.shirtSize = ''"
+                    :aria-invalid="!!errors.shirtModel"
+                  >
                     <option disabled value="">Selecione o modelo</option>
-                    <option v-for="model in SHIRT_MODELS" :key="model.value" :value="model.value">{{ model.label }}</option>
+                    <option
+                      v-for="model in SHIRT_MODELS"
+                      :key="model.value"
+                      :value="model.value"
+                    >
+                      {{ model.label }}
+                    </option>
                   </select>
                 </div>
                 <div class="form-group full-width">
-                  <label for="shirt-size" class="form-label font-condensed">TAMANHO DA CAMISETA 👕 *</label>
-                  <select id="shirt-size" v-model="form.shirtSize" class="vintage-input font-condensed" required :disabled="!form.shirtModel" aria-describedby="shirt-size-help shirt-measurements">
-                    <option disabled value="">{{ form.shirtModel ? 'Selecione o tamanho' : 'Selecione primeiro o modelo' }}</option>
-                    <option v-for="[size] in availableShirtSizes" :key="size" :value="size">{{ size }}</option>
+                  <label for="shirt-size" class="form-label font-condensed"
+                    >TAMANHO DA CAMISETA 👕 *</label
+                  >
+                  <select
+                    id="shirt-size"
+                    v-model="form.shirtSize"
+                    class="vintage-input font-condensed"
+                    required
+                    :disabled="!form.shirtModel"
+                    aria-describedby="shirt-size-help shirt-measurements"
+                    :aria-invalid="!!errors.shirtSize"
+                  >
+                    <option disabled value="">
+                      {{
+                        form.shirtModel
+                          ? "Selecione o tamanho"
+                          : "Selecione primeiro o modelo"
+                      }}
+                    </option>
+                    <option v-for="[size] in sizes" :key="size" :value="size">
+                      {{ size }}
+                    </option>
                   </select>
-                  <small id="shirt-size-help" class="field-desc font-condensed">Camiseta incluída na inscrição de todos os atletas. Confira as medidas antes de escolher.</small>
-                  <p id="shirt-measurements" class="font-condensed" aria-live="polite">
-                    <template v-if="selectedShirtMeasurements">{{ formatShirtSelection(form.shirtModel, form.shirtSize) }}: {{ selectedShirtMeasurements[1] }} cm de altura × {{ selectedShirtMeasurements[2] }} cm de largura.</template>
+                </div>
+                <div class="form-group full-width shirt-guide-group">
+                  <small id="shirt-size-help" class="field-desc font-condensed"
+                    >Camiseta incluída na inscrição de todos os atletas. Confira
+                    as medidas antes de escolher.</small
+                  >
+                  <p
+                    id="shirt-measurements"
+                    class="font-condensed"
+                    aria-live="polite"
+                  >
+                    <template v-if="measurements"
+                      >{{
+                        formatShirtSelection(form.shirtModel, form.shirtSize)
+                      }}: {{ measurements[1] }} cm de altura ×
+                      {{ measurements[2] }} cm de largura.</template
+                    >
                   </p>
-                  <ShirtSizeGuide :model="form.shirtModel" :size="form.shirtSize" />
+                  <ShirtSizeGuide
+                    :model="form.shirtModel"
+                    :size="form.shirtSize"
+                  />
                 </div>
               </div>
-
-              <!-- Botões da Etapa 3 -->
-              <div class="step-footer-actions">
-                <button
-                  type="button"
-                  class="btn-vintage btn-step-back font-slab"
-                  @click="goToPrevStep"
-                >
-                  <i class="fa-solid fa-arrow-left"></i>
-                  <span>VOLTAR</span>
-                </button>
-                <button
-                  type="button"
-                  class="btn-vintage btn-step-next font-slab"
-                  @click="goToNextStep"
-                >
-                  <span>CONTINUAR</span>
-                  <i class="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
             </div>
-
-            <!-- TELA 4: REGULAMENTO OFICIAL E ACEITE DOS TERMOS -->
-            <div v-else-if="currentStep === 4" key="step4" class="form-section-card step-card regulation-card" role="region" aria-label="Regulamento e Aceite dos Termos">
+            <div
+              v-show="step === 2"
+              class="form-section-card step-card"
+              aria-labelledby="details-title"
+            >
               <div class="step-header">
-                <h2 class="section-title font-slab">
-                  <span class="step-num font-condensed">4</span> REGULAMENTO & ACEITE
+                <h2
+                  id="details-title"
+                  tabindex="-1"
+                  class="section-title font-slab"
+                >
+                  <span class="step-num font-condensed">2</span> DADOS PESSOAIS
+                  DO ATLETA
                 </h2>
                 <p class="step-subtitle font-condensed">
-                  Etapa 4 de 5 • Leia o regulamento e aceite os termos para continuar
+                  Etapa 2 de 5 • Confirme sua identificação para o número de
+                  peito e classificação
                 </p>
               </div>
 
-              <p class="reg-intro-text font-condensed">
-                Antes de finalizar a sua inscrição, é fundamental ler os termos do regulamento da prova. Ele foi construído para assegurar a diversão, a transparência e a segurança de todos os atletas no percurso rural.
-              </p>
+              <div class="form-grid">
+                <!-- NOME COMPLETO -->
+                <div class="form-group full-width">
+                  <label class="form-label font-condensed">
+                    NOME COMPLETO *
+                  </label>
+                  <div class="input-locked-wrapper">
+                    <input
+                      type="text"
+                      v-model="form.name"
+                      :disabled="busy"
+                      required
+                      maxlength="120"
+                      class="vintage-input font-condensed"
+                      placeholder="Informe seu nome completo"
+                      id="reg-name"
+                      :aria-invalid="!!errors.name"
+                      aria-label="Nome completo"
+                      autocomplete="name"
+                    />
+                  </div>
+                </div>
 
-              <!-- Cards Resumo das Regras Principais -->
+                <div class="form-group">
+                  <label class="form-label font-condensed">
+                    APELIDO / NOME DE GUERRA
+                  </label>
+                  <input
+                    type="text"
+                    v-model="form.nickname"
+                    placeholder="Ex: Mestre Cervejeiro, Gordo Raiz..."
+                    class="vintage-input font-condensed"
+                    id="reg-nickname"
+                    :aria-invalid="!!errors.nickname"
+                    aria-label="Apelido opcional"
+                    autocomplete="nickname"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-condensed">
+                    CPF *
+                    <span class="field-desc"
+                      >(para identificação e seguro atleta)</span
+                    >
+                  </label>
+                  <input
+                    type="text"
+                    v-model="form.cpf"
+                    @input="formatField('cpf')"
+                    maxlength="14"
+                    required
+                    placeholder="000.000.000-00"
+                    class="vintage-input font-condensed"
+                    id="reg-cpf"
+                    :aria-invalid="!!errors.cpf"
+                    aria-label="CPF"
+                    inputmode="numeric"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="reg-birthDate" class="form-label font-condensed">
+                    DATA DE NASCIMENTO *
+                  </label>
+                  <BirthDateInput
+                    v-model="form.birthDate"
+                    required
+                    class="vintage-input font-condensed"
+                    id="reg-birthDate"
+                    :aria-invalid="!!errors.birthDate"
+                    aria-label="Data de nascimento"
+                    aria-describedby="reg-birthDate-help"
+                    :max="today"
+                  />
+                  <small id="reg-birthDate-help" class="field-desc font-condensed">
+                    Digite dia, mês e ano. Ex.: 25/08/1990
+                  </small>
+                  <span
+                    v-if="athleteAge !== null"
+                    class="age-badge font-condensed"
+                  >
+                    Idade: <strong>{{ athleteAge }} anos</strong>
+                    <span v-if="athleteAge < 18" class="text-warning">
+                      (Menor de 18 anos - Proibido consumo de chopp)</span
+                    >
+                  </span>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-condensed">
+                    SEXO / GÊNERO *
+                  </label>
+                  <div
+                    id="reg-gender"
+                    tabindex="-1"
+                    :aria-invalid="!!errors.gender"
+                    class="toggle-options-row font-condensed"
+                  >
+                    <button
+                      type="button"
+                      :class="['toggle-pill', { active: form.gender === 'M' }]"
+                      :aria-pressed="form.gender === 'M'"
+                      @click="form.gender = 'M'"
+                    >
+                      <i class="fa-solid fa-mars"></i> MASCULINO
+                    </button>
+                    <button
+                      type="button"
+                      :class="['toggle-pill', { active: form.gender === 'F' }]"
+                      :aria-pressed="form.gender === 'F'"
+                      @click="form.gender = 'F'"
+                    >
+                      <i class="fa-solid fa-venus"></i> FEMININO
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label font-condensed">
+                    CIDADE E ESTADO *
+                  </label>
+                  <input
+                    type="text"
+                    v-model="form.cityState"
+                    placeholder="Ex: Natércia/MG, Pouso Alegre/MG, São Paulo/SP..."
+                    class="vintage-input font-condensed"
+                    id="reg-cityState"
+                    :aria-invalid="!!errors.cityState"
+                    aria-label="Cidade e estado"
+                    autocomplete="address-level2"
+                  />
+                </div>
+              </div>
+              <p v-if="isMinor" class="auth-phone-help font-condensed">
+                Sua opção foi ajustada para sem álcool. Total:
+                {{ money(registrationPrice(false)) }}.
+              </p>
+            </div>
+            <div
+              v-show="step === 3"
+              class="form-section-card step-card"
+              aria-labelledby="contact-title"
+            >
+              <div class="step-header">
+                <h2
+                  id="contact-title"
+                  tabindex="-1"
+                  class="section-title font-slab"
+                >
+                  <span class="step-num font-condensed">3</span> CONTATO &
+                  EMERGÊNCIA
+                </h2>
+                <p class="step-subtitle font-condensed">
+                  Etapa 3 de 5 • Dados de segurança obrigatórios para
+                  atendimento no percurso rural
+                </p>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label class="form-label font-condensed">E-MAIL *</label>
+                  <input
+                    v-model="form.email"
+                    type="email"
+                    required
+                    maxlength="254"
+                    class="vintage-input font-condensed"
+                    placeholder="voce@exemplo.com"
+                    id="reg-email"
+                    :aria-invalid="!!errors.email"
+                    aria-label="E-mail"
+                    autocomplete="email"
+                  />
+                </div>
+                <!-- CELULAR / WHATSAPP (BLOQUEADO / READONLY) -->
+                <div class="form-group">
+                  <label class="form-label font-condensed">
+                    CELULAR / WHATSAPP *
+                  </label>
+                  <div class="input-locked-wrapper">
+                    <input
+                      type="tel"
+                      v-model="form.phone"
+                      @input="formatField('phone')"
+                      @blur="inspectPhone()"
+                      autocomplete="tel-national"
+                      inputmode="tel"
+                      maxlength="15"
+                      placeholder="(35) 99999-9999"
+                      class="vintage-input font-condensed"
+                      id="reg-phone"
+                      :aria-invalid="!!errors.phone"
+                      aria-label="WhatsApp com DDD"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-condensed">
+                    NOME DO CONTATO DE EMERGÊNCIA *
+                    <span class="field-desc"
+                      >(familiar ou amigo para sobreaviso)</span
+                    >
+                  </label>
+                  <input
+                    type="text"
+                    v-model="form.emergencyContactName"
+                    required
+                    placeholder="Ex: Maria Silva (Esposa / Irmão / Amigo)"
+                    class="vintage-input font-condensed"
+                    id="reg-emergencyContactName"
+                    :aria-invalid="!!errors.emergencyContactName"
+                    aria-label="Nome do contato de emergência"
+                    autocomplete="section-emergency name"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-condensed">
+                    TELEFONE DO CONTATO DE EMERGÊNCIA *
+                  </label>
+                  <input
+                    type="tel"
+                    v-model="form.emergencyContactPhone"
+                    @input="formatField('emergencyContactPhone')"
+                    maxlength="15"
+                    required
+                    placeholder="(35) 99999-9999"
+                    class="vintage-input font-condensed"
+                    id="reg-emergencyContactPhone"
+                    :aria-invalid="!!errors.emergencyContactPhone"
+                    aria-label="Telefone do contato de emergência"
+                    autocomplete="section-emergency tel-national"
+                  />
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label font-condensed">
+                    OBSERVAÇÕES MÉDICAS OU ALERGIAS
+                    <span class="optional-tag">(OPCIONAL)</span>
+                  </label>
+                  <input
+                    type="text"
+                    v-model="form.medicalNotes"
+                    placeholder="Ex: Alergia a picada de insetos, medicamentos contínuos, intolerâncias..."
+                    class="vintage-input font-condensed"
+                    id="reg-medicalNotes"
+                    :aria-invalid="!!errors.medicalNotes"
+                    aria-label="Observações médicas opcionais"
+                  />
+                </div>
+              </div>
+              <div
+                v-if="existingRegistration"
+                class="auth-error-banner existing-registration font-condensed"
+                role="status"
+              >
+                <p>Este celular já possui uma inscrição.</p>
+                <button
+                  type="button"
+                  class="link-btn"
+                  @click="showExisting(existingRegistration)"
+                >
+                  Consultar ou continuar pagamento →
+                </button>
+              </div>
+            </div>
+            <div
+              v-show="step === 4"
+              class="form-section-card step-card"
+              aria-labelledby="rules-title"
+            >
+              <div class="step-header">
+                <h2
+                  id="rules-title"
+                  tabindex="-1"
+                  class="section-title font-slab"
+                >
+                  <span class="step-num font-condensed">4</span> REGULAMENTO
+                </h2>
+                <p class="step-subtitle font-condensed">
+                  Etapa 4 de 5 • Leia as regras e confirme seu aceite antes de
+                  revisar a inscrição.
+                </p>
+              </div>
               <div class="rules-summary-grid font-condensed">
                 <div class="rule-box">
                   <div class="rule-icon"><i class="fa-solid fa-medal"></i></div>
                   <div>
                     <strong>Espírito da Prova</strong>
-                    <p>Recreativa, festiva e beneficente em prol do Natal Solidário dos Gordos.</p>
+                    <p>
+                      Recreativa, festiva e beneficente em prol do Natal
+                      Solidário dos Gordos.
+                    </p>
                   </div>
                 </div>
 
                 <div class="rule-box">
-                  <div class="rule-icon"><i class="fa-solid fa-stopwatch"></i></div>
+                  <div class="rule-icon">
+                    <i class="fa-solid fa-stopwatch"></i>
+                  </div>
                   <div>
                     <strong>Sem Chip Eletrônico</strong>
-                    <p>Premiação simbólica apenas aos 3 primeiros gerais masc e fem por ordem de chegada.</p>
+                    <p>
+                      Premiação simbólica apenas aos 3 primeiros gerais masc e
+                      fem por ordem de chegada.
+                    </p>
                   </div>
                 </div>
 
@@ -827,59 +937,37 @@
                   <div class="rule-icon"><i class="fa-solid fa-road"></i></div>
                   <div>
                     <strong>Percurso Rural</strong>
-                    <p>6,37 km com terra, subidas e descidas no Sítio dos Gordos em Natércia/MG.</p>
+                    <p>
+                      6,37 km com terra, subidas e descidas no Sítio dos Gordos
+                      em Natércia/MG.
+                    </p>
                   </div>
                 </div>
 
                 <div class="rule-box">
-                  <div class="rule-icon"><i class="fa-solid fa-beer-mug-empty"></i></div>
+                  <div class="rule-icon">
+                    <i class="fa-solid fa-beer-mug-empty"></i>
+                  </div>
                   <div>
                     <strong>Chopp Consciente</strong>
-                    <p>Consumo facultativo, proibido para menores de 18 anos. Se beber, não dirija.</p>
+                    <p>
+                      Consumo facultativo, proibido para menores de 18 anos. Se
+                      beber, não dirija.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <!-- PDF Viewer & Download Actions -->
-              <div class="pdf-viewer-container">
-                <div class="pdf-viewer-toolbar font-condensed">
-                  <div class="pdf-info">
-                    <i class="fa-solid fa-file-pdf text-red"></i>
-                    <span><strong>REGULAMENTO DA PROVA • 1ª EDIÇÃO 2026</strong> (Documento Oficial Completo)</span>
-                  </div>
-
-                  <div class="pdf-actions">
-                    <a
-                      href="/regulamento-beer-run-2026.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn-pdf-action font-condensed"
-                    >
-                      <i class="fa-solid fa-arrow-up-right-from-square"></i> ABRIR EM NOVA GUIA
-                    </a>
-                    <a
-                      href="/regulamento-beer-run-2026.pdf"
-                      download="Regulamento-Beer-Run-dos-Gordos-2026.pdf"
-                      class="btn-pdf-action font-condensed highlight"
-                    >
-                      <i class="fa-solid fa-download"></i> BAIXAR PDF
-                    </a>
-                  </div>
-                </div>
-
-                <!-- Embedded Frame / Document Preview -->
-                <div class="pdf-embed-wrapper">
-                  <iframe
-                    src="/regulamento-beer-run-2026.pdf#toolbar=1&navpanes=0"
-                    class="pdf-iframe"
-                    title="Regulamento Oficial da Beer Run dos Gordos"
-                  ></iframe>
-                </div>
-                <p class="pdf-hint font-condensed">
-                  * Utilize os botões acima para baixar o arquivo completo em PDF ou abrir em tela cheia no celular.
-                </p>
+              <div class="pdf-viewer-toolbar">
+                <a
+                  class="btn-pdf-action font-condensed highlight"
+                  href="/regulamento-beer-run-2026.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  ><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> LER
+                  REGULAMENTO COMPLETO</a
+                >
               </div>
-
               <!-- Checkbox de Aceite Obrigatório -->
               <div class="terms-acceptance-box">
                 <label class="terms-checkbox-label font-condensed">
@@ -888,850 +976,991 @@
                     v-model="form.acceptedTerms"
                     required
                     class="vintage-checkbox"
-                    :disabled="isSubmitting"
+                    :disabled="busy"
+                    id="reg-acceptedTerms"
+                    :aria-invalid="!!errors.acceptedTerms"
+                    aria-label="Aceite do regulamento"
                   />
                   <span class="checkbox-custom"></span>
                   <span class="terms-text">
-                    <strong>Li e concordo com o Regulamento da Beer Run dos Gordos 2026.</strong> Declaro estar apto(a) para participar e autorizo o uso da minha imagem conforme o regulamento.
+                    <strong
+                      >Li e concordo com o Regulamento da Beer Run dos Gordos
+                      2026.</strong
+                    >
+                    Declaro estar apto(a) para participar e autorizo o uso da
+                    minha imagem conforme o regulamento.
                   </span>
                 </label>
               </div>
-
-              <div class="step-footer-actions">
-                <button type="button" class="btn-vintage btn-step-back font-slab" @click="goToPrevStep">
-                  <i class="fa-solid fa-arrow-left"></i><span>VOLTAR</span>
-                </button>
-                <button type="button" class="btn-vintage btn-step-next font-slab" :disabled="!form.acceptedTerms" @click="goToNextStep">
-                  <span>CONTINUAR</span><i class="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
             </div>
-
-            <div v-else-if="currentStep === 5" key="step5" class="form-section-card step-card payment-review-card" role="region" aria-label="Resumo e pagamento">
+            <div
+              v-show="step === 5"
+              class="form-section-card step-card payment-review-card"
+              aria-labelledby="review-title"
+            >
               <div class="step-header">
-                <h2 class="section-title font-slab"><span class="step-num font-condensed">5</span> RESUMO & PAGAMENTO</h2>
-                <p class="step-subtitle font-condensed">Etapa 5 de 5 • Confira seu kit e o total</p>
+                <h2
+                  id="review-title"
+                  tabindex="-1"
+                  class="section-title font-slab"
+                >
+                  <span class="step-num font-condensed">5</span> RESUMO &
+                  PAGAMENTO
+                </h2>
+                <p class="step-subtitle font-condensed">
+                  Etapa 5 de 5 • Confira seus dados, kit e valor total antes de
+                  pagar.
+                </p>
               </div>
 
-              <section class="registration-kit-summary font-condensed" aria-label="Kit selecionado">
+              <section
+                class="registration-kit-summary font-condensed"
+                aria-label="Kit selecionado"
+              >
                 <div class="review-section-heading">
                   <h3 class="font-slab">Sua inscrição inclui</h3>
-                  <button type="button" class="review-edit-button" :disabled="isSubmitting" @click="goToStep(3)">Editar escolhas</button>
+                  <button
+                    type="button"
+                    class="review-edit-button"
+                    :disabled="busy"
+                    @click="editStep(1)"
+                  >
+                    Editar escolhas
+                  </button>
                 </div>
                 <dl class="review-kit-grid">
-                  <div><dt>Modalidade</dt><dd>{{ form.modality === 'caminhada' ? 'Caminhada' : 'Corrida' }} · 6,37 km</dd></div>
-                  <div><dt>Camiseta</dt><dd>{{ formatShirtSelection(form.shirtModel, form.shirtSize) }}</dd></div>
-                  <div><dt>Churrasco de chegada</dt><dd>{{ formatSkewerLabel(form.skewerChoice) }}</dd></div>
-                  <div><dt>Hidratação</dt><dd>{{ form.drinksBeer ? 'Com chopp artesanal' : 'Sem álcool · água e refrigerante' }}</dd></div>
+                  <div>
+                    <dt>Modalidade</dt>
+                    <dd>
+                      {{
+                        form.modality === "caminhada" ? "Caminhada" : "Corrida"
+                      }}
+                      · 6,37 km
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Camiseta</dt>
+                    <dd>
+                      {{
+                        formatShirtSelection(form.shirtModel, form.shirtSize)
+                      }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Churrasco de chegada</dt>
+                    <dd>{{ formatSkewerLabel(form.skewerChoice) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Hidratação</dt>
+                    <dd>
+                      {{
+                        form.drinksBeer
+                          ? "Com chopp artesanal"
+                          : "Sem álcool · água e refrigerante"
+                      }}
+                    </dd>
+                  </div>
                 </dl>
+                <p class="review-extras-title">
+                  Também incluído na sua inscrição:
+                </p>
+                <ul class="offer-extras review-extras">
+                  <li v-for="benefit in kitExtras" :key="benefit">
+                    {{ benefit }}
+                  </li>
+                </ul>
               </section>
 
-              <CouponEntry v-if="verifiedAthlete.couponEligible === true" v-model="form.couponCode" :phone="verifiedAthlete.phone" :beer="form.drinksBeer"
-                :disabled="isSubmitting" :show-total="false" @quote="couponQuote = $event" />
+              <section
+                class="registration-kit-summary font-condensed"
+                aria-label="Dados do atleta"
+              >
+                <div class="review-section-heading">
+                  <h3 class="font-slab">Dados do atleta</h3>
+                  <button
+                    type="button"
+                    class="review-edit-button"
+                    :disabled="busy"
+                    @click="editStep(2)"
+                  >
+                    Editar dados
+                  </button>
+                </div>
+                <dl class="review-kit-grid">
+                  <div>
+                    <dt>Nome completo</dt>
+                    <dd>{{ form.name }}</dd>
+                  </div>
+                  <div v-if="form.nickname">
+                    <dt>Apelido</dt>
+                    <dd>{{ form.nickname }}</dd>
+                  </div>
+                  <div>
+                    <dt>CPF</dt>
+                    <dd>{{ form.cpf }}</dd>
+                  </div>
+                  <div>
+                    <dt>Nascimento</dt>
+                    <dd>{{ form.birthDate.split("-").reverse().join("/") }}</dd>
+                  </div>
+                  <div>
+                    <dt>Sexo / gênero</dt>
+                    <dd>
+                      {{
+                        { M: "Masculino", F: "Feminino", O: "Outro" }[
+                          form.gender
+                        ]
+                      }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Cidade e estado</dt>
+                    <dd>{{ form.cityState }}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section
+                class="registration-kit-summary font-condensed"
+                aria-label="Contato e emergência"
+              >
+                <div class="review-section-heading">
+                  <h3 class="font-slab">Contato e emergência</h3>
+                  <button
+                    type="button"
+                    class="review-edit-button"
+                    :disabled="busy"
+                    @click="editStep(3)"
+                  >
+                    Editar contato
+                  </button>
+                </div>
+                <dl class="review-kit-grid">
+                  <div>
+                    <dt>WhatsApp</dt>
+                    <dd>{{ form.phone }}</dd>
+                  </div>
+                  <div>
+                    <dt>E-mail</dt>
+                    <dd>{{ form.email }}</dd>
+                  </div>
+                  <div>
+                    <dt>Contato de emergência</dt>
+                    <dd>{{ form.emergencyContactName }}</dd>
+                  </div>
+                  <div>
+                    <dt>Telefone de emergência</dt>
+                    <dd>{{ form.emergencyContactPhone }}</dd>
+                  </div>
+                  <div v-if="form.medicalNotes">
+                    <dt>Observações médicas</dt>
+                    <dd>{{ form.medicalNotes }}</dd>
+                  </div>
+                </dl>
+              </section>
+              <CouponEntry
+                v-if="couponEligible"
+                v-model="form.couponCode"
+                :phone="form.phone"
+                :beer="form.drinksBeer"
+                :disabled="busy"
+                :show-total="false"
+                @quote="couponQuote = $event"
+              />
 
-              <section class="registration-total-card font-condensed" aria-label="Valores da inscrição" aria-live="polite">
+              <section
+                class="registration-total-card font-condensed"
+                aria-label="Valores da inscrição"
+                aria-live="polite"
+              >
                 <dl class="review-amounts">
-                  <div><dt>Inscrição {{ form.drinksBeer ? 'com chopp' : 'sem chopp' }}</dt><dd>{{ formatMoney(registrationAmount) }}</dd></div>
-                  <div v-if="couponQuote" class="review-discount"><dt>Desconto aplicado</dt><dd>− {{ formatMoney(couponQuote.discountAmount) }}</dd></div>
-                  <div class="review-total"><dt>Total a pagar</dt><dd class="font-slab">{{ formatMoney(couponQuote?.amount ?? registrationAmount) }}</dd></div>
+                  <div>
+                    <dt>
+                      Inscrição
+                      {{ form.drinksBeer ? "com chopp" : "sem chopp" }}
+                    </dt>
+                    <dd>{{ money(registrationPrice(form.drinksBeer)) }}</dd>
+                  </div>
+                  <div v-if="couponQuote" class="review-discount">
+                    <dt>Desconto aplicado</dt>
+                    <dd>− {{ money(couponQuote.discountAmount) }}</dd>
+                  </div>
+                  <div class="review-total">
+                    <dt>Total a pagar</dt>
+                    <dd class="font-slab">
+                      {{
+                        money(
+                          couponQuote?.amount ??
+                            registrationPrice(form.drinksBeer)
+                        )
+                      }}
+                    </dd>
+                  </div>
                 </dl>
                 <p>Todos os itens acima incluídos.</p>
               </section>
-              <p v-if="couponNeedsApply" class="review-coupon-hint font-condensed" role="status">Aplique o cupom ou apague o código para continuar.</p>
-              <div class="review-payment-note font-condensed">
-                <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                <p>Pagamento seguro pela InfinitePay. Inscrição confirmada após a aprovação do pagamento.</p>
-              </div>
-              <p v-if="submitError" role="alert" class="auth-error-banner font-condensed">{{ submitError }}</p>
-              <!-- Botões da Etapa 5 (Finalização) -->
-              <div class="step-footer-actions final-actions">
+              <p
+                v-if="couponNeedsApply"
+                class="review-coupon-hint font-condensed"
+                role="status"
+              >
+                Aplique o cupom ou apague o código para continuar.
+              </p>
+              <p class="review-payment-note font-condensed">
+                Regulamento aceito.
                 <button
                   type="button"
-                  class="btn-vintage btn-step-back font-slab"
-                  @click="goToPrevStep"
-                  :disabled="isSubmitting"
+                  class="review-edit-button"
+                  :disabled="busy"
+                  @click="editStep(4)"
                 >
-                  <i class="fa-solid fa-arrow-left"></i>
-                  <span>VOLTAR</span>
+                  Rever regulamento
                 </button>
-                <button
-                  type="submit"
-                  class="btn-vintage btn-submit-registration font-slab"
-                  :disabled="isSubmitting || !form.acceptedTerms || couponNeedsApply"
-                >
-                  <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-                  <i v-else class="fa-solid fa-check-double"></i>
-                  <span>{{ isSubmitting ? 'PROCESSANDO...' : 'CONFIRMAR E PAGAR' }}</span>
-                </button>
+              </p>
+              <div class="review-payment-note font-condensed">
+                <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                <p>
+                  Pagamento seguro pela InfinitePay. Inscrição confirmada após a
+                  aprovação do pagamento.
+                </p>
               </div>
             </div>
-          </transition>
+          </fieldset>
+          <p
+            v-if="submitError"
+            class="error-banner font-condensed"
+            role="alert"
+          >
+            {{ submitError }}
+          </p>
+          <div v-if="conflict" class="auth-error-banner font-condensed">
+            <button
+              type="button"
+              class="link-btn"
+              @click="
+                lookupPhone = form.phone;
+                lookupOpen = true;
+                lookupRegistration();
+              "
+            >
+              Consultar minha inscrição existente
+            </button>
+          </div>
+          <div
+            class="step-footer-actions registration-bottom-bar font-condensed"
+            :class="{ 'is-first-step': step === 1 }"
+          >
+            <div class="running-total">
+              <span>TOTAL DO SEU KIT</span
+              ><strong class="font-slab">{{ money(total) }}</strong
+              ><small v-if="couponQuote"
+                >Desconto: {{ money(couponQuote.discountAmount) }}</small
+              >
+            </div>
+            <button
+              type="button"
+              v-if="step > 1"
+              class="btn-vintage btn-step-back font-slab"
+              :disabled="busy"
+              @click="goBack"
+            >
+              VOLTAR
+            </button>
+            <button
+              type="submit"
+              class="btn-vintage btn-step-next next-button font-slab"
+              :class="{ 'btn-submit-registration': step === 5 }"
+              :disabled="busy || (step === 5 && couponNeedsApply)"
+            >
+              {{
+                busy
+                  ? "ABRINDO PAGAMENTO..."
+                  : step === 5
+                  ? "CONFIRMAR E PAGAR"
+                  : returnToSummary
+                  ? "VOLTAR AO RESUMO →"
+                  : step === 4
+                  ? "REVISAR INSCRIÇÃO →"
+                  : "CONTINUAR →"
+              }}
+            </button>
+          </div>
         </form>
+        <div class="auth-footer-help font-condensed">
+          <a
+            class="link-btn wa-help"
+            href="https://wa.me/5535997500430?text=Preciso%20de%20ajuda%20com%20minha%20inscri%C3%A7%C3%A3o%20na%20Beer%20Run."
+            target="_blank"
+            rel="noopener noreferrer"
+            ><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Falar com
+            a Organização</a
+          >
+        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useAthletes } from '../composables/useAthletes.js'
-import PaymentStatusPage from './PaymentStatusPage.vue'
-import PublicRegistrationStatus from './PublicRegistrationStatus.vue'
-import RegistrationModal from './RegistrationModal.vue'
-import WaitlistTicket from './WaitlistTicket.vue'
-import CouponEntry from './CouponEntry.vue'
-import { resolveRegistrationAthlete } from '../services/registration-access.js'
-import { submitRegistration } from '../services/checkout.js'
-import { trackPageView, trackRegistrationEvent, trackRegistrationOrder } from '../services/analytics.js'
-import { analyticsErrorKind } from '../services/analytics-policy.js'
-import ShirtSizeGuide from './ShirtSizeGuide.vue'
-import { SHIRT_MODELS, shirtMeasurements, formatShirtSelection } from '../services/shirts.js'
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import PaymentStatusPage from "./PaymentStatusPage.vue";
+import PublicRegistrationStatus from "./PublicRegistrationStatus.vue";
+import CouponEntry from "./CouponEntry.vue";
+import ShirtSizeGuide from "./ShirtSizeGuide.vue";
+import AthleteKitPreview from "./AthleteKitPreview.vue";
+import BirthDateInput from "./BirthDateInput.vue";
+import {
+  SHIRT_MODELS,
+  shirtMeasurements,
+  formatShirtSelection,
+} from "../services/shirts.js";
+import { registrationPrice, money } from "../services/registration-offer.js";
+import { resolveRegistrationAthlete } from "../services/registration-access.js";
+import { submitRegistration, openCheckout } from "../services/checkout.js";
+import {
+  trackPageView,
+  trackRegistrationEvent,
+  trackRegistrationOrder,
+} from "../services/analytics.js";
+import { analyticsErrorKind } from "../services/analytics-policy.js";
+defineEmits(["go-home"]);
 
-const emit = defineEmits(['go-home'])
+const draftKey = "beer_run_registration_draft_v2";
+const kitExtras = [
+  "Café da manhã antes da prova",
+  "Bebidas e alimentação nos pontos de apoio",
+  "Atrações durante e após a prova",
+];
+const steps = [
+  { id: "kit-title", label: "Kit e valores" },
+  { id: "details-title", label: "Dados pessoais" },
+  { id: "contact-title", label: "Contato e emergência" },
+  { id: "rules-title", label: "Regulamento" },
+  { id: "review-title", label: "Resumo e pagamento" },
+];
+const step = ref(1),
+  busy = ref(false),
+  errors = ref({}),
+  submitError = ref(""),
+  conflict = ref(false);
+const furthestStep = ref(1),
+  returnToSummary = ref(false);
+const lookupOpen = ref(false),
+  lookupPhone = ref(""),
+  lookupBusy = ref(false),
+  lookupMessage = ref("");
+const consultationOnly = ref(false),
+  lookupNotFound = ref(false);
+const hideLookupPanel = ref(false);
+const paymentOrder = ref(""),
+  publicLookup = ref(null),
+  checkoutNotice = ref(""),
+  draftRestored = ref(false);
+const couponEligible = ref(false),
+  couponQuote = ref(null),
+  existingRegistration = ref(null);
+const form = reactive({
+  name: "",
+  nickname: "",
+  cpf: "",
+  birthDate: "",
+  gender: "",
+  cityState: "",
+  phone: "",
+  email: "",
+  emergencyContactName: "",
+  emergencyContactPhone: "",
+  medicalNotes: "",
+  modality: "corrida",
+  drinksBeer: false,
+  skewerChoice: "1 Carne + 1 Frango",
+  shirtModel: "",
+  shirtSize: "",
+  acceptedTerms: false,
+  couponCode: "",
+});
+const skewerChoices = [
+  "1 Carne + 1 Frango",
+  "2 Carne",
+  "2 Frango",
+  "Vegetariano",
+];
+const today = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date());
+const isMinor = computed(
+  () =>
+    /^\d{4}-\d{2}-\d{2}$/.test(form.birthDate) &&
+    Number(today.slice(0, 4)) -
+      Number(form.birthDate.slice(0, 4)) -
+      (today.slice(5) < form.birthDate.slice(5) ? 1 : 0) <
+      18
+);
+const sizes = computed(
+  () =>
+    SHIRT_MODELS.find((model) => model.value === form.shirtModel)?.sizes || []
+);
+const measurements = computed(() =>
+  shirtMeasurements(form.shirtModel, form.shirtSize)
+);
+const total = computed(
+  () => couponQuote.value?.amount ?? registrationPrice(form.drinksBeer)
+);
+const couponNeedsApply = computed(
+  () => couponEligible.value && !!form.couponCode && !couponQuote.value
+);
+let draftTimer,
+  lookupRevision = 0,
+  disposed = false,
+  started = false,
+  completed = false;
 
-const {
-  saveAthleteDraft,
-  loadAthleteDraft,
-  clearAthleteDraft
-} = useAthletes()
-
-async function findAthleteByPhone(phone, origem = 'manual') {
-  trackRegistrationEvent('inscricao_consulta', { origem, resultado: 'tentativa' })
+function formatPhone(value) {
+  let digits = value.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+  digits = digits.slice(0, 11);
+  return digits.length > 6
+    ? `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+    : digits.length > 2
+    ? `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+    : digits;
+}
+function formatField(key) {
+  if (key === "phone" || key === "emergencyContactPhone")
+    form[key] = formatPhone(form[key]);
+  if (key === "cpf")
+    form.cpf = form.cpf
+      .replace(/\D/g, "")
+      .slice(0, 11)
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3}\.\d{3})(\d)/, "$1.$2")
+      .replace(/(\.\d{3})(\d)/, "$1-$2");
+  delete errors.value[key];
+}
+function saveDraft() {
+  if (completed || (!started && !draftRestored.value)) return;
   try {
-    const found = await resolveRegistrationAthlete(phone)
-    trackRegistrationEvent('inscricao_consulta', { origem, resultado: found?.orderId ? 'pedido_existente'
-      : found?.publicStatus ? 'status_disponivel' : found ? 'localizado' : 'nao_encontrado' })
-    return found
-  } catch (error) {
-    trackRegistrationEvent('inscricao_consulta', { origem, resultado: 'erro', tipo_erro: analyticsErrorKind(error) })
-    throw error
+    localStorage.setItem(
+      draftKey,
+      JSON.stringify({
+        version: 3,
+        step: step.value,
+        form: { ...form, acceptedTerms: false },
+      })
+    );
+  } catch {
+    /* O formulario continua sem armazenamento. */
   }
 }
-
-const isAutoVerifying = ref(false)
-const isVerifying = ref(false)
-const verifiedAthlete = ref(null)
-const manualPhoneInput = ref('')
-const authError = ref('')
-const isWaitlistOpen = ref(false)
-
-// Controle da Tela Inicial (Card 1) e Stepper Wizard
-const hasStartedWizard = ref(false)
-const savedDraftStep = ref(1)
-const hasSavedDraft = ref(false)
-
-const currentStep = ref(1)
-const stepError = ref('')
-
-const isSubmitting = ref(false)
-const paymentOrder = ref('')
-const publicLookup = ref(null)
-const waitlistLookup = ref(null)
-const submitError = ref('')
-let submitErrorKind = 'validacao'
-const athleteAge = ref(null)
-
-watch([hasStartedWizard, currentStep, paymentOrder, publicLookup], () => {
-  if (hasStartedWizard.value && !paymentOrder.value && !publicLookup.value) {
-    trackRegistrationEvent('inscricao_etapa_visualizada', { etapa: currentStep.value })
+function restoreDraft(draft) {
+  if (!draft?.form || typeof draft.form !== "object") return;
+  for (const key of Object.keys(form)) {
+    if (key !== "acceptedTerms" && typeof draft.form[key] === typeof form[key])
+      form[key] = draft.form[key];
   }
-})
-watch(stepError, value => {
-  if (value) trackRegistrationEvent('inscricao_erro', { etapa: currentStep.value, tipo_erro: 'validacao' })
-}, { flush: 'sync' })
-watch(authError, value => {
-  if (value) trackRegistrationEvent('inscricao_erro', { tipo_erro: 'consulta' })
-}, { flush: 'sync' })
-watch(submitError, value => {
-  if (value && value !== stepError.value) trackRegistrationEvent('inscricao_erro', { etapa: currentStep.value, tipo_erro: submitErrorKind })
-}, { flush: 'sync' })
+  form.acceptedTerms = false;
+  if (!["corrida", "caminhada"].includes(form.modality))
+    form.modality = "corrida";
+  if (!skewerChoices.includes(form.skewerChoice))
+    form.skewerChoice = skewerChoices[0];
+  if (!SHIRT_MODELS.some((model) => model.value === form.shirtModel))
+    form.shirtModel = "";
+  if (!measurements.value) form.shirtSize = "";
+  let restoredStep =
+    draft.version === 3 && Number.isInteger(draft.step)
+      ? Math.min(4, Math.max(1, draft.step))
+      : draft.version === 2 && draft.step === 2
+      ? 2
+      : 1;
+  for (let stage = 1; stage < restoredStep; stage++) {
+    if (Object.keys(stepIssues(stage)).length) {
+      restoredStep = stage;
+      break;
+    }
+  }
+  step.value = restoredStep;
+  furthestStep.value = restoredStep;
+  draftRestored.value = true;
+}
+watch(
+  form,
+  () => {
+    if (!started) {
+      started = true;
+      trackRegistrationEvent("inscricao_inicio", {
+        etapa: step.value,
+        retomada: draftRestored.value ? "sim" : "nao",
+      });
+    }
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 300);
+  },
+  { deep: true }
+);
+watch(
+  () => form.shirtModel,
+  () => {
+    if (!measurements.value) form.shirtSize = "";
+  }
+);
+watch(isMinor, (minor) => {
+  if (minor) form.drinksBeer = false;
+});
+watch(
+  () => [form.phone, form.drinksBeer, form.couponCode],
+  () => {
+    couponQuote.value = null;
+  },
+  { flush: "sync" }
+);
+watch(
+  () => form.phone,
+  () => {
+    lookupRevision++;
+    couponEligible.value = false;
+    existingRegistration.value = null;
+    form.couponCode = "";
+  },
+  { flush: "sync" }
+);
+watch(step, (value) => {
+  trackRegistrationEvent("inscricao_etapa_visualizada", { etapa: value });
+  saveDraft();
+});
 
-const VALID_SKEWER_CHOICES = ['1 Carne + 1 Frango', '2 Carne', '2 Frango', 'Vegetariano']
+function validCpf(value) {
+  const cpf = value.replace(/\D/g, "");
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  return [9, 10].every((size) => {
+    let sum = 0;
+    for (let i = 0; i < size; i++) sum += Number(cpf[i]) * (size + 1 - i);
+    const digit = (sum * 10) % 11;
+    return (digit === 10 ? 0 : digit) === Number(cpf[size]);
+  });
+}
+function stepIssues(stage) {
+  const issues = {};
+  if (stage === 1) {
+    if (!form.shirtModel) issues.shirtModel = "Escolha o modelo da camiseta.";
+    if (!measurements.value)
+      issues.shirtSize = "Escolha um tamanho disponível para o modelo.";
+  } else if (stage === 2) {
+    if (form.name.trim().length < 3) issues.name = "Informe seu nome completo.";
+    if (!validCpf(form.cpf)) issues.cpf = "Confira os números do seu CPF.";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.birthDate) || form.birthDate > today)
+      issues.birthDate = "Informe uma data de nascimento válida.";
+    if (!form.cityState.trim())
+      issues.cityState = "Informe sua cidade e estado.";
+    if (!["M", "F", "O"].includes(form.gender))
+      issues.gender = "Selecione uma opção.";
+  } else if (stage === 3) {
+    if (!/^[1-9]\d9\d{8}$/.test(form.phone.replace(/\D/g, "")))
+      issues.phone = "Informe um celular válido com DDD.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
+      issues.email = "Confira seu e-mail.";
+    if (form.emergencyContactName.trim().length < 3)
+      issues.emergencyContactName = "Informe o nome de um contato.";
+    if (!/^[1-9]\d\d{8,9}$/.test(form.emergencyContactPhone.replace(/\D/g, "")))
+      issues.emergencyContactPhone = "Informe um telefone com DDD.";
+  } else if (stage === 4 && !form.acceptedTerms) {
+    issues.acceptedTerms = "Leia e aceite o regulamento para continuar.";
+  }
+  return issues;
+}
+async function validate(through = step.value) {
+  errors.value = {};
+  for (let stage = 1; stage <= through; stage++) {
+    const issues = stepIssues(stage);
+    if (Object.keys(issues).length) {
+      step.value = stage;
+      errors.value = issues;
+      trackRegistrationEvent("inscricao_erro", {
+        etapa: stage,
+        tipo_erro: "validacao",
+      });
+      await nextTick();
+      document
+        .querySelector('.registration-form [aria-invalid="true"]')
+        ?.focus();
+      return false;
+    }
+  }
+  return true;
+}
+async function focusStep() {
+  await nextTick();
+  const heading = document.getElementById(steps[step.value - 1].id);
+  heading?.focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+async function goToStep(target) {
+  if (busy.value || target < 1 || target > furthestStep.value) return;
+  if (target > step.value && !(await validate(target - 1))) return;
+  step.value = target;
+  errors.value = {};
+  submitError.value = "";
+  returnToSummary.value = false;
+  focusStep();
+}
+function goBack() {
+  goToStep(step.value - 1);
+}
+function editStep(target) {
+  step.value = target;
+  errors.value = {};
+  returnToSummary.value = true;
+  focusStep();
+}
+function showExisting(found) {
+  if (found.orderId) paymentOrder.value = found.orderId;
+  else if (found.publicStatus) publicLookup.value = found;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+async function inspectPhone() {
+  const phone = form.phone;
+  if (!/^[1-9]\d9\d{8}$/.test(phone.replace(/\D/g, ""))) return;
+  const revision = ++lookupRevision;
+  try {
+    const found = await resolveRegistrationAthlete(phone);
+    if (disposed || revision !== lookupRevision) return;
+    couponEligible.value = found?.couponEligible === true;
+    existingRegistration.value =
+      found?.orderId || found?.publicStatus ? found : null;
+  } catch {
+    /* A consulta auxiliar nao impede uma nova inscricao; o POST revalida os dados. */
+  }
+}
+async function lookupRegistration() {
+  if (lookupBusy.value) return;
+  lookupMessage.value = "";
+  lookupNotFound.value = false;
+  if (!/^[1-9]\d9\d{8}$/.test(lookupPhone.value.replace(/\D/g, ""))) {
+    lookupMessage.value = "Informe um celular válido com DDD.";
+    return;
+  }
+  lookupBusy.value = true;
+  trackRegistrationEvent("inscricao_consulta", {
+    origem: "manual",
+    resultado: "tentativa",
+  });
+  try {
+    const found = await resolveRegistrationAthlete(lookupPhone.value);
+    if (disposed) return;
+    trackRegistrationEvent("inscricao_consulta", {
+      origem: "manual",
+      resultado: found?.orderId
+        ? "pedido_existente"
+        : found?.publicStatus
+        ? "status_disponivel"
+        : "nao_encontrado",
+    });
+    if (found?.orderId || found?.publicStatus) {
+      showExisting(found);
+      return;
+    }
+    if (consultationOnly.value) {
+      lookupNotFound.value = true;
+      lookupMessage.value =
+        "Não encontramos um pedido de inscrição para este WhatsApp. Confira o número ou faça sua inscrição.";
+      return;
+    }
+    // Somente rascunhos do proprio navegador; nunca recupera CPF/saude por telefone.
+    const previousPhone = form.phone.replace(/\D/g, "");
+    if (
+      previousPhone &&
+      previousPhone !== lookupPhone.value.replace(/\D/g, "")
+    ) {
+      for (const key of [
+        "name",
+        "nickname",
+        "cpf",
+        "birthDate",
+        "gender",
+        "cityState",
+        "email",
+        "emergencyContactName",
+        "emergencyContactPhone",
+        "medicalNotes",
+      ])
+        form[key] = "";
+      form.acceptedTerms = false;
+    }
+    form.phone = lookupPhone.value;
+    try {
+      const oldDraft = JSON.parse(
+        localStorage.getItem(
+          "beer_run_draft_" + lookupPhone.value.replace(/\D/g, "")
+        ) || "null"
+      );
+      if (oldDraft) restoreDraft(oldDraft);
+    } catch {
+      /* Rascunho indisponivel. */
+    }
+    if (!form.name.trim() && found?.name) form.name = found.name;
+    if (!form.nickname.trim() && found?.nickname)
+      form.nickname = found.nickname;
+    couponEligible.value = found?.couponEligible === true;
+    lookupMessage.value =
+      "Você já pode se inscrever. Escolha seu kit e complete os dados abaixo.";
+  } catch (error) {
+    lookupMessage.value = error.message;
+  } finally {
+    lookupBusy.value = false;
+  }
+}
+async function submitStep() {
+  if (busy.value) return;
+  submitError.value = "";
+  conflict.value = false;
+  if (!(await validate(returnToSummary.value ? 4 : step.value))) return;
+  if (step.value < 5) {
+    trackRegistrationEvent("inscricao_etapa_concluida", {
+      etapa: step.value,
+      modalidade: form.modality,
+      chopp: form.drinksBeer,
+      camiseta: form.shirtSize,
+    });
+    step.value = returnToSummary.value ? 5 : step.value + 1;
+    furthestStep.value = Math.max(furthestStep.value, step.value);
+    returnToSummary.value = false;
+    focusStep();
+    return;
+  }
+  if (couponNeedsApply.value) return;
+  busy.value = true;
+  saveDraft();
+  trackRegistrationEvent("inscricao_etapa_concluida", { etapa: 5 });
+  trackRegistrationEvent("submit_inscricao_oficial", {
+    modalidade: form.modality,
+    chopp: form.drinksBeer,
+  });
+  try {
+    const result = await submitRegistration({
+      name: form.name.trim(),
+      nickname: form.nickname.trim(),
+      cpf: form.cpf,
+      birthDate: form.birthDate,
+      gender: form.gender,
+      phone: form.phone,
+      email: form.email.trim(),
+      cityState: form.cityState.trim(),
+      emergencyContactName: form.emergencyContactName.trim(),
+      emergencyContactPhone: form.emergencyContactPhone,
+      medicalNotes: form.medicalNotes.trim(),
+      modality: form.modality === "corrida" ? "RUN" : "WALK",
+      beer: form.drinksBeer,
+      skewerChoice: form.skewerChoice,
+      shirtModel: form.shirtModel,
+      shirtSize: form.shirtSize,
+      acceptedTerms: form.acceptedTerms,
+      ...(couponEligible.value && form.couponCode
+        ? { couponCode: form.couponCode }
+        : {}),
+    });
+    completed = true;
+    clearTimeout(draftTimer);
+    try {
+      localStorage.removeItem(draftKey);
+      localStorage.removeItem(
+        "beer_run_draft_" + form.phone.replace(/\D/g, "")
+      );
+    } catch {
+      /* Pedido ja salvo. */
+    }
+    trackRegistrationOrder(result.orderId, {
+      modalidade: form.modality,
+      chopp: form.drinksBeer,
+      camiseta: form.shirtSize,
+      value: result.amount / 100,
+      desconto: (result.discountAmount || 0) / 100,
+      currency: "BRL",
+      com_cupom: result.discountAmount > 0 ? "sim" : "nao",
+    });
+    paymentOrder.value = result.orderId;
+    if (result.status === "PENDING_PAYMENT" && result.checkoutUrl) {
+      try {
+        openCheckout(result.checkoutUrl);
+      } catch {
+        checkoutNotice.value =
+          "Seu pedido foi salvo. Não foi possível abrir o pagamento. Continue pelo botão abaixo ou fale com a organização.";
+      }
+    } else if (result.status === "PENDING_PAYMENT")
+      checkoutNotice.value =
+        "Seu pedido foi salvo. Estamos preparando o pagamento; consulte o status abaixo para continuar.";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (error) {
+    conflict.value = error.code === "REGISTRATION_CONFLICT";
+    submitError.value =
+      error.message ||
+      "Não foi possível concluir. Seus dados continuam aqui; tente novamente.";
+    trackRegistrationEvent("inscricao_erro", {
+      etapa: 5,
+      tipo_erro: analyticsErrorKind(error),
+    });
+  } finally {
+    busy.value = false;
+  }
+}
+function saveOnExit() {
+  clearTimeout(draftTimer);
+  saveDraft();
+}
+function handleHash() {
+  const params = new URLSearchParams(window.location.hash.split("?")[1] || "");
+  const wasConsultationOnly = consultationOnly.value;
+  consultationOnly.value = params.get("consulta") === "1";
+  if (consultationOnly.value) {
+    hideLookupPanel.value = false;
+    lookupOpen.value = true;
+    window.scrollTo({ top: 0 });
+  } else if (wasConsultationOnly) {
+    hideLookupPanel.value = true;
+    lookupOpen.value = false;
+    lookupMessage.value = "";
+    lookupNotFound.value = false;
+    focusStep();
+  }
+  const phone = params.get("tel") || params.get("phone");
+  if (phone) {
+    hideLookupPanel.value = false;
+    lookupPhone.value = formatPhone(phone);
+    lookupOpen.value = true;
+    lookupRegistration();
+  }
+}
+onMounted(() => {
+  trackPageView();
+  trackRegistrationEvent("inscricao_visualizada");
+  try {
+    restoreDraft(JSON.parse(localStorage.getItem(draftKey) || "null"));
+  } catch {
+    /* Rascunho indisponivel. */
+  }
+  handleHash();
+  if (!consultationOnly.value) inspectPhone();
+  trackRegistrationEvent("inscricao_etapa_visualizada", { etapa: step.value });
+  window.addEventListener("pagehide", saveOnExit);
+  window.addEventListener("hashchange", handleHash);
+});
+onUnmounted(() => {
+  disposed = true;
+  lookupRevision++;
+  saveOnExit();
+  window.removeEventListener("pagehide", saveOnExit);
+  window.removeEventListener("hashchange", handleHash);
+});
 
-const skewerCarne = ref(1)
-const skewerFrango = ref(1)
-const skewerIsVegetarian = ref(false)
+const skewerCarne = ref(1);
+const skewerFrango = ref(1);
+const skewerIsVegetarian = ref(false);
 
 function formatSkewerLabel(val) {
-  if (val === '1 Carne + 1 Frango') return '1 Carne + 1 Frango (1 de cada)'
-  if (val === '2 Carne') return '2 Espetinhos de Carne'
-  if (val === '2 Frango') return '2 Espetinhos de Frango'
-  if (val === 'Vegetariano') return 'Vegetariano / Sem Carne'
-  return val || '1 Carne + 1 Frango (1 de cada)'
-}
-
-function resolveValidSkewer(val) {
-  if (val && VALID_SKEWER_CHOICES.includes(val)) return val
-  return '1 Carne + 1 Frango'
+  if (val === "1 Carne + 1 Frango") return "1 Carne + 1 Frango (1 de cada)";
+  if (val === "2 Carne") return "2 Espetinhos de Carne";
+  if (val === "2 Frango") return "2 Espetinhos de Frango";
+  if (val === "Vegetariano") return "Vegetariano / Sem Carne";
+  return val || "1 Carne + 1 Frango (1 de cada)";
 }
 
 function updateSkewerChoice() {
   if (skewerIsVegetarian.value) {
-    form.skewerChoice = 'Vegetariano'
+    form.skewerChoice = "Vegetariano";
   } else if (skewerCarne.value === 1 && skewerFrango.value === 1) {
-    form.skewerChoice = '1 Carne + 1 Frango'
+    form.skewerChoice = "1 Carne + 1 Frango";
   } else if (skewerCarne.value === 2) {
-    form.skewerChoice = '2 Carne'
+    form.skewerChoice = "2 Carne";
   } else if (skewerFrango.value === 2) {
-    form.skewerChoice = '2 Frango'
+    form.skewerChoice = "2 Frango";
   } else {
-    form.skewerChoice = '1 Carne + 1 Frango'
+    form.skewerChoice = "1 Carne + 1 Frango";
   }
-  persistDraft()
+  saveDraft();
 }
 
 function incrementCarne() {
-  if (skewerIsVegetarian.value) skewerIsVegetarian.value = false
+  if (skewerIsVegetarian.value) skewerIsVegetarian.value = false;
   if (skewerCarne.value < 2) {
-    skewerCarne.value++
-    skewerFrango.value = 2 - skewerCarne.value
+    skewerCarne.value++;
+    skewerFrango.value = 2 - skewerCarne.value;
   }
-  updateSkewerChoice()
+  updateSkewerChoice();
 }
 
 function decrementCarne() {
   if (skewerCarne.value > 0) {
-    skewerCarne.value--
-    skewerFrango.value = 2 - skewerCarne.value
+    skewerCarne.value--;
+    skewerFrango.value = 2 - skewerCarne.value;
   }
-  updateSkewerChoice()
+  updateSkewerChoice();
 }
 
 function incrementFrango() {
-  if (skewerIsVegetarian.value) skewerIsVegetarian.value = false
+  if (skewerIsVegetarian.value) skewerIsVegetarian.value = false;
   if (skewerFrango.value < 2) {
-    skewerFrango.value++
-    skewerCarne.value = 2 - skewerFrango.value
+    skewerFrango.value++;
+    skewerCarne.value = 2 - skewerFrango.value;
   }
-  updateSkewerChoice()
+  updateSkewerChoice();
 }
 
 function decrementFrango() {
   if (skewerFrango.value > 0) {
-    skewerFrango.value--
-    skewerCarne.value = 2 - skewerFrango.value
+    skewerFrango.value--;
+    skewerCarne.value = 2 - skewerFrango.value;
   }
-  updateSkewerChoice()
+  updateSkewerChoice();
 }
 
 function toggleVegetarian() {
-  skewerIsVegetarian.value = !skewerIsVegetarian.value
+  skewerIsVegetarian.value = !skewerIsVegetarian.value;
   if (skewerIsVegetarian.value) {
-    skewerCarne.value = 0
-    skewerFrango.value = 0
+    skewerCarne.value = 0;
+    skewerFrango.value = 0;
   } else {
-    skewerCarne.value = 1
-    skewerFrango.value = 1
+    skewerCarne.value = 1;
+    skewerFrango.value = 1;
   }
-  updateSkewerChoice()
+  updateSkewerChoice();
 }
 
 function syncSkewersFromChoice(choice) {
-  if (choice === 'Vegetariano') {
-    skewerIsVegetarian.value = true
-    skewerCarne.value = 0
-    skewerFrango.value = 0
-  } else if (choice === '2 Carne') {
-    skewerIsVegetarian.value = false
-    skewerCarne.value = 2
-    skewerFrango.value = 0
-  } else if (choice === '2 Frango') {
-    skewerIsVegetarian.value = false
-    skewerCarne.value = 0
-    skewerFrango.value = 2
+  if (choice === "Vegetariano") {
+    skewerIsVegetarian.value = true;
+    skewerCarne.value = 0;
+    skewerFrango.value = 0;
+  } else if (choice === "2 Carne") {
+    skewerIsVegetarian.value = false;
+    skewerCarne.value = 2;
+    skewerFrango.value = 0;
+  } else if (choice === "2 Frango") {
+    skewerIsVegetarian.value = false;
+    skewerCarne.value = 0;
+    skewerFrango.value = 2;
   } else {
-    skewerIsVegetarian.value = false
-    skewerCarne.value = 1
-    skewerFrango.value = 1
+    skewerIsVegetarian.value = false;
+    skewerCarne.value = 1;
+    skewerFrango.value = 1;
   }
 }
 
-const form = reactive({
-  name: '',
-  nickname: '',
-  cpf: '',
-  birthDate: '',
-  gender: 'M',
-  cityState: '',
-  phone: '',
-  email: '',
-  emergencyContactName: '',
-  emergencyContactPhone: '',
-  medicalNotes: '',
-  modality: 'corrida',
-  drinksBeer: true,
-  skewerChoice: '1 Carne + 1 Frango',
-  shirtSize: '',
-  shirtModel: '',
-  acceptedTerms: false,
-  couponCode: ''
-})
-
-const availableShirtSizes = computed(() => SHIRT_MODELS.find(model => model.value === form.shirtModel)?.sizes || [])
-const selectedShirtMeasurements = computed(() => shirtMeasurements(form.shirtModel, form.shirtSize))
-
-const steps = [
-  { step: 1, label: '1. Identificação' },
-  { step: 2, label: '2. Emergência' },
-  { step: 3, label: '3. Modalidade & Brindes' },
-  { step: 4, label: '4. Regulamento' },
-  { step: 5, label: '5. Resumo e pagamento' }
-]
-
-const couponQuote = ref(null)
-const registrationAmount = computed(() => form.drinksBeer ? 10000 : 9000)
-const couponNeedsApply = computed(() => verifiedAthlete.value?.couponEligible === true && Boolean(form.couponCode) && !couponQuote.value)
-const formatMoney = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
-watch(() => [form.couponCode, form.drinksBeer, form.phone, currentStep.value], () => {
-  couponQuote.value = null
-}, { flush: 'sync' })
-
-let draftDebounceTimer = null
-
-// Persistência local do rascunho; gravação remota somente pela API.
-async function persistDraft(immediate = false) {
-  if (!verifiedAthlete.value) return
-
-  const doSave = async () => {
-    try {
-      const phone = verifiedAthlete.value.phone
-      const athleteId = verifiedAthlete.value.id
-      const draftData = {
-        currentStep: currentStep.value,
-        hasStartedWizard: hasStartedWizard.value,
-        form: { ...form },
-        updatedAt: new Date().toISOString()
-      }
-      hasSavedDraft.value = true
-      savedDraftStep.value = currentStep.value
-      await saveAthleteDraft(athleteId, phone, draftData)
-    } catch (e) {
-      console.warn('Erro ao salvar rascunho:', e)
-    }
-  }
-
-  if (immediate) {
-    if (draftDebounceTimer) clearTimeout(draftDebounceTimer)
-    await doSave()
-  } else {
-    if (draftDebounceTimer) clearTimeout(draftDebounceTimer)
-    draftDebounceTimer = setTimeout(doSave, 600)
-  }
-}
-
-// Salva alterações parciais digitadas com debounce suave
-watch(
-  form,
-  () => {
-    if (verifiedAthlete.value && hasStartedWizard.value) {
-      persistDraft(false)
-    }
-  },
-  { deep: true }
-)
-
-function startWizard(stepOverride) {
-  stepError.value = ''
-  const target = typeof stepOverride === 'number' && stepOverride >= 1 && stepOverride <= steps.length
-    ? stepOverride
-    : (savedDraftStep.value || 1)
-  currentStep.value = target >= 4 && !selectedShirtMeasurements.value ? 3
-    : target === 5 && !form.acceptedTerms ? 4 : target
-  trackRegistrationEvent('inscricao_inicio', { retomada: hasSavedDraft.value ? 'sim' : 'nao', etapa: currentStep.value })
-  hasStartedWizard.value = true
-  persistDraft(true)
-  scrollToCard()
-}
-
-function backToWelcome() {
-  stepError.value = ''
-  hasStartedWizard.value = false
-  savedDraftStep.value = currentStep.value
-  hasSavedDraft.value = true
-  persistDraft(true)
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-function canNavigateTo(targetStep) {
-  return targetStep <= currentStep.value || targetStep <= savedDraftStep.value
-}
-
-function goToStep(targetStep) {
-  stepError.value = ''
-  if (targetStep >= 4 && !validateStep3()) {
-    currentStep.value = 3
-    scrollToCard()
-    return
-  }
-  if (targetStep === 5 && !validateStep4()) {
-    currentStep.value = 4
-    scrollToCard()
-    return
-  }
-  currentStep.value = targetStep
-  persistDraft(true)
-  scrollToCard()
-}
-
-function scrollToCard() {
-  const card = document.querySelector('.step-card')
-  if (card) {
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  } else {
-    window.scrollTo({ top: 100, behavior: 'smooth' })
-  }
-}
-
-function validateStep1() {
-  if (!form.name || !form.name.trim()) {
-    stepError.value = 'Por favor, informe seu nome completo para continuar.'
-    return false
-  }
-  const cleanCpf = (form.cpf || '').replace(/\D/g, '')
-  if (cleanCpf.length !== 11) {
-    stepError.value = 'Por favor, informe um CPF válido com 11 dígitos para continuar.'
-    return false
-  }
-  if (!form.birthDate) {
-    stepError.value = 'Por favor, informe sua data de nascimento para cálculo da categoria e idade.'
-    return false
-  }
-  if (!form.gender) {
-    stepError.value = 'Por favor, selecione seu sexo/gênero para a classificação da premiação geral.'
-    return false
-  }
-  if (!form.cityState || !form.cityState.trim()) {
-    stepError.value = 'Por favor, informe sua cidade e estado de residência.'
-    return false
-  }
-  return true
-}
-
-function validateStep2() {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-    stepError.value = 'Informe um e-mail válido para continuar.'
-    return false
-  }
-  if (!form.phone || (form.phone || '').replace(/\D/g, '').length < 10) {
-    stepError.value = 'Número de WhatsApp inválido ou não autenticado.'
-    return false
-  }
-  if (!form.emergencyContactName || !form.emergencyContactName.trim()) {
-    stepError.value = 'Por favor, informe o nome do contato de emergência (Artigo 7 do Regulamento).'
-    return false
-  }
-  const cleanEmergPhone = (form.emergencyContactPhone || '').replace(/\D/g, '')
-  if (cleanEmergPhone.length < 10) {
-    stepError.value = 'Por favor, informe o telefone/WhatsApp do contato de emergência com DDD.'
-    return false
-  }
-  return true
-}
-
-function validateStep3() {
-  if (!selectedShirtMeasurements.value) {
-    stepError.value = 'Por favor, selecione o modelo e o tamanho da sua camiseta.'
-    return false
-  }
-  if (!form.modality) {
-    stepError.value = 'Por favor, selecione a modalidade desejada (Corrida ou Caminhada).'
-    return false
-  }
-  if (!form.skewerChoice) {
-    stepError.value = 'Por favor, selecione sua preferência para os 2 espetinhos da chegada.'
-    return false
-  }
-  return true
-}
-
-function validateStep4() {
-  if (!form.acceptedTerms) {
-    stepError.value = 'Leia e aceite o regulamento para continuar.'
-    return false
-  }
-  return true
-}
-
-function goToNextStep() {
-  stepError.value = ''
-  if (currentStep.value === 1) {
-    if (!validateStep1()) return
-    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 1 })
-    currentStep.value = 2
-    if (currentStep.value > savedDraftStep.value) savedDraftStep.value = 2
-    persistDraft(true)
-    scrollToCard()
-  } else if (currentStep.value === 2) {
-    if (!validateStep2()) return
-    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 2 })
-    currentStep.value = 3
-    if (currentStep.value > savedDraftStep.value) savedDraftStep.value = 3
-    persistDraft(true)
-    scrollToCard()
-  } else if (currentStep.value === 3) {
-    if (!validateStep3()) return
-    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 3, modalidade: form.modality,
-      camiseta: form.shirtSize, espetinhos: form.skewerChoice, chopp: form.drinksBeer })
-    currentStep.value = 4
-    if (currentStep.value > savedDraftStep.value) savedDraftStep.value = 4
-    persistDraft(true)
-    scrollToCard()
-  } else if (currentStep.value === 4) {
-    if (!validateStep4()) return
-    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 4 })
-    currentStep.value = 5
-    savedDraftStep.value = 5
-    persistDraft(true)
-    scrollToCard()
-  }
-}
-
-function goToPrevStep() {
-  stepError.value = ''
-  if (currentStep.value > 1) {
-    currentStep.value--
-    persistDraft(true)
-    scrollToCard()
-  }
-}
-
-function applyVerifiedAthlete(athlete) {
-  verifiedAthlete.value = athlete
-  if (athlete.requiresDetails) {
-    for (const field of ['cpf', 'birthDate', 'cityState', 'email', 'emergencyContactName', 'emergencyContactPhone', 'medicalNotes']) form[field] = ''
-    form.acceptedTerms = false
-    athleteAge.value = null
-  }
-
-  // 1. Preenche dados herdados da pré-inscrição e do banco
-  form.name = athlete.name
-  form.nickname = athlete.nickname || ''
-  form.phone = athlete.phone
-  form.couponCode = ''
-  form.modality = athlete.modality || 'corrida'
-  form.drinksBeer = athlete.drinksBeer !== false
-
-  if (athlete.cpf) form.cpf = athlete.cpf
-  if (athlete.birthDate) {
-    form.birthDate = athlete.birthDate
-    handleBirthDateChange()
-  }
-  if (athlete.gender) form.gender = athlete.gender
-  if (athlete.cityState) form.cityState = athlete.cityState
-  if (athlete.email) form.email = athlete.email
-  if (athlete.emergencyContactName) form.emergencyContactName = athlete.emergencyContactName
-  if (athlete.emergencyContactPhone) form.emergencyContactPhone = athlete.emergencyContactPhone
-  const athleteSkewer = resolveValidSkewer(athlete.skewerChoice || athlete.shirtSize)
-  form.skewerChoice = athleteSkewer
-  form.shirtModel = SHIRT_MODELS.some(model => model.value === athlete.shirtModel) ? athlete.shirtModel : ''
-  form.shirtSize = shirtMeasurements(form.shirtModel, athlete.shirtSize) ? athlete.shirtSize : ''
-  syncSkewersFromChoice(athleteSkewer)
-  if (athlete.medicalNotes) form.medicalNotes = athlete.medicalNotes
-
-  // 2. Se já tiver inscrição oficial finalizada (com termos aceitos), exibe o ticket direto
-  // Confirmacao financeira vem somente da consulta autenticada ao backend.
-
-  // 3. É pré-inscrição / rascunho em andamento!
-  hasStartedWizard.value = false // TELA INICIAL É APENAS O PRIMEIRO CARD!
-
-  // 4. Carrega cache local de rascunho (localStorage)
-  const localDraft = loadAthleteDraft(athlete.phone)
-  if (localDraft && localDraft.form) {
-    const df = localDraft.form
-    if (athlete.requiresDetails && typeof df.name === 'string' && df.name.trim()) form.name = df.name
-    if (df.cpf) form.cpf = df.cpf
-    if (df.birthDate) {
-      form.birthDate = df.birthDate
-      handleBirthDateChange()
-    }
-    if (df.gender) form.gender = df.gender
-    if (df.cityState) form.cityState = df.cityState
-    if (df.email) form.email = df.email
-    if (athlete.couponEligible === true && typeof df.couponCode === 'string') form.couponCode = df.couponCode
-    if (df.emergencyContactName) form.emergencyContactName = df.emergencyContactName
-    if (df.emergencyContactPhone) form.emergencyContactPhone = df.emergencyContactPhone
-    const draftSkewer = resolveValidSkewer(df.skewerChoice || df.shirtSize)
-    form.skewerChoice = draftSkewer
-    form.shirtModel = SHIRT_MODELS.some(model => model.value === df.shirtModel) ? df.shirtModel : ''
-    form.shirtSize = shirtMeasurements(form.shirtModel, df.shirtSize) ? df.shirtSize : ''
-    syncSkewersFromChoice(draftSkewer)
-    if (df.medicalNotes !== undefined) form.medicalNotes = df.medicalNotes
-    if (df.modality) form.modality = df.modality
-    if (df.drinksBeer !== undefined) form.drinksBeer = df.drinksBeer
-    if (df.acceptedTerms) form.acceptedTerms = df.acceptedTerms
-
-    if (Number.isInteger(localDraft.currentStep) && localDraft.currentStep >= 1 && localDraft.currentStep <= steps.length) {
-      savedDraftStep.value = localDraft.currentStep
-      hasSavedDraft.value = true
-    }
-  } else {
-    // Se não tinha draft local mas já tinha dados parciais no banco de dados
-    if (athlete.skewerChoice || athlete.shirtSize) {
-      savedDraftStep.value = 4
-      hasSavedDraft.value = true
-    } else if (athlete.emergencyContactName) {
-      savedDraftStep.value = 3
-      hasSavedDraft.value = true
-    } else if (athlete.cpf) {
-      savedDraftStep.value = 2
-      hasSavedDraft.value = true
-    } else {
-      savedDraftStep.value = 1
-      hasSavedDraft.value = false
-    }
-  }
-}
-
-async function checkHashParams() {
-  try {
-    const rawHash = window.location.hash || ''
-    const queryIdx = rawHash.indexOf('?')
-    if (queryIdx !== -1) {
-      const queryString = rawHash.slice(queryIdx + 1)
-      const params = new URLSearchParams(queryString)
-      const telParam = params.get('tel') || params.get('phone')
-
-      if (telParam) {
-        isAutoVerifying.value = true
-        const found = await findAthleteByPhone(telParam, 'link')
-        isAutoVerifying.value = false
-
-        if (found?.orderId) {
-          paymentOrder.value = found.orderId
-          return
-        } else if (found?.publicStatus) {
-          publicLookup.value = found
-          return
-        } else if (found?.waitlist) {
-          waitlistLookup.value = found
-          return
-        } else if (found) {
-          applyVerifiedAthlete(found)
-          return
-        } else {
-          authError.value = `Não localizamos a pré-inscrição com o número informado no link. Por favor, digite seu WhatsApp abaixo para verificar.`
-        }
-      }
-    }
-  } catch (e) {
-    authError.value = e.message || 'Não foi possível verificar sua pré-inscrição. Tente novamente.'
-    isAutoVerifying.value = false
-  }
-}
-
-onMounted(() => {
-  trackPageView()
-  trackRegistrationEvent('inscricao_visualizada')
-  checkHashParams()
-  window.addEventListener('hashchange', checkHashParams)
-})
-
-onUnmounted(() => {
-  if (draftDebounceTimer) clearTimeout(draftDebounceTimer)
-  window.removeEventListener('hashchange', checkHashParams)
-})
-
-// Validação manual caso o atleta abra o link solto ou precise conferir o número
-async function handleManualAuth() {
-  if (isVerifying.value) return
-  authError.value = ''
-  const clean = manualPhoneInput.value.replace(/\D/g, '')
-  if (!/^[1-9]\d9\d{8}$/.test(clean)) {
-    authError.value = 'Por favor, informe um número de celular/WhatsApp válido com DDD.'
-    return
-  }
-
-  isVerifying.value = true
-  try {
-    const found = await findAthleteByPhone(manualPhoneInput.value)
-    if (found?.orderId) {
-      paymentOrder.value = found.orderId
-    } else if (found?.publicStatus) {
-      publicLookup.value = found
-    } else if (found?.waitlist) {
-      waitlistLookup.value = found
-    } else if (found) {
-      applyVerifiedAthlete(found)
-    } else {
-      isWaitlistOpen.value = true
-    }
-  } catch (err) {
-    authError.value = err.message || 'Erro ao consultar a base de dados. Verifique sua conexão e tente novamente.'
-  } finally {
-    isVerifying.value = false
-  }
-}
-
-function formatManualPhone(event) {
-  let value = event.target.value.replace(/\D/g, '')
-  if (value.length > 11) value = value.slice(0, 11)
-
-  if (value.length > 6) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
-  } else if (value.length > 2) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2)}`
-  } else if (value.length > 0) {
-    value = `(${value}`
-  }
-  manualPhoneInput.value = value
-}
-
-function formatCpf(event) {
-  let value = event.target.value.replace(/\D/g, '')
-  if (value.length > 11) value = value.slice(0, 11)
-
-  if (value.length > 9) {
-    value = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6, 9)}-${value.slice(9)}`
-  } else if (value.length > 6) {
-    value = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6)}`
-  } else if (value.length > 3) {
-    value = `${value.slice(0, 3)}.${value.slice(3)}`
-  }
-  form.cpf = value
-}
-
-function formatEmergencyPhone(event) {
-  let value = event.target.value.replace(/\D/g, '')
-  if (value.length > 11) value = value.slice(0, 11)
-
-  if (value.length > 6) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
-  } else if (value.length > 2) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2)}`
-  } else if (value.length > 0) {
-    value = `(${value}`
-  }
-  form.emergencyContactPhone = value
-}
-
-function handleBirthDateChange() {
-  if (!form.birthDate) {
-    athleteAge.value = null
-    return
-  }
-  const birth = new Date(form.birthDate)
-  const raceDate = new Date('2026-11-29')
-  let age = raceDate.getFullYear() - birth.getFullYear()
-  const m = raceDate.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && raceDate.getDate() < birth.getDate())) {
-    age--
-  }
-  athleteAge.value = age
-
-  if (age < 18) {
-    form.drinksBeer = false
-  }
-}
-
-async function handleSubmit() {
-  if (isSubmitting.value) return
-  submitErrorKind = 'validacao'
-  submitError.value = ''
-
-  if (currentStep.value !== 5) {
-    goToNextStep()
-    return
-  }
-  if (couponNeedsApply.value) {
-    submitError.value = 'Aplique o cupom ou apague o código antes de confirmar.'
-    return
-  }
-
-  if (!verifiedAthlete.value) {
-    submitError.value = 'Sessão expirada ou não autenticada. Valide seu WhatsApp novamente.'
-    return
-  }
-
-  const cleanCpf = form.cpf.replace(/\D/g, '')
-  if (cleanCpf.length !== 11) {
-    submitError.value = 'Por favor, informe um CPF válido com 11 dígitos.'
-    return
-  }
-
-  if (!form.emergencyContactName.trim()) {
-    submitError.value = 'Por favor, informe o nome do seu contato de emergência.'
-    return
-  }
-
-  const cleanEmergPhone = form.emergencyContactPhone.replace(/\D/g, '')
-  if (cleanEmergPhone.length < 10) {
-    submitError.value = 'Por favor, informe o telefone do contato de emergência com DDD.'
-    return
-  }
-
-  if (!form.skewerChoice) {
-    submitError.value = 'Por favor, selecione sua preferência para os 2 espetinhos da chegada.'
-    return
-  }
-
-  if (!selectedShirtMeasurements.value) {
-    currentStep.value = 3
-    stepError.value = 'Por favor, selecione o modelo e o tamanho da sua camiseta.'
-    scrollToCard()
-    return
-  }
-
-  if (!form.acceptedTerms) {
-    submitError.value = 'Você deve ler e marcar a caixa de concordância com o regulamento oficial para confirmar sua inscrição.'
-    return
-  }
-
-  if (!validateStep2()) { submitError.value = stepError.value; return }
-
-  isSubmitting.value = true
-
-  try {
-    trackRegistrationEvent('inscricao_etapa_concluida', { etapa: 5 })
-    trackRegistrationEvent('submit_inscricao_oficial', {
-      modalidade: form.modality,
-      espetinhos: form.skewerChoice,
-      chopp: form.drinksBeer,
-      camiseta: form.shirtSize,
-      com_cupom: couponQuote.value ? 'sim' : 'nao',
-    })
-
-    // Cadastros privados exigem preenchimento; a consulta por telefone nao autentica o titular.
-    const result = await submitRegistration({
-      name: verifiedAthlete.value.requiresDetails ? form.name : verifiedAthlete.value.name,
-      nickname: form.nickname,
-      cpf: form.cpf,
-      birthDate: form.birthDate,
-      gender: form.gender,
-      phone: verifiedAthlete.value.phone,
-      email: form.email,
-      cityState: form.cityState,
-      emergencyContactName: form.emergencyContactName,
-      emergencyContactPhone: form.emergencyContactPhone,
-      modality: form.modality === 'caminhada' ? 'WALK' : 'RUN',
-      beer: form.drinksBeer,
-      skewerChoice: form.skewerChoice,
-      shirtSize: form.shirtSize,
-      shirtModel: form.shirtModel,
-      medicalNotes: form.medicalNotes,
-      acceptedTerms: form.acceptedTerms,
-      ...(verifiedAthlete.value.couponEligible === true && form.couponCode ? { couponCode: form.couponCode } : {})
-    })
-
-    paymentOrder.value = result.orderId
-    hasStartedWizard.value = false
-    hasSavedDraft.value = false
-    clearAthleteDraft(verifiedAthlete.value.phone)
-    // Mostrar o resumo e o link privado antes de sair para o checkout.
-
-    trackRegistrationOrder(result.orderId, {
-      modalidade: form.modality, camiseta: form.shirtSize, chopp: form.drinksBeer,
-      espetinhos: form.skewerChoice, com_cupom: result.discountAmount > 0 ? 'sim' : 'nao',
-      value: result.amount / 100, desconto: (result.discountAmount || 0) / 100, currency: 'BRL',
-    })
-
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  } catch (err) {
-    submitErrorKind = analyticsErrorKind(err)
-    submitError.value = err.message || 'Ocorreu um erro ao salvar sua inscrição. Tente novamente.'
-  } finally {
-    isSubmitting.value = false
-  }
-}
+watch(() => form.skewerChoice, syncSkewersFromChoice, { immediate: true });
+const athleteAge = computed(() =>
+  form.birthDate
+    ? Number(today.slice(0, 4)) -
+      Number(form.birthDate.slice(0, 4)) -
+      (today.slice(5) < form.birthDate.slice(5) ? 1 : 0)
+    : null
+);
 </script>
 
 <style scoped>
@@ -1742,36 +1971,130 @@ async function handleSubmit() {
   padding: 16px;
   margin-bottom: 18px;
 }
-.review-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.review-section-heading h3 { font-size: 0.95rem; margin: 0; }
-.review-edit-button { background: none; border: none; color: #91500c; text-decoration: underline; font: inherit; cursor: pointer; padding: 4px 0; }
-.review-kit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
-.review-kit-grid dt { color: #756c60; font-size: 0.82rem; margin-bottom: 3px; }
-.review-kit-grid dd { margin: 0; color: #29241d; font-weight: 700; font-size: 0.95rem; overflow-wrap: anywhere; }
-.registration-total-card { background: #27231d; color: #fff9ee; border-radius: 8px; padding: 20px; }
-.review-amounts { margin: 0; }
-.review-amounts > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
-.review-amounts dd { margin: 0; white-space: nowrap; }
-.review-discount { margin-top: 10px; color: #b5e4aa; }
-.review-amounts .review-total { margin-top: 16px; padding-top: 16px; border-top: 1px dashed #75654e; }
-.review-total dt { font-weight: 700; }
-.review-total dd { color: #ffbe59; font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 800; }
-.registration-total-card > p { font-size: 0.8rem; color: #ded1bd; margin: 12px 0 0; }
-.review-payment-note { display: flex; align-items: flex-start; gap: 10px; color: #655d52; margin-top: 16px; font-size: 0.9rem; line-height: 1.45; }
-.review-payment-note i { margin-top: 4px; }
-.review-payment-note p { margin: 0; }
-.review-coupon-hint { color: #87500e; margin-top: 12px; font-size: 0.88rem; }
-.btn-step-next:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.review-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.review-section-heading h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+.review-edit-button {
+  background: none;
+  border: none;
+  color: #91500c;
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.review-kit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.review-kit-grid dt {
+  color: #756c60;
+  font-size: 0.82rem;
+  margin-bottom: 3px;
+}
+.review-kit-grid dd {
+  margin: 0;
+  color: #29241d;
+  font-weight: 700;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+.registration-total-card {
+  background: #27231d;
+  color: #fff9ee;
+  border-radius: 8px;
+  padding: 20px;
+}
+.review-amounts {
+  margin: 0;
+}
+.review-amounts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+.review-amounts dd {
+  margin: 0;
+  white-space: nowrap;
+}
+.review-discount {
+  margin-top: 10px;
+  color: #b5e4aa;
+}
+.review-amounts .review-total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #75654e;
+}
+.review-total dt {
+  font-weight: 700;
+}
+.review-total dd {
+  color: #ffbe59;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 800;
+}
+.registration-total-card > p {
+  font-size: 0.8rem;
+  color: #ded1bd;
+  margin: 12px 0 0;
+}
+.review-payment-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #655d52;
+  margin-top: 16px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.review-payment-note i {
+  margin-top: 4px;
+}
+.review-payment-note p {
+  margin: 0;
+}
+.review-coupon-hint {
+  color: #87500e;
+  margin-top: 12px;
+  font-size: 0.88rem;
+}
+.btn-step-next:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
 @media (max-width: 480px) {
-  .registration-kit-summary, .registration-total-card { padding: 14px; }
-  .review-kit-grid { gap: 12px; }
-  .payment-review-card .final-actions { flex-wrap: wrap; }
-  .payment-review-card .btn-submit-registration { min-width: 180px; }
+  .registration-kit-summary,
+  .registration-total-card {
+    padding: 14px;
+  }
+  .review-kit-grid {
+    gap: 12px;
+  }
+  .payment-review-card .final-actions {
+    flex-wrap: wrap;
+  }
+  .payment-review-card .btn-submit-registration {
+    min-width: 180px;
+  }
 }
 .official-reg-page {
   min-height: 100vh;
   background-color: var(--bg-parchment);
-  background-image: linear-gradient(rgb(247 241 228 / 60%), rgb(247 241 228)), url(/bg02.jpg);
+  background-image: linear-gradient(rgb(247 241 228 / 60%), rgb(247 241 228)),
+    url(/bg02.jpg);
   background-size: cover;
   background-position: top center;
   background-repeat: repeat-y;
@@ -1978,9 +2301,19 @@ async function handleSubmit() {
   border-radius: 6px;
 }
 
-.auth-form .form-group { margin-bottom: 0; }
-.auth-phone-help { margin: 14px 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
-.auth-input:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
+.auth-form .form-group {
+  margin-bottom: 0;
+}
+.auth-phone-help {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.auth-input:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+}
 
 .auth-footer-help {
   margin-top: 22px;
@@ -2255,7 +2588,11 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-amber) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-gold) 0%,
+    var(--accent-amber) 100%
+  );
   color: #191714;
   border: 1px solid #191714;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
@@ -2448,7 +2785,7 @@ async function handleSubmit() {
 }
 
 .wizard-stepper::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 10px;
@@ -2547,7 +2884,7 @@ async function handleSubmit() {
    FORMULÁRIO E CARD DAS ETAPAS (MINIMALISTA)
    ========================================================================== */
 .form-section-card {
-  max-width: 520px;
+  width: 100%;
   margin: 0 auto 16px auto;
   padding: 20px 22px;
   background-color: #fffdfa;
@@ -2732,11 +3069,12 @@ async function handleSubmit() {
 /* Escolha de Modalidade e Chopp - 2 Colunas Limpas */
 .choice-cards-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
 
 .choice-card {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2978,7 +3316,11 @@ async function handleSubmit() {
   padding: 8px 18px;
   margin-left: auto;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-amber) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-gold) 0%,
+    var(--accent-amber) 100%
+  );
   color: #191714;
   border: 1px solid #191714;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -3204,7 +3546,11 @@ async function handleSubmit() {
   width: 100%;
   max-width: 420px;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-amber) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-gold) 0%,
+    var(--accent-amber) 100%
+  );
   color: #191714;
   border: 1px solid #191714;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
@@ -3313,8 +3659,15 @@ async function handleSubmit() {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
 }
 
 .checkout-ticket-num {
@@ -4113,6 +4466,321 @@ async function handleSubmit() {
 
   .sec-divider {
     display: none;
+  }
+}
+
+/* Inscricao aberta: usa os mesmos cards, cores, fontes e controles da marca. */
+.reg-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.registration-form {
+  width: 100%;
+  min-width: 0;
+}
+.reg-container > .lookup-panel {
+  text-align: center;
+}
+.reg-container > .lookup-panel[open] {
+  text-align: left;
+}
+.reg-container .wizard-stepper {
+  max-width: 620px;
+  margin: 24px auto 62px;
+  width: calc(100% - 72px);
+}
+.step-name {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.step-tab.active .step-name {
+  color: var(--accent-dark);
+}
+.registration-form .vintage-input {
+  min-height: 44px;
+  font-size: 1rem;
+}
+.registration-form .form-grid {
+  gap: 16px;
+}
+.registration-form .form-section-card {
+  margin-bottom: 16px;
+}
+.kit-grid > .form-group:nth-child(1),
+.kit-grid > .form-group:nth-child(2),
+.kit-grid > .form-group:nth-child(4),
+.kit-grid > .form-group:nth-child(5) {
+  grid-column: auto;
+}
+.kit-grid > .form-group:nth-child(-n + 2) {
+  justify-content: space-between;
+}
+.registration-bottom-bar .btn-step-back {
+  flex: 0 0 auto;
+}
+@media (min-width: 769px) {
+  .registration-form .form-section-card {
+    padding: 24px 28px;
+  }
+  .registration-form .form-label {
+    font-size: 0.9rem;
+  }
+  .registration-form .step-subtitle {
+    font-size: 0.9rem;
+  }
+  .registration-form .choice-card {
+    min-height: 60px;
+  }
+  .registration-form .section-title {
+    font-size: 1.15rem;
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.choice-card:focus-within {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+}
+.choice-card:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.choice-text span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.registration-fields {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.lookup-panel {
+  margin: 0 0 18px;
+}
+.lookup-panel > summary {
+  cursor: pointer;
+  margin: 0;
+}
+.lookup-panel[open] > summary {
+  margin-bottom: 16px;
+}
+.lookup-panel .lookup-form {
+  margin-top: 14px;
+}
+.consultation-page .lookup-panel {
+  padding: 0;
+  margin: 0;
+}
+.registration-offer {
+  margin: 0 0 24px;
+  padding: 4px 0 20px;
+  border-bottom: 1px dashed #dfd5c4;
+}
+.offer-benefits {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+}
+.offer-benefits strong {
+  color: var(--text-dark);
+}
+.offer-extras {
+  margin: -6px 0 20px;
+  padding-left: 20px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.offer-extras li + li {
+  margin-top: 4px;
+}
+.offer-extras li::marker {
+  color: #87500e;
+}
+.review-extras-title {
+  margin: 18px 0 8px;
+  font-weight: 700;
+}
+.review-extras {
+  margin: 0;
+}
+.offer-prices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+.offer-prices > div {
+  padding: 0 16px;
+  text-align: center;
+}
+.offer-prices > div + div {
+  border-left: 1px solid #dfd5c4;
+}
+.offer-prices dt {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.offer-prices dd {
+  margin: 0;
+  font-size: clamp(1.25rem, 5vw, 1.65rem);
+  line-height: 1.3;
+  font-weight: 800;
+  white-space: nowrap;
+  color: #87500e;
+}
+.regulation-details {
+  margin-top: 20px;
+}
+.regulation-details > summary {
+  cursor: pointer;
+  padding: 12px 0;
+}
+.regulation-details .rules-summary-grid {
+  margin-top: 12px;
+}
+.registration-fields .step-card {
+  margin-bottom: 20px;
+}
+.registration-fields input,
+.registration-fields select {
+  scroll-margin-block: 90px 150px;
+}
+.registration-fields h2 {
+  scroll-margin-top: 85px;
+}
+.registration-fields [aria-invalid="true"] {
+  outline: 2px solid #b64b37;
+  outline-offset: 2px;
+}
+.registration-bottom-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  width: calc(100% - 32px);
+  max-width: 800px;
+  margin: 0 auto;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  background: #f4e8d0;
+  border: 2px solid var(--accent-border);
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 var(--accent-border);
+  gap: 12px;
+}
+.running-total {
+  display: flex;
+  flex-direction: column;
+  margin-right: auto;
+}
+.running-total > span {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.running-total strong {
+  font-size: 1.45rem;
+  line-height: 1.25;
+  color: #87500e;
+}
+.running-total small {
+  font-size: 0.8rem;
+}
+.registration-bottom-bar .next-button {
+  min-height: 48px;
+}
+.official-reg-page {
+  padding-bottom: calc(155px + env(safe-area-inset-bottom));
+}
+@media (min-width: 601px) and (max-width: 768px) {
+  .registration-bottom-bar {
+    width: calc(100% - 20px);
+  }
+}
+@media (max-width: 600px) {
+  .reg-container .wizard-stepper {
+    width: calc(100% - 44px);
+    margin-bottom: 62px;
+  }
+  .step-name {
+    width: 60px;
+    font-size: 0.67rem;
+  }
+  .vintage-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .toggle-pill,
+  .btn-stepper {
+    min-height: 44px;
+  }
+  .official-reg-page {
+    padding-bottom: calc(155px + env(safe-area-inset-bottom));
+  }
+  .registration-bottom-bar {
+    bottom: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    margin: 0;
+    border-radius: 0;
+    border-width: 2px 0 0;
+    padding: 10px 14px max(12px, env(safe-area-inset-bottom));
+    gap: 8px 12px;
+  }
+  .registration-bottom-bar .btn-step-back {
+    display: inline-flex;
+    min-height: 48px;
+    grid-column: 1;
+  }
+  .registration-bottom-bar .next-button {
+    min-width: 0;
+    width: 100%;
+    padding: 12px;
+    font-size: 0.82rem;
+    grid-column: 2;
+  }
+  .registration-bottom-bar.is-first-step .next-button {
+    grid-column: 1 / -1;
+  }
+  .running-total {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0;
+    flex-wrap: wrap;
+  }
+  .running-total strong {
+    margin-left: auto;
+  }
+  .running-total strong {
+    font-size: 1.3rem;
+  }
+  .lookup-panel {
+    padding: 12px;
   }
 }
 </style>

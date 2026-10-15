@@ -16,9 +16,6 @@
             <i class="fa-solid fa-beer-mug-empty"></i>
             INSCREVA-SE AGORA
           </button>
-          <span class="footer-subtag font-condensed">
-            {{ isSoldOut ? '🔥 ÚLTIMAS VAGAS EM REMANEJAMENTO!' : 'VAGAS LIMITADAS!' }}
-          </span>
         </div>
       </div>
     </div>
@@ -100,11 +97,7 @@
 </template>
 
 <script setup>
-import { useAthletes } from '../composables/useAthletes.js'
-
 defineEmits(['open-registration', 'open-sponsorship', 'open-staff', 'open-official-registration'])
-
-const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
 </script>
 
 <style scoped>
@@ -164,13 +157,6 @@ const { isSoldOut, totalAthletes, maxAthletes } = useAthletes()
 .btn-soldout:hover,
 .btn-waitlist:hover {
   background-color: var(--accent-amber) !important;
-}
-
-.footer-subtag {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--text-light);
-  letter-spacing: 1px;
 }
 
 .subtag-soldout,

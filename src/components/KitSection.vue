@@ -10,7 +10,7 @@
             <div class="kit-image-box">
               <span class="kit-badge font-condensed">EXCLUSIVA FINISHER</span>
               <img
-                src="/images/kit/medalha.png"
+                src="/images/kit/medalha.png?v=2026-10-15"
                 alt="Medalha de Conclusão Beer Run dos Gordos"
                 class="kit-img"
                 loading="lazy"
@@ -55,6 +55,18 @@
             <p class="kit-item-desc font-condensed">
               Camiseta da Beer Run dos Gordos para vestir a resenha. Escolha seu
               modelo e tamanho na inscrição.
+            </p>
+          </div>
+        </div>
+
+        <div class="kit-skewers font-condensed">
+          <i class="fa-solid fa-fire kit-skewers-icon" aria-hidden="true"></i>
+          <div>
+            <h3 class="kit-skewers-title font-slab">
+              ESPETINHOS PÓS-PROVA INCLUÍDOS
+            </h3>
+            <p>
+              Escolha seus espetinhos na inscrição. Inclusos nas opções com e sem chopp.
             </p>
           </div>
         </div>
@@ -174,6 +186,37 @@
   line-height: 1.35;
 }
 
+.kit-skewers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  background: #f5e4bf;
+  color: var(--text-dark);
+}
+
+.kit-skewers-icon {
+  flex-shrink: 0;
+  font-size: 2rem;
+  color: #9b480e;
+}
+
+.kit-skewers-title {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.kit-skewers p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 .kit-footer-tag {
   text-align: center;
   font-size: 1rem;
@@ -225,6 +268,18 @@
     font-size: 0.82rem;
     padding: 10px 12px;
     line-height: 1.4;
+  }
+
+  .kit-skewers {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 18px 14px;
+    text-align: center;
+  }
+
+  .kit-skewers-title {
+    font-size: 1rem;
   }
 }
 </style>

@@ -12,7 +12,7 @@
         <a href="#kit" class="nav-link">KIT ATLETA</a>
         <a href="#atletas" class="nav-link">ATLETAS</a>
         <a href="#patrocinadores" class="nav-link">PATROCINADORES</a>
-        <a href="#inscricoes" class="nav-link" @click="trackRegistrationClick('menu_superior_desktop', isSoldOut)">PRÉ-INSCRIÇÃO</a>
+        <a href="#inscricao" class="nav-link" @click.prevent="trackRegistrationClick('menu_superior_desktop', false); $emit('open-official-registration')">INSCREVA-SE</a>
         <!-- <a href="#inscricao" class="nav-link highlight-nav" @click.prevent="$emit('open-official-registration')">REGULAMENTO</a> -->
         <a href="#contato" class="nav-link">CONTATO</a>
       </nav>
@@ -31,7 +31,7 @@
         <a href="#kit" class="mobile-link" @click="mobileMenuOpen = false">KIT ATLETA</a>
         <a href="#atletas" class="mobile-link" @click="mobileMenuOpen = false">ATLETAS</a>
         <a href="#patrocinadores" class="mobile-link" @click="mobileMenuOpen = false">PATROCINADORES</a>
-        <a href="#inscricoes" class="mobile-link" @click="mobileMenuOpen = false; trackRegistrationClick('menu_superior_mobile', isSoldOut)">PRÉ-INSCRIÇÃO</a>
+        <a href="#inscricao" class="mobile-link" @click.prevent="mobileMenuOpen = false; trackRegistrationClick('menu_superior_mobile', false); $emit('open-official-registration')">INSCREVA-SE</a>
         <!-- <a href="#inscricao" class="mobile-link" @click="mobileMenuOpen = false; $emit('open-official-registration')">REGULAMENTO & INSCRIÇÃO</a> -->
         <a href="#contato" class="mobile-link" @click="mobileMenuOpen = false">CONTATO</a>
       </nav>
@@ -41,12 +41,10 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useAthletes } from '../composables/useAthletes.js'
 import { trackRegistrationClick } from '../services/analytics.js'
 
 defineEmits(['open-official-registration'])
 
-const { isSoldOut } = useAthletes()
 const mobileMenuOpen = ref(false)
 </script>
 
@@ -167,7 +165,7 @@ const mobileMenuOpen = ref(false)
   opacity: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1100px) {
   .nav-menu-desktop {
     display: none;
   }

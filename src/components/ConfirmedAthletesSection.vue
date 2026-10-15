@@ -19,9 +19,6 @@
               <span class="pill pill-pre-registered" title="Atletas sem pagamento confirmado">
                 <i class="fa-solid fa-user-clock" aria-hidden="true"></i> {{ summary.preRegisteredCount }} PRÉ INSCRITOS
               </span>
-              <span v-if="summary.waitlistCount > 0" class="pill pill-waitlist" title="Atletas na lista de espera">
-                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> {{ summary.waitlistCount }} NA FILA DE ESPERA
-              </span>
             </div>
           </div>
           <div class="athletes-actions">
@@ -32,7 +29,7 @@
               <button v-if="searchQuery" type="button" @click="searchQuery = ''" class="clear-search-btn" aria-label="Limpar busca">&times;</button>
             </div>
             <button type="button" @click="$emit('open-registration', 'atletas_topo_rapido')" class="btn-vintage btn-register-quick font-slab">
-              <i class="fa-solid fa-plus" aria-hidden="true"></i> QUERO MEU NOME NA LISTA
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> QUERO PARTICIPAR
             </button>
           </div>
         </div>

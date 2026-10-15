@@ -69,9 +69,9 @@
           <button class="btn-vintage hero-btn font-slab" @click="$emit('open-registration', 'hero_inscricao')">
             <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
           </button>
-          <span class="cta-subtag font-condensed">
-            {{ isSoldOut ? '🔥 ÚLTIMAS VAGAS EM REMANEJAMENTO!' : 'VAGAS LIMITADAS!' }}
-          </span>
+          <a href="#inscricao?consulta=1" class="cta-subtag consultation-link font-condensed">
+            JÁ ME INSCREVI — CONSULTAR INSCRIÇÃO
+          </a>
         </div>
       </div>
     </div>
@@ -79,11 +79,7 @@
 </template>
 
 <script setup>
-import { useAthletes } from '../composables/useAthletes.js'
-
 defineEmits(['open-registration'])
-
-const { isSoldOut } = useAthletes()
 </script>
 
 <style scoped>
@@ -366,6 +362,25 @@ const { isSoldOut } = useAthletes()
   align-self: center;
 }
 
+.consultation-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.consultation-link:hover {
+  color: var(--accent-green);
+}
+
+.consultation-link:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 3px;
+}
+
 @media (max-width: 900px) {
   .hero-grid {
     grid-template-columns: 1fr;
@@ -389,5 +404,23 @@ const { isSoldOut } = useAthletes()
     align-self: stretch;
     align-items: center;
   }
+}
+@media (max-width: 600px) {
+  .hero-section { padding: 16px 0 30px; }
+  .hero-grid { gap: 16px; }
+  .hero-logo-badge { max-height: 170px; }
+  .hero-star-header { font-size: 1.2rem; }
+  .hero-main-title { font-size: 2rem; }
+  .hero-subtitle { font-size: 1rem; margin-bottom: 16px; }
+  .hero-info-cards { flex-wrap: nowrap; gap: 8px; margin-bottom: 20px; }
+  .vintage-info-card { min-width: 0; padding: 12px 5px 8px; }
+  .card-icon-img { height: 34px; }
+  .card-main-text { font-size: 1.65rem; }
+  .card-text-sm { font-size: 0.85rem; }
+  .card-text-md { font-size: 1.15rem; }
+  .card-sub-text { font-size: 0.68rem; }
+  .card-pill-tag { font-size: 0.65rem; padding: 3px 6px; }
+  .hero-btn { width: 100%; padding: 14px 12px; font-size: 1.1rem; }
+  .cta-subtag { font-size: 0.88rem; letter-spacing: 0; }
 }
 </style>
