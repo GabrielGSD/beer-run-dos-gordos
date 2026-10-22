@@ -1,0 +1,105 @@
+/* Shared registration presentation, matching the existing adult form. */
+.registration-flow {
+  min-height: 100vh;
+  color: var(--text-dark);
+  background: linear-gradient(rgb(247 241 228 / 60%), rgb(247 241 228)), url(/bg02.jpg) top center / cover repeat-y;
+  padding-bottom: calc(155px + env(safe-area-inset-bottom));
+}
+.registration-flow .flow-top-bar {
+  position: sticky; top: 0; z-index: 100; padding: 10px 0;
+  background: rgb(25 23 20 / 94%); backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgb(218 165 32 / 35%); box-shadow: 0 2px 10px #0004;
+}
+.registration-flow .flow-top-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.registration-flow .flow-back-home {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  color: var(--accent-gold); background: none; border: 1px solid rgb(218 165 32 / 60%);
+  border-radius: 4px; font-size: .85rem; font-weight: 700; cursor: pointer;
+}
+.registration-flow .flow-back-home:hover { background: var(--accent-gold); color: var(--accent-dark); }
+.registration-flow .flow-brand { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 700; letter-spacing: .5px; color: var(--text-light); }
+.registration-flow .flow-brand i { color: var(--accent-gold); }
+.registration-flow .flow-content { width: calc(100% - 32px); max-width: 800px; margin: 24px auto 0; }
+.registration-flow .flow-card { width: 100%; padding: 24px 28px; margin-bottom: 20px; background: #fffdfa; border: 1px solid #dfd5c4; border-radius: 10px; box-shadow: 0 4px 16px #1917140a; }
+.registration-flow .flow-step-header { margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #eee5d8; }
+.registration-flow .flow-step-header .section-title { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.15rem; font-weight: 800; letter-spacing: .3px; margin: 0 0 6px; }
+.registration-flow .flow-step-number { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-gold); border: 1px solid #191714; font-size: .78rem; font-weight: 800; }
+.registration-flow .flow-subtitle { font-size: .9rem; color: #7a7266; line-height: 1.4; }
+.registration-flow .flow-category-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; font-size: .85rem; color: #443e35; }
+.registration-flow .flow-category-bar i { color: #87500e; margin-right: 6px; }
+.registration-flow .flow-text-button, .registration-flow .category-consultation a, .registration-flow .flow-saved a { font: inherit; font-weight: 600; color: #87500e; text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 6px 0; }
+.registration-flow .flow-text-button:disabled { opacity: .5; cursor: wait; }
+.registration-flow .category-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.registration-flow .category-option { display: flex; flex-direction: column; min-width: 0; padding: 22px; text-align: left; font: inherit; border: 1px solid #dfd6c6; border-radius: 6px; background: #fff; color: var(--text-dark); cursor: pointer; transition: border-color .18s, background .18s; }
+.registration-flow .category-option:hover { border-color: var(--accent-gold); background: #fffdf5; box-shadow: 0 0 0 1px var(--accent-gold); }
+.registration-flow .category-option:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 3px; }
+.registration-flow .category-heading { display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 800; }
+.registration-flow .category-heading i { color: #87500e; }
+.registration-flow .category-heading i:last-child { margin-left: auto; font-size: .85rem; }
+.registration-flow .category-description { margin-top: 8px; font-size: .9rem; color: #756c60; }
+.registration-flow .category-consultation { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; margin-top: 24px; padding-top: 18px; border-top: 1px dashed #dfd5c4; font-size: .85rem; }
+.registration-flow .category-consultation strong { width: 100%; text-align: center; }
+.registration-flow .flow-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.registration-flow .flow-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.registration-flow .flow-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin-top: 16px; font-weight: 700; font-size: .9rem; }
+.registration-flow .flow-field > span { text-transform: uppercase; letter-spacing: .4px; color: #443e35; }
+.registration-flow .flow-field .vintage-input { width: 100%; padding: 10px 11px; min-height: 44px; background: #fff; border: 1px solid #d4cbbd; border-radius: 6px; font: inherit; font-size: 1rem; font-weight: 400; color: #191714; }
+.registration-flow .flow-field .vintage-input:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2.5px rgb(217 130 43 / 15%); }
+.registration-flow .flow-offer { margin-bottom: 20px; padding-bottom: 18px; border-bottom: 1px dashed #dfd5c4; color: var(--text-muted); line-height: 1.5; }
+.registration-flow .flow-offer strong { color: var(--text-dark); }
+.registration-flow .flow-offer ul { margin: 10px 0 14px; padding-left: 20px; }
+.registration-flow .flow-offer li::marker { color: #87500e; }
+.registration-flow .flow-prices { display: grid; grid-template-columns: 1fr 1fr; margin-top: 18px; text-align: center; }
+.registration-flow .flow-prices > div + div { border-left: 1px solid #dfd5c4; }
+.registration-flow .flow-prices dt { font-size: .8rem; font-weight: 800; color: var(--text-dark); }
+.registration-flow .flow-prices dd { font-size: 1.65rem; font-weight: 800; color: #87500e; }
+.registration-flow .flow-choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.registration-flow .flow-choice { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1px solid #dfd6c6; border-radius: 6px; background: #fff; cursor: pointer; }
+.registration-flow .flow-choice.selected { border-color: var(--accent-gold); box-shadow: 0 0 0 1px var(--accent-gold); background: #fffdf5; }
+.registration-flow .flow-choice > span { display: flex; flex-direction: column; gap: 4px; }
+.registration-flow .flow-choice input, .registration-flow .flow-check input { accent-color: var(--accent-gold); width: 18px; height: 18px; flex: none; margin-top: 3px; }
+.registration-flow .flow-choice small { color: #7a7266; }
+.registration-flow .flow-check { display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; margin-top: 16px; }
+.registration-flow .flow-note { color: #7a7266; line-height: 1.5; font-size: .9rem; margin-top: 12px; }
+.registration-flow .flow-form h3 { font-family: var(--font-slab); font-size: .95rem; margin: 24px 0 8px; }
+.registration-flow .flow-error { padding: 14px; background: #fff0e9; border: 1px solid #d89378; color: #8b321b; border-radius: 6px; margin-bottom: 16px; }
+.registration-flow .flow-notice { padding: 12px; background: #faf6ee; border: 1px solid #dfd5c4; border-radius: 6px; margin: 12px 0; }
+.registration-flow .flow-summary { margin: 18px 0; padding: 16px; background: #faf7f0; border: 1px solid #e2d9cc; border-radius: 8px; }
+.registration-flow .flow-summary > div { display: grid; grid-template-columns: 115px 1fr; gap: 12px; padding: 8px 0; }
+.registration-flow .flow-summary dt { color: #756c60; font-size: .85rem; }
+.registration-flow .flow-summary dd { font-weight: 700; overflow-wrap: anywhere; }
+.registration-flow .flow-bottom-bar { position: fixed; bottom: 12px; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); max-width: 800px; margin: 0 auto; padding: 14px 18px; background: #f4e8d0; border: 2px solid var(--accent-border); border-radius: 8px; box-shadow: 3px 3px 0 var(--accent-border); }
+.registration-flow .flow-running-total { display: flex; flex-direction: column; margin-right: auto; }
+.registration-flow .flow-running-total > span { font-size: .72rem; font-weight: 800; }
+.registration-flow .flow-running-total strong { font-size: 1.45rem; line-height: 1.25; color: #87500e; }
+.registration-flow .flow-bottom-bar .btn-vintage { min-height: 48px; padding: 12px 18px; font-size: .85rem; }
+.registration-flow .flow-bottom-bar .next-button { background: linear-gradient(135deg, var(--accent-gold), var(--accent-amber)); color: #191714; border: 1px solid #191714; border-radius: 6px; box-shadow: 0 2px 5px #0000001a; font-weight: 800; }
+.registration-flow .flow-bottom-bar .next-button:hover { box-shadow: 0 4px 8px #00000026; transform: translateY(-1px); }
+.registration-flow .flow-bottom-bar .flow-previous { background: #fffdfa; color: #444; border: 1px solid #d4cbbd; border-radius: 6px; box-shadow: none; }
+.registration-flow .flow-saved { margin-top: 20px; font-size: .9rem; }
+.registration-flow .flow-saved summary { font-weight: 700; color: #87500e; cursor: pointer; }
+.registration-flow .flow-saved p { margin: 12px 0; }
+.registration-flow .flow-saved ul { list-style: none; }
+.registration-flow .flow-return { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; }
+.registration-flow .flow-form input, .registration-flow .flow-form select, .registration-flow .flow-form textarea { scroll-margin-block: 100px 160px; }
+.registration-flow .flow-step-header h2 { scroll-margin-top: 110px; }
+.registration-flow .flow-form button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 600px) {
+  .registration-flow .flow-content { width: calc(100% - 24px); margin-top: 18px; }
+  .registration-flow .flow-top-content { padding: 0 12px; }
+  .registration-flow .flow-back-home { padding: 6px 8px; font-size: .72rem; white-space: nowrap; }
+  .registration-flow .flow-brand { font-size: .65rem; gap: 5px; max-width: 180px; }
+  .registration-flow .flow-card { padding: 20px 16px; }
+  .registration-flow .flow-step-header .section-title { font-size: 1rem; gap: 6px; }
+  .registration-flow .category-options { grid-template-columns: 1fr; gap: 12px; }
+  .registration-flow .category-option { padding: 16px; }
+  .registration-flow .flow-fields { grid-template-columns: 1fr; gap: 0; }
+  .registration-flow .flow-choice { padding: 12px 10px; gap: 6px; font-size: .9rem; }
+  .registration-flow .flow-summary > div { grid-template-columns: 90px 1fr; }
+  .registration-flow .flow-prices dd { font-size: 1.4rem; }
+  .registration-flow .flow-bottom-bar { bottom: 0; width: 100%; display: grid; grid-template-columns: auto 1fr; margin: 0; border-radius: 0; border-width: 2px 0 0; padding: 10px 14px max(12px, env(safe-area-inset-bottom)); gap: 8px 12px; }
+  .registration-flow .flow-running-total { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 10px; margin: 0; }
+  .registration-flow .flow-running-total strong { margin-left: auto; font-size: 1.3rem; }
+  .registration-flow .flow-bottom-bar .next-button { grid-column: 2; width: 100%; min-width: 0; padding: 12px; font-size: .82rem; }
+  .registration-flow .flow-bottom-bar.is-first-step .next-button { grid-column: 1 / -1; }
+}

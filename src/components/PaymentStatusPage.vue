@@ -32,9 +32,10 @@
           <div class="card-heading"><span class="section-number">02</span><h2>Sua participação</h2></div>
           <dl class="data-grid">
             <div><dt>Modalidade</dt><dd>{{ modality }}</dd></div>
-            <div><dt>Chopp</dt><dd>{{ registration.beer === true ? 'Com chopp' : registration.beer === false ? 'Sem chopp' : 'Não informado' }}</dd></div>
+            <div v-if="registration.modality === 'kids'"><dt>Kit Kids</dt><dd>Bebida sem álcool, copo infantil, medalha e participação nos sorteios</dd></div>
+            <div v-else><dt>Chopp</dt><dd>{{ registration.beer === true ? 'Com chopp' : registration.beer === false ? 'Sem chopp' : 'Não informado' }}</dd></div>
             <div><dt>Espetinhos</dt><dd>{{ display(registration.skewerChoice) }}</dd></div>
-            <div><dt>Camiseta</dt><dd>{{ formatShirtSelection(registration.shirtModel, registration.shirtSize) }}</dd></div>
+            <div><dt>Camiseta</dt><dd>{{ formatShirtSelection(registration.shirtModel, registration.shirtSize, registration.modality) }}</dd></div>
             <div><dt>Regulamento aceito em</dt><dd>{{ dateTime(registration.acceptedTermsAt) }}</dd></div>
           </dl>
         </section>
@@ -88,6 +89,7 @@
     </div>
     <a v-if="!context" class="contact-button restore-contact" :href="organizerUrl" target="_blank" rel="noopener noreferrer">Entrar em contato com o organizador ↗</a>
     <footer class="summary-footer">
+      <a v-if="registration?.modality === 'kids'" href="/#inscricao?categoria=kids" class="text-button">Inscrever outra criança</a>
       <button class="text-button" @click="$emit('go-home')">← Voltar ao site</button>
       <button v-if="context" class="text-button" @click="changeOrder" :disabled="busy">Consultar outro pedido</button>
     </footer>
@@ -128,6 +130,14 @@ const dateTime = value => value && !Number.isNaN(Date.parse(value))
   ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(value)) : 'Não informado'
 const personalFields = computed(() => {
   const r = registration.value || {}
+  if (r.modality === 'kids') return [
+    { label: 'Data de nascimento', value: r.birthDate?.split('-').reverse().join('/') || 'Não informado' },
+    { label: 'Responsável', value: display(r.guardianName) },
+    { label: 'Vínculo', value: display(r.guardianRelationship) },
+    { label: 'CPF do responsável', value: display(r.guardianCpf) },
+    { label: 'WhatsApp do responsável', value: phone(r.phone) },
+    { label: 'E-mail do responsável', value: display(r.email) },
+  ]
   const cpf = (r.cpf || '').replace(/\D/g, '')
   return [
     { label: 'Apelido', value: display(r.nickname) },
@@ -139,7 +149,7 @@ const personalFields = computed(() => {
     { label: 'Cidade / UF', value: display(r.cityState) },
   ]
 })
-const modality = computed(() => ({ corrida: 'Corrida', caminhada: 'Caminhada', RUN: 'Corrida', WALK: 'Caminhada' })[registration.value?.modality] || display(registration.value?.modality))
+const modality = computed(() => ({ kids: 'Corrida Kids', corrida: 'Corrida', caminhada: 'Caminhada', RUN: 'Corrida', WALK: 'Caminhada' })[registration.value?.modality] || display(registration.value?.modality))
 const needsReview = computed(() => status.value?.paymentReviewRequired || status.value?.checkoutState === 'UNKNOWN')
 const statusLabel = computed(() => {
   const s = status.value

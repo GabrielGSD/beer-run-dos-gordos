@@ -376,6 +376,7 @@
                 >
                   🚶 Caminhada
                 </button>
+                <button class="pill-btn" :class="{ active: athleteFilterModality === 'kids' }" @click="athleteFilterModality = 'kids'">Corrida Kids</button>
                 <button
                   class="pill-btn"
                   :class="{ active: athleteFilterBeer === 'all' }"
@@ -446,6 +447,7 @@
                     <option value="all">Todas modalidades</option>
                     <option value="corrida">🏃 Corrida (6,37 km)</option>
                     <option value="caminhada">🚶 Caminhada</option>
+                    <option value="kids">Corrida Kids</option>
                   </select>
                 </div>
                 <div class="mobile-select-group">
@@ -472,7 +474,7 @@
             <div class="table-container vintage-card">
               <div class="table-summary-bar font-condensed">
                 <span>Exibindo <strong>{{ filteredAthletes.length }}</strong> de <strong>{{ athletes.length }}</strong> inscritos</span>
-                <span>Capacidade Máxima: <strong>{{ maxAthletes }} vagas</strong></span>
+                <span>Vagas adultas: <strong>{{ maxAthletes }}</strong> · Vagas Kids: <strong>{{ athleteSummary?.kidsCapacity ?? 0 }}</strong></span>
               </div>
 
               <div class="table-responsive-wrapper">
@@ -504,8 +506,9 @@
                           <div v-if="athlete.skewerChoice" class="athlete-kit-info font-condensed text-muted">
                             🍢 Espetinhos: <strong>{{ athlete.skewerChoice }}</strong>
                           </div>
-                          <div v-if="athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
-                            👕 Camiseta: <strong>{{ formatShirtSelection(athlete.shirtModel, athlete.shirtSize) }}</strong>
+                          <div v-if="athlete.guardianName" class="athlete-kit-info font-condensed">Responsável: <strong>{{ athlete.guardianName }}</strong> · Nascimento: {{ athlete.birthDate?.split('-').reverse().join('/') }}</div>
+                          <div v-if="athlete.shirtSize || athlete.modality === 'kids'" class="athlete-kit-info font-condensed text-muted">
+                            👕 Camiseta: <strong>{{ formatShirtSelection(athlete.shirtModel, athlete.shirtSize, athlete.modality) }}</strong>
                           </div>
                         </div>
                       </td>
@@ -528,7 +531,7 @@
                           class="tag-badge font-condensed"
                           :class="athlete.modality === 'caminhada' ? 'tag-walk' : 'tag-run'"
                         >
-                          {{ athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}
+                          {{ athlete.modality === 'kids' ? 'Corrida Kids' : athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}
                         </span>
                       </td>
                       <td>
@@ -634,8 +637,9 @@
                         <div v-if="athlete.skewerChoice" class="athlete-kit-info font-condensed text-muted">
                           🍢 Espetinhos: <strong>{{ athlete.skewerChoice }}</strong>
                         </div>
-                        <div v-if="athlete.shirtSize" class="athlete-kit-info font-condensed text-muted">
-                          👕 Camiseta: <strong>{{ formatShirtSelection(athlete.shirtModel, athlete.shirtSize) }}</strong>
+                        <div v-if="athlete.guardianName" class="athlete-kit-info font-condensed">Responsável: <strong>{{ athlete.guardianName }}</strong> · Nascimento: {{ athlete.birthDate?.split('-').reverse().join('/') }}</div>
+                          <div v-if="athlete.shirtSize || athlete.modality === 'kids'" class="athlete-kit-info font-condensed text-muted">
+                          👕 Camiseta: <strong>{{ formatShirtSelection(athlete.shirtModel, athlete.shirtSize, athlete.modality) }}</strong>
                         </div>
                       </div>
                     </div>
@@ -665,7 +669,7 @@
                       class="tag-badge"
                       :class="athlete.modality === 'caminhada' ? 'tag-walk' : 'tag-run'"
                     >
-                      {{ athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}
+                      {{ athlete.modality === 'kids' ? 'Corrida Kids' : athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}
                     </span>
                     <span
                       class="tag-badge"
@@ -1365,7 +1369,7 @@
                     <span v-if="athlete.nickname" class="athlete-nick font-condensed">"{{ athlete.nickname }}"</span>
                   </div>
                   <div class="checkin-meta-line font-condensed">
-                    <span>{{ athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}</span>
+                    <span>{{ athlete.modality === 'kids' ? 'Corrida Kids' : athlete.modality === 'caminhada' ? '🚶 Caminhada' : '🏃 Corrida' }}</span>
                     <span>•</span>
                     <span>{{ athlete.drinksBeer ? '🍺 Chopp' : '🚫 Sem Álcool' }}</span>
                     <span v-if="athlete.phone">• Tel: {{ athlete.phone }}</span>
@@ -1768,7 +1772,7 @@ const activeTab = ref('overview')
 
 const drinkersCount = computed(() => athletes.value.filter(a => a.drinksBeer).length)
 const nonDrinkersCount = computed(() => athletes.value.filter(a => !a.drinksBeer).length)
-const runnersCount = computed(() => athletes.value.filter(a => a.modality !== 'caminhada').length)
+const runnersCount = computed(() => athletes.value.filter(a => a.modality === 'corrida').length)
 const walkersCount = computed(() => athletes.value.filter(a => a.modality === 'caminhada').length)
 const checkedInCount = computed(() => athletes.value.filter(a => a.isCheckedIn).length)
 
@@ -1790,12 +1794,15 @@ const filteredAthletes = computed(() => {
     list = list.filter(a =>
       (a.name && a.name.toLowerCase().includes(q)) ||
       (a.nickname && a.nickname.toLowerCase().includes(q)) ||
+      (a.guardianName && a.guardianName.toLowerCase().includes(q)) ||
       (a.phone && a.phone.includes(q))
     )
   }
 
   if (athleteFilterModality.value === 'corrida') {
-    list = list.filter(a => a.modality !== 'caminhada')
+    list = list.filter(a => a.modality === 'corrida')
+  } else if (athleteFilterModality.value === 'kids') {
+    list = list.filter(a => a.modality === 'kids')
   } else if (athleteFilterModality.value === 'caminhada') {
     list = list.filter(a => a.modality === 'caminhada')
   }
@@ -1845,6 +1852,7 @@ const checkinFilteredAthletes = computed(() => {
   return athletes.value.filter(a =>
     (a.name && a.name.toLowerCase().includes(q)) ||
     (a.nickname && a.nickname.toLowerCase().includes(q)) ||
+      (a.guardianName && a.guardianName.toLowerCase().includes(q)) ||
     (a.phone && a.phone.includes(q))
   )
 })

@@ -91,6 +91,10 @@ export function useStaff() {
   function getAthleteWhatsAppLink(athlete) {
     const phone = sanitizePhoneForWhatsApp(athlete.phone)
     if (!phone) return null
+    if (athlete.modality === 'kids') {
+      const message = `Olá, ${athlete.guardianName || 'responsável'}! Aqui é da organização da Beer Run Kids. Estamos entrando em contato sobre a inscrição de ${athlete.name}.`
+      return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+    }
 
     const firstName = athlete.name?.trim().split(/\s+/)[0] || 'atleta'
 
@@ -172,7 +176,7 @@ Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
       'Modalidade',
       'Bebe Cerveja',
       'Status Pagamento',
-      'Check-in Realizado'
+      'Check-in Realizado', 'Responsavel', 'Nascimento'
     ]
     const rows = athletes.value.map((a, i) => [
       i + 1,
@@ -180,11 +184,12 @@ Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
       `"${(a.nickname || '').replace(/"/g, '""')}"`,
       `"${(a.phone || '').replace(/"/g, '""')}"`,
       `"${(a.skewerChoice || '').replace(/"/g, '""')}"`,
-      `"${formatShirtSelection(a.shirtModel, a.shirtSize).replace(/"/g, '""')}"`,
-      a.modality === 'caminhada' ? 'Caminhada' : 'Corrida',
+      `"${formatShirtSelection(a.shirtModel, a.shirtSize, a.modality).replace(/"/g, '""')}"`,
+      a.modality === 'kids' ? 'Corrida Kids' : a.modality === 'caminhada' ? 'Caminhada' : 'Corrida',
       a.drinksBeer ? 'Sim' : 'Nao',
       a.paymentStatus === 'completed' ? 'Concluido (Pago)' : (a.paymentStatus === 'pending_payment' ? 'Aguardando Pagamento' : 'Pre-Inscricao'),
-      a.isCheckedIn ? 'Sim' : 'Nao'
+      a.isCheckedIn ? 'Sim' : 'Nao',
+      `"${(a.guardianName || '').replace(/"/g, '""')}"`, a.birthDate || ''
     ])
 
     const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')

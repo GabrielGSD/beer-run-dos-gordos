@@ -75,7 +75,12 @@ try {
     await command('Page.navigate', { url: origin + '/' });
     await until(() => evaluate("!!document.querySelector('.hero-btn')"), 'home');
     if (clear) await evaluate('localStorage.clear();sessionStorage.clear()');
-    if (hash) { await evaluate(`location.hash=${JSON.stringify(hash)}`); await until(() => evaluate("!!document.querySelector('.registration-form, .consultation-page')"), 'inscricao'); }
+    if (hash) {
+      await evaluate(`location.hash=${JSON.stringify(hash)}`);
+      await until(() => evaluate("!!document.querySelector('.category-selection, .registration-form, .consultation-page')"), 'inscricao');
+      if (await evaluate("!!document.querySelector('.category-selection')")) await click('[data-category=adulto]');
+      await until(() => evaluate("!!document.querySelector('.registration-form, .consultation-page')"), 'adulto');
+    }
   };
   for (const width of [320, 390, 768, 1440]) {
     await command('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 500 });
@@ -87,6 +92,8 @@ try {
     }
     if (width === 1440) await screenshot('home-desktop');
     await click('.hero-btn');
+    await until(() => evaluate("!!document.querySelector('.category-selection')"));
+    await click('[data-category=adulto]');
     await until(() => evaluate("!!document.querySelector('#kit-title')"));
     assert.equal(await evaluate("document.querySelector('input#reg-name').offsetParent === null"), true, 'Beneficios precedem dados');
     assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'), false, 'Inscricao overflow ' + width);
@@ -215,6 +222,8 @@ try {
   assert.equal(created, 2);
   assert.equal(await evaluate("!!document.querySelector('.registration-form')"), false);
   await click('.consultation-page a[href="#inscricao"]');
+  await until(() => evaluate("!!document.querySelector('.category-selection')"));
+  await click('[data-category=adulto]');
   await until(() => evaluate("!!document.querySelector('.registration-form')"));
   assert.equal(await evaluate("!!document.querySelector('.reg-container .lookup-panel')"), false, 'Ao iniciar inscricao pela consulta, ocultar o bloco de consulta');
   assert.ok(!(await bodyText()).includes('Não encontramos um pedido'), 'Nao carregar a mensagem da consulta para a inscricao');

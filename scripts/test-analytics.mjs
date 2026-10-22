@@ -8,6 +8,9 @@ test('URLs e parametros nunca encaminham telefone, chave, cupom ou dados pessoai
   })
   assert.equal(analyticsPage('https://beer.example/pagamento-concluido/?orderId=secret#acesso=secret'), null)
   assert.equal(analyticsPage('https://beer.example/#staff'), null)
+  assert.equal(analyticsPage('https://beer.example/#kids'), null)
+  assert.equal(analyticsPage('https://beer.example/#inscricao?categoria=kids'), null)
+  assert.equal(analyticsPage('https://beer.example/#inscricao?categoria=kids&consulta=1'), null)
   assert.equal(safeReferrer('https://other.example/path?phone=35999991234#secret'), 'https://other.example/')
   assert.equal(safeReferrer('javascript:alert(1)'), '')
   assert.deepEqual(safeEventParams({

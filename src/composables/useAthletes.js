@@ -18,13 +18,15 @@ export function formatAthleteDisplayName(name, nickname) {
 
 export const MAX_ATHLETES = 71
 export function mapDatabaseAthlete(row) {
-  const isOfficial = Boolean(row.accepted_terms_at && (row.shirt_size || row.cpf))
+  const isOfficial = Boolean(row.accepted_terms_at && (row.shirt_size || row.cpf || row.modality === 'kids'))
   return {
     id: row.id,
     name: row.name,
     nickname: row.nickname || '',
     displayName: formatAthleteDisplayName(row.name, row.nickname),
-    phone: row.phone || '',
+    phone: row.guardian_phone || row.phone || '',
+    guardianName: row.guardian_name || '',
+    guardianRelationship: row.guardian_relationship || '',
     cpf: row.cpf || '',
     birthDate: row.birth_date || '',
     gender: row.gender || '',

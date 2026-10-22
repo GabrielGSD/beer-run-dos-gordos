@@ -9,7 +9,7 @@
   />
 
   <!-- Tela Dedicada de Inscrição Oficial -->
-  <OfficialRegistrationPage
+  <RegistrationPage
     v-else-if="isOfficialRegistrationMode"
     @go-home="exitOfficialRegistrationMode"
   />
@@ -55,7 +55,7 @@ import SponsorsSection from './components/SponsorsSection.vue'
 import Footer from './components/Footer.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
 const StaffDashboard = defineAsyncComponent(() => import('./components/StaffDashboard.vue'))
-const OfficialRegistrationPage = defineAsyncComponent(() => import('./components/OfficialRegistrationPage.vue'))
+const RegistrationPage = defineAsyncComponent(() => import('./components/RegistrationPage.vue'))
 import { trackPageView, trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
 
 const isPaymentReturn = ref(window.location.pathname === '/pagamento-concluido')
@@ -101,7 +101,7 @@ function enterOfficialRegistrationMode() {
 
 function exitOfficialRegistrationMode() {
   isOfficialRegistrationMode.value = false
-  if (window.location.hash.startsWith('#inscricao') || window.location.hash.startsWith('#/inscricao')) {
+  if (window.location.hash === '#kids' || window.location.hash.startsWith('#cadastro') || window.location.hash.startsWith('#inscricao') || window.location.hash.startsWith('#/inscricao')) {
     history.replaceState(null, '', window.location.pathname + window.location.search)
   }
   trackPageView()
@@ -113,7 +113,7 @@ function handleHashCheck() {
   if (hash === '#staff') {
     isStaffMode.value = true
     isOfficialRegistrationMode.value = false
-  } else if (hash.startsWith('#inscricao') || hash.startsWith('#/inscricao') || hash.startsWith('#cadastro')) {
+  } else if (hash === '#kids' || hash.startsWith('#inscricao') || hash.startsWith('#/inscricao') || hash.startsWith('#cadastro')) {
     isOfficialRegistrationMode.value = true
     isStaffMode.value = false
   } else {

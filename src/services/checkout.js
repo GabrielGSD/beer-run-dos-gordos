@@ -38,25 +38,36 @@ async function request(path, { key, body } = {}) {
   }
   return data
 }
-export async function submitRegistration(body) {
+export async function submitRegistration(body, category = 'ADULT') {
+  if (!['ADULT', 'KIDS'].includes(category)) throw new Error('Categoria inválida.')
+  const requestKey = category === 'KIDS' ? pendingKey + '_kids' : pendingKey
   // Persistir a chave antes do POST permite recuperar um commit apos timeout.
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(body)))
   const hash = [...new Uint8Array(digest)].map(n => n.toString(16).padStart(2, '0')).join('')
-  let pending = JSON.parse(sessionStorage.getItem(pendingKey) || 'null')
+  let pending = JSON.parse(sessionStorage.getItem(requestKey) || 'null')
   if (pending && pending.hash !== hash) throw new Error('Existe uma tentativa pendente. Reenvie os dados originais antes de alterar a inscrição.')
   if (!pending) pending = { hash, key: crypto.randomUUID() }
-  sessionStorage.setItem(pendingKey, JSON.stringify(pending))
+  if (category === 'KIDS') pending.body = body
+  sessionStorage.setItem(requestKey, JSON.stringify(pending))
   // Detectar navegador sem armazenamento antes de criar a inscricao.
   localStorage.setItem('beer_run_storage_check', '1'); localStorage.removeItem('beer_run_storage_check')
   try {
-    const result = await request('/api/registrations', { key: pending.key, body })
+    const result = await request(category === 'KIDS' ? '/api/registrations/kids' : '/api/registrations', { key: pending.key, body })
     saveOrderContext(result.orderId, pending.key)
-    sessionStorage.removeItem(pendingKey)
+    sessionStorage.removeItem(requestKey)
     return result
   } catch (error) {
-    if ([409, 422].includes(error.status)) sessionStorage.removeItem(pendingKey)
+    if ([409, 422].includes(error.status) || error.code === 'KIDS_DISABLED') sessionStorage.removeItem(requestKey)
     throw error
   }
+}
+export function listOrderContexts() {
+  try { return Object.keys(localStorage).filter(key => key.startsWith(contextPrefix)).map(key => loadOrderContext(key.slice(contextPrefix.length))).filter(Boolean) }
+  catch { return [] }
+}
+export function loadPendingKidsRegistration() {
+  try { return JSON.parse(sessionStorage.getItem(pendingKey + '_kids') || 'null')?.body || null }
+  catch { return null }
 }
 export const getOrderStatus = context => request('/api/orders/' + context.orderId + '/status', context)
 export const refreshOrderPayment = context => request('/api/orders/' + context.orderId + '/refresh', { ...context, body: {} })

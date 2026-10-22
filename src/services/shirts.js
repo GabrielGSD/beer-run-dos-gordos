@@ -20,7 +20,9 @@ export function shirtMeasurements(model, size) {
   return SHIRT_MODELS.find(item => item.value === model)?.sizes.find(item => item[0] === size)
 }
 
-export function formatShirtSelection(model, size) {
+export function formatShirtSelection(model, size, modality) {
+  if (!size && modality === 'kids') return 'Sem camiseta'
+  if (model === 'KIDS' && size) return `Infantil • ${size}`
   if (!size) return 'Não informado'
   const label = SHIRT_MODELS.find(item => item.value === model)?.label || 'Modelo não informado'
   return `${label} • ${size}`

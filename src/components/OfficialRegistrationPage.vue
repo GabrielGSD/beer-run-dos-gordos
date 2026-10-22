@@ -1,6 +1,6 @@
 <template>
-  <div class="official-reg-page">
-    <header class="reg-top-bar">
+  <div :class="embedded ? 'embedded-registration' : 'official-reg-page'">
+    <header v-if="!embedded" class="reg-top-bar">
       <div class="container reg-top-content">
         <button class="btn-back-home font-condensed" @click="$emit('go-home')">
           <i class="fa-solid fa-arrow-left"></i>
@@ -15,7 +15,7 @@
       </div>
     </header>
 
-    <main class="container reg-main-content registration-main">
+    <component :is="embedded ? 'div' : 'main'" :class="embedded ? 'embedded-reg-main' : 'container reg-main-content registration-main'">
       <template v-if="paymentOrder"
         ><p
           v-if="checkoutNotice"
@@ -118,6 +118,7 @@
               >
                 Use o mesmo número da inscrição, com DDD.
               </p>
+              <a href="#inscricao?categoria=kids&consulta=1" class="link-btn font-condensed">Consultar uma inscrição Kids →</a>
               <a
                 v-if="lookupNotFound"
                 href="#inscricao"
@@ -1275,7 +1276,7 @@
           >
         </div>
       </div>
-    </main>
+    </component>
   </div>
 </template>
 
@@ -1284,6 +1285,8 @@ import {
   computed,
   nextTick,
   onMounted,
+  onActivated,
+  onDeactivated,
   onUnmounted,
   reactive,
   ref,
@@ -1309,7 +1312,9 @@ import {
   trackRegistrationOrder,
 } from "../services/analytics.js";
 import { analyticsErrorKind } from "../services/analytics-policy.js";
-defineEmits(["go-home"]);
+defineProps({ embedded: { type: Boolean, default: false } });
+const emit = defineEmits(["go-home", "navigation-lock"]);
+let active = true;
 
 const draftKey = "beer_run_registration_draft_v2";
 const kitExtras = [
@@ -1802,7 +1807,9 @@ function saveOnExit() {
   saveDraft();
 }
 function handleHash() {
+  if (!active) return;
   const params = new URLSearchParams(window.location.hash.split("?")[1] || "");
+  if (params.get('categoria') === 'kids' || window.location.hash === '#kids') return;
   const wasConsultationOnly = consultationOnly.value;
   consultationOnly.value = params.get("consulta") === "1";
   if (consultationOnly.value) {
@@ -1824,6 +1831,9 @@ function handleHash() {
     lookupRegistration();
   }
 }
+watch(busy, value => emit('navigation-lock', value));
+onActivated(() => { if (!active) { active = true; handleHash(); } emit('navigation-lock', busy.value); });
+onDeactivated(() => { active = false; saveOnExit(); });
 onMounted(() => {
   trackPageView();
   trackRegistrationEvent("inscricao_visualizada");
@@ -3111,183 +3121,6 @@ const athleteAge = computed(() =>
 }
 
 /* Seletor Minimalista de Espetinhos em 3 Linhas Elegantes */
-.skewer-box {
-  background-color: #ffffff;
-  border: 1px solid #dfd6c6;
-  border-radius: 6px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.skewer-rows-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.skewer-row-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background-color: #faf6ee;
-  border: 1px solid #e7ded0;
-  border-radius: 6px;
-  transition: all 0.18s ease;
-}
-
-.skewer-row-item.is-disabled {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.skewer-row-veg {
-  cursor: pointer;
-  background-color: #ffffff;
-  border: 1px dashed #cfc5b3;
-}
-
-.skewer-row-veg:hover {
-  background-color: #f7faf4;
-}
-
-.skewer-row-veg.active {
-  background-color: #f0f8ec;
-  border: 1px solid #7cb342;
-}
-
-.skewer-row-veg.active .skewer-item-names strong {
-  color: #2e7d32;
-}
-
-.skewer-item-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.skewer-icon {
-  font-size: 1.3rem;
-  flex-shrink: 0;
-}
-
-.skewer-item-names {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.skewer-item-names strong {
-  font-size: 0.85rem;
-  color: var(--accent-dark);
-}
-
-.skewer-item-names small {
-  font-size: 0.72rem;
-  color: #777;
-}
-
-.stepper-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #ffffff;
-  padding: 3px 6px;
-  border-radius: 5px;
-  border: 1px solid #dfd6c6;
-}
-
-.btn-stepper {
-  width: 26px;
-  height: 26px;
-  border-radius: 4px;
-  border: 1px solid #d4cbbd;
-  background-color: #f7f3ec;
-  color: #25221d;
-  font-size: 0.76rem;
-  font-weight: bold;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-stepper:hover:not(:disabled) {
-  background-color: var(--accent-gold);
-  border-color: var(--accent-gold);
-  color: #1a1714;
-}
-
-.btn-stepper:disabled {
-  opacity: 0.25;
-  cursor: not-allowed;
-  background-color: #eee9e0;
-}
-
-.stepper-count {
-  font-size: 1.05rem;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: center;
-  color: #191714;
-}
-
-.veg-toggle-action {
-  display: flex;
-  align-items: center;
-}
-
-.veg-switch {
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid #bbb;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  color: #ffffff;
-  background-color: #ffffff;
-  transition: all 0.15s ease;
-}
-
-.veg-switch.checked {
-  border-color: #7cb342;
-  background-color: #7cb342;
-  color: #ffffff;
-}
-
-.skewer-summary-bar {
-  padding-top: 6px;
-  border-top: 1px dashed #ece4d7;
-  font-size: 0.76rem;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.text-veg {
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-.text-standard {
-  color: #444;
-}
-
-.text-veg {
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-.text-standard {
-  color: #444;
-}
-
 .step-footer-actions {
   display: flex;
   align-items: center;
@@ -4771,3 +4604,5 @@ const athleteAge = computed(() =>
   }
 }
 </style>
+
+<style scoped src="../styles/skewer-selector.css"></style>
