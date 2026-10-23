@@ -69,6 +69,7 @@
                   <label class="flow-choice" :class="{ selected: form.shirtIncluded === true }"><input type="radio" name="kids-shirt" :value="true" v-model="form.shirtIncluded" required /><span><strong>COM CAMISETA</strong><span>{{ money(offer.amount + offer.shirtAmount) }}</span><small>Adicional de {{ money(offer.shirtAmount) }}</small></span></label>
                 </div>
                 <label v-if="form.shirtIncluded" class="flow-field" for="kids-shirt-size"><span>Tamanho da camiseta infantil *</span><select class="vintage-input" id="kids-shirt-size" v-model="form.shirtSize" required><option disabled value="">Escolha o tamanho</option><option v-for="size in offer.shirtSizes" :key="size" :value="size">{{ size }}</option></select></label>
+                <ShirtSizeGuide v-if="form.shirtIncluded" model="KIDS" :size="form.shirtSize" :charts="KIDS_SHIRT_CHARTS" />
                 <h3>CONTATO PARA EMERGÊNCIA</h3>
                 <label class="flow-check"><input type="checkbox" v-model="sameEmergency" />Usar os dados do responsável</label>
                 <div v-if="!sameEmergency" class="flow-fields">
@@ -115,6 +116,8 @@
 import { computed, nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import BirthDateInput from './BirthDateInput.vue'
 import PaymentStatusPage from './PaymentStatusPage.vue'
+import ShirtSizeGuide from './ShirtSizeGuide.vue'
+import { KIDS_SHIRT_CHARTS } from '../services/shirts.js'
 import { publicRequest } from '../services/public-api.js'
 import { submitRegistration, openCheckout, listOrderContexts, getOrderStatus, loadPendingKidsRegistration } from '../services/checkout.js'
 defineProps({ consultationOnly: { type: Boolean, default: false } })

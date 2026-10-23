@@ -16,6 +16,16 @@ export const SHIRT_MODELS = [
   },
 ]
 
+export const KIDS_SHIRT_CHARTS = [
+  {
+    value: 'KIDS', label: 'Infantil',
+    sizes: [
+      ['2', 37, 32], ['4', 44, 34], ['6', 47, 37], ['8', 54, 42],
+      ['10', 58, 44], ['12', 59, 47], ['14', 62, 49], ['16', 64, 49],
+    ],
+  },
+]
+
 export function shirtMeasurements(model, size) {
   return SHIRT_MODELS.find(item => item.value === model)?.sizes.find(item => item[0] === size)
 }

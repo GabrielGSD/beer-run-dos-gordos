@@ -10,14 +10,14 @@
           <text x="110" y="198" text-anchor="middle" fill="#6d3a00" font-size="14">Largura</text>
         </svg>
         <div>
-          <h3>Compare com uma camiseta que você já usa</h3>
+          <h3>{{ model === 'KIDS' ? 'Compare com uma camiseta que a criança já usa' : 'Compare com uma camiseta que você já usa' }}</h3>
           <p>Estenda a peça em uma superfície plana, sem esticar o tecido.</p>
           <p><strong>Altura:</strong> meça do ombro até a barra.</p>
           <p><strong>Largura:</strong> meça de uma lateral à outra na barra, como no desenho. Não é a circunferência do corpo.</p>
         </div>
       </div>
 
-      <div class="measurement-tables">
+      <div class="measurement-tables" :class="{ 'single-chart': charts.length === 1 }">
         <table v-for="chart in charts" :key="chart.value">
           <caption>{{ chart.label }}</caption>
           <thead>
@@ -44,8 +44,12 @@
 </template>
 
 <script setup>
-import { SHIRT_MODELS as charts } from '../services/shirts.js'
-defineProps({ model: { type: String, default: '' }, size: { type: String, default: '' } })
+import { SHIRT_MODELS } from '../services/shirts.js'
+defineProps({
+  model: { type: String, default: '' },
+  size: { type: String, default: '' },
+  charts: { type: Array, default: () => SHIRT_MODELS },
+})
 </script>
 
 <style scoped>
@@ -105,6 +109,10 @@ defineProps({ model: { type: String, default: '' }, size: { type: String, defaul
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: 16px;
+}
+
+.measurement-tables.single-chart {
+  grid-template-columns: 1fr;
 }
 
 table {

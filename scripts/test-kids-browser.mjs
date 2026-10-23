@@ -58,7 +58,7 @@ try {
     if (url.port === '19999') {
       if (request.method === 'OPTIONS') { await respond({}); return; }
       requests.push(url.pathname);
-      if (url.pathname === '/api/registrations/kids/offer') await respond({ enabled: kidsEnabled, capacity: 30, eventDate: '2026-11-29', minAge: 1, maxAge: 13, amount: 4000, shirtAmount: 2600, shirtSizes: ['2','4','6','8','10','12','14'] });
+      if (url.pathname === '/api/registrations/kids/offer') await respond({ enabled: kidsEnabled, capacity: 30, eventDate: '2026-11-29', minAge: 1, maxAge: 13, amount: 4000, shirtAmount: 2600, shirtSizes: ['2','4','6','8','10','12','14','16'] });
       else if (url.pathname === '/api/registrations/kids') {
         created++; lastPayload = JSON.parse(request.postData); await delay(180);
         kidsKeys.push(Object.entries(request.headers).find(([name]) => name.toLowerCase() === 'idempotency-key')?.[1]);
@@ -203,10 +203,15 @@ try {
   await next(); await until(() => evaluate("!!document.querySelector('#kids-skewer')"));
   await click('#kids-skewer button[aria-label="Aumentar carne"]'); await click('input[name=kids-shirt][value=true]');
   await until(() => evaluate("!!document.querySelector('#kids-shirt-size')"));
-  await set('#kids-shirt-size', '6'); await next(); await until(() => evaluate("!!document.querySelector('#kids-terms')"));
+  await set('#kids-shirt-size', '16');
+  assert.equal(await evaluate("document.querySelector('#kids-shirt-size').value"), '16');
+  await click('.kids-form .shirt-guide summary');
+  assert.equal(await evaluate("document.querySelector('.kids-form .shirt-guide').open"), true);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.kids-form .shirt-guide tr.selected td')].map(el => el.textContent)"), ['64', '49']);
+  await next(); await until(() => evaluate("!!document.querySelector('#kids-terms')"));
   assert.ok((await bodyText()).includes('66,00')); await screenshot('kids-resumo'); await click('#kids-terms'); await next();
   await until(() => evaluate("document.querySelector('.payment-total')?.innerText.includes('66,00')"));
-  assert.equal(created, 2); assert.equal(lastPayload.shirtSize, '6');
+  assert.equal(created, 2); assert.equal(lastPayload.shirtSize, '16');
   await click('.kids-return .text-action');
   await until(() => evaluate("document.querySelectorAll('.kids-saved li').length === 2"));
   await evaluate("location.hash='#inscricao?categoria=kids&consulta=1'");
