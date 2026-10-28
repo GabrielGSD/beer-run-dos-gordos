@@ -31,6 +31,7 @@ export function safeEventParams(params = {}) {
 
 export function analyticsPage(href) {
   const url = new URL(href)
+  if (url.pathname.replace(/\/+$/, '') === '/cadastro-staff' || url.hash === '#cadastro-staff') return null
   const category = new URLSearchParams(url.hash.split('?')[1] || '').get('categoria')
   if (url.pathname.replace(/\/+$/, '') === '/pagamento-concluido' || ['#staff', '#kids'].includes(url.hash) || category === 'kids') return null
   const registration = /^#\/?(?:inscricao|cadastro)/.test(url.hash)

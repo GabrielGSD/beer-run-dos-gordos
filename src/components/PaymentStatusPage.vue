@@ -18,7 +18,7 @@
     <div v-else class="summary-layout">
       <div class="registration-details">
         <section class="summary-card athlete-card">
-          <div class="card-heading"><span class="section-number">01</span><h2>Dados do atleta</h2></div>
+          <div class="card-heading"><span class="section-number">01</span><h2>{{ registration?.modality === 'staff' ? 'Dados do staff' : 'Dados do atleta' }}</h2></div>
           <template v-if="registration">
             <p class="athlete-name font-slab">{{ display(registration.name) }}</p>
             <dl class="data-grid">
@@ -33,14 +33,15 @@
           <dl class="data-grid">
             <div><dt>Modalidade</dt><dd>{{ modality }}</dd></div>
             <div v-if="registration.modality === 'kids'"><dt>Kit Kids</dt><dd>Bebida sem álcool, copo infantil, medalha e participação nos sorteios</dd></div>
-            <div v-else><dt>Chopp</dt><dd>{{ registration.beer === true ? 'Com chopp' : registration.beer === false ? 'Sem chopp' : 'Não informado' }}</dd></div>
+            <div v-else-if="registration.modality !== 'staff'"><dt>Chopp</dt><dd>{{ registration.beer === true ? 'Com chopp' : registration.beer === false ? 'Sem chopp' : 'Não informado' }}</dd></div>
+            <div v-for="item in status?.staffItems || []" :key="item.id"><dt>{{ item.label }}</dt><dd>{{ item.quantity }} × {{ money(item.unitAmount) }}</dd></div>
             <div><dt>Espetinhos</dt><dd>{{ display(registration.skewerChoice) }}</dd></div>
             <div><dt>Camiseta</dt><dd>{{ formatShirtSelection(registration.shirtModel, registration.shirtSize, registration.modality) }}</dd></div>
             <div><dt>Regulamento aceito em</dt><dd>{{ dateTime(registration.acceptedTermsAt) }}</dd></div>
           </dl>
         </section>
 
-        <section v-if="registration" class="summary-card">
+        <section v-if="registration && registration.modality !== 'staff'" class="summary-card">
           <div class="card-heading"><span class="section-number">03</span><h2>Emergência e observações</h2></div>
           <dl class="data-grid">
             <div><dt>Contato de emergência</dt><dd>{{ display(registration.emergencyContactName) }}</dd></div>
@@ -149,7 +150,7 @@ const personalFields = computed(() => {
     { label: 'Cidade / UF', value: display(r.cityState) },
   ]
 })
-const modality = computed(() => ({ kids: 'Corrida Kids', corrida: 'Corrida', caminhada: 'Caminhada', RUN: 'Corrida', WALK: 'Caminhada' })[registration.value?.modality] || display(registration.value?.modality))
+const modality = computed(() => ({ staff: 'Equipe staff', kids: 'Corrida Kids', corrida: 'Corrida', caminhada: 'Caminhada', RUN: 'Corrida', WALK: 'Caminhada' })[registration.value?.modality] || display(registration.value?.modality))
 const needsReview = computed(() => status.value?.paymentReviewRequired || status.value?.checkoutState === 'UNKNOWN')
 const statusLabel = computed(() => {
   const s = status.value

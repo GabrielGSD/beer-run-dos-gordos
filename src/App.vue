@@ -2,6 +2,7 @@
   <main v-if="isPaymentReturn" class="payment-return-page">
     <PaymentStatusPage @go-home="exitPaymentReturn" />
   </main>
+  <StaffRegistrationPage v-else-if="isStaffRegistration" />
   <!-- Tela Dedicada da Staff (Tela Cheia / Mobile Native) -->
   <StaffDashboard
     v-else-if="isStaffMode"
@@ -55,10 +56,12 @@ import SponsorsSection from './components/SponsorsSection.vue'
 import Footer from './components/Footer.vue'
 import SponsorshipModal from './components/SponsorshipModal.vue'
 const StaffDashboard = defineAsyncComponent(() => import('./components/StaffDashboard.vue'))
+const StaffRegistrationPage = defineAsyncComponent(() => import('./components/StaffRegistrationPage.vue'))
 const RegistrationPage = defineAsyncComponent(() => import('./components/RegistrationPage.vue'))
 import { trackPageView, trackRegistrationClick, trackSponsorshipClick } from './services/analytics.js'
 
 const isPaymentReturn = ref(window.location.pathname === '/pagamento-concluido')
+const isStaffRegistration = ref(window.location.pathname.replace(/\/$/, '') === '/cadastro-staff' || window.location.hash === '#cadastro-staff')
 function exitPaymentReturn() { window.location.assign('/') }
 const isSponsorshipOpen = ref(false)
 const isStaffMode = ref(false)
@@ -110,6 +113,7 @@ function exitOfficialRegistrationMode() {
 
 function handleHashCheck() {
   const hash = window.location.hash || ''
+  isStaffRegistration.value = window.location.pathname.replace(/\/$/, '') === '/cadastro-staff' || hash === '#cadastro-staff'
   if (hash === '#staff') {
     isStaffMode.value = true
     isOfficialRegistrationMode.value = false

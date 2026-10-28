@@ -10,6 +10,14 @@ import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
 
 let fail=false;
+let teamFail=false, teamRequests=0;
+const teamRows = [
+  {name:'João Equipe',amount:5500,orders:{status:'PENDING_PAYMENT'},selection:{shirt:true,shirtModel:'UNISEX',shirtSize:'G'},items:[{id:'shirt',label:'Camiseta',quantity:1,unitAmount:2600},{id:'medal',label:'Medalha',quantity:1,unitAmount:1900},{id:'cup',label:'Copo',quantity:1,unitAmount:1000}]},
+  {name:'Marina Equipe',amount:3500,orders:[{status:'PAID'}],selection:{skewerQuantity:2,skewerChoice:'Vegetariano',drink:'BEER'},items:[{id:'skewer',label:'Espetinho',quantity:2,unitAmount:1000},{id:'beer',label:'Bebida com chopp',quantity:1,unitAmount:1500}]},
+  {name:'Sem Kit',amount:0,orders:null},
+  ...['CANCELLED','EXPIRED','REFUNDED'].map(status=>({name:status,amount:1000,orders:{status},items:[{id:'cup',label:'Copo',quantity:1,unitAmount:1000}]})),
+  {name:'Sem Pedido',amount:1000,orders:null,items:[{id:'cup',label:'Copo',quantity:1,unitAmount:1000}]},
+].map((row,index)=>({id:index+1,email:`equipe${index}@example.test`,phone:'35999991234',created_at:'2026-10-20T12:00:00Z',selection:{},items:[],...row}));
 const staffPin='private-browser-test';
 const rows=[
  {id:1,name:'Pago Teste',payment_status:'completed',accepted_terms_at:'2026-10-01',modality:'corrida',drinks_beer:true,shirt_model:'UNISEX',shirt_size:'M',skewer_choice:'2 Carne'},
@@ -37,6 +45,11 @@ const api=createServer(async(req,res)=>{
    sessionActive=false;
    res.setHeader('set-cookie','beer_run_staff=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
    res.end(JSON.stringify({success:true}));return;
+ }
+ if(req.url==='/api/staff/team'){
+   teamRequests++;
+   if(teamFail){res.writeHead(503).end(JSON.stringify({error:{message:'Equipe indisponivel'}}));return;}
+   res.end(JSON.stringify({rows:teamRows}));return;
  }
  if(req.url!=='/api/staff/athletes'){res.end(JSON.stringify({rows:[]}));return;}
  if(fail){res.writeHead(503).end(JSON.stringify({error:{message:'Dados indisponiveis'}}));return;}
@@ -120,13 +133,26 @@ try {
     await sleep(100);
     assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'),false);
   }
-  await evaluate("document.querySelectorAll('.tab-btn')[1].click()");
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Atletas')).click()");
   await until(()=>evaluate("document.querySelectorAll('.mobile-athletes-list .mobile-data-card').length===4"));
   assert.equal(await evaluate("document.querySelectorAll('.mobile-athletes-list .tag-paid').length"),2);
   assert.equal(await evaluate("document.querySelectorAll('.data-table .tag-paid').length"),2);
   assert.equal(await evaluate("document.querySelectorAll('.mobile-athletes-list .tag-wait-pay').length"),1);
   assert.ok((await evaluate("document.querySelector('.mobile-athletes-list').textContent")).includes('2 Carne'));
   assert.ok((await evaluate("document.querySelector('.data-table').textContent")).includes('Masculina / unissex'));
+  const listStyles = () => evaluate(`(()=>{
+    const selectors=['.pane-toolbar','.search-input','.pill-btn','.btn-sm','.table-container','.table-summary-bar','.data-table th','.data-table td','.tag-paid','.mobile-data-card'];
+    const properties=['display','padding','backgroundColor','borderRadius','borderTopWidth','fontSize','fontFamily','color'];
+    return Object.fromEntries(selectors.map(selector=>{const style=getComputedStyle(document.querySelector(selector));return [selector,Object.fromEntries(properties.map(prop=>[prop,style[prop]]))]}));
+  })()`);
+  const athleteStyles = {};
+  mkdirSync(join(root,'artifacts'),{recursive:true});
+  for(const width of [1050,390]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});
+    athleteStyles[width]=await listStyles();
+    const shot=await command('Page.captureScreenshot',{format:'png'});
+    writeFileSync(join(root,`artifacts/staff-athletes-reference-${width}.png`),Buffer.from(shot.data,'base64'));
+  }
   const csv = await evaluate(`(async()=>{
     const originalCreate = URL.createObjectURL;
     const originalClick = HTMLAnchorElement.prototype.click;
@@ -142,11 +168,11 @@ try {
     }
   })()`);
   const csvLines = csv.trim().split('\n');
-  assert.equal(csvLines[0], 'Posicao;Nome;Apelido;Telefone;Espetinhos Chegada;Tamanho Camiseta;Modalidade;Bebe Cerveja;Status Pagamento;Check-in Realizado');
+  assert.equal(csvLines[0], 'Posicao;Nome;Apelido;Telefone;Espetinhos Chegada;Tamanho Camiseta;Modalidade;Bebe Cerveja;Status Pagamento;Check-in Realizado;Responsavel;Nascimento');
   assert.equal(csvLines.length,5);
   assert.ok(csvLines[1].includes('2 Carne'));
   assert.ok(csvLines[2].includes('Aguardando Pagamento'));
-  assert.ok(csvLines.every(line=>line.split(';').length===10));
+  assert.ok(csvLines.every(line=>line.split(';').length===12));
   await evaluate("document.querySelector('.pill-completed').click()");
   await until(()=>evaluate("document.querySelectorAll('.mobile-athletes-list .mobile-data-card').length===2"));
   await evaluate("document.querySelector('.pill-status').click()");
@@ -155,15 +181,73 @@ try {
   await evaluate('window.testStaff.fetchStaffAthletes()');
   assert.equal(await evaluate("document.querySelectorAll('.mobile-athletes-list .mobile-data-card').length"),0);
   assert.ok(await evaluate("!!document.querySelector('[role=alert]')"));
-  await evaluate("document.querySelectorAll('.tab-btn')[0].click()");
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Geral')).click()");
   assert.equal(await evaluate("document.querySelector('[data-testid=revenue-kpi] .kpi-value').textContent"),'\u2014');
   fail=false;
   await evaluate('window.testStaff.fetchStaffAthletes()');
   assert.equal(await evaluate("document.querySelector('[data-testid=confirmed-kpi] .kpi-value').textContent"),'2');
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Equipe')).click()");
+  await until(()=>evaluate("document.querySelectorAll('.team-row').length===7"));
+  assert.equal(await evaluate("document.querySelectorAll('.team-stat, .team-heading').length"),0);
+  assert.ok((await evaluate("document.querySelector('[data-status=PAID]').textContent")).includes('(1)'));
+  assert.ok((await evaluate("document.querySelector('.team-row').textContent")).includes('unissex'));
+  assert.ok((await evaluate("document.querySelector('.team-panel').textContent")).includes('Vegetariano'));
+  assert.equal(await evaluate("document.querySelectorAll('.team-row .tag-paid').length"),1);
+  const setSearch = value=>evaluate(`(()=>{const el=document.querySelector('[aria-label="Buscar na equipe"]');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  const setFilter = value=>evaluate(`(()=>{const el=document.querySelector('[aria-label="Filtrar pagamento da equipe"]');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await setSearch('joao');
+  await until(()=>evaluate("document.querySelectorAll('.team-row').length===1"));
+  await setSearch('(35) 99999-1234');
+  await until(()=>evaluate("document.querySelectorAll('.team-row').length===7"));
+  await setSearch('equipe1@example.test');
+  await until(()=>evaluate("document.querySelectorAll('.team-row').length===1"));
+  await setSearch('');
+  for(const status of ['PAID','PENDING_PAYMENT','NO_PAYMENT','CANCELLED','EXPIRED','REFUNDED','UNKNOWN']) {
+    await setFilter(status);
+    await until(()=>evaluate("document.querySelectorAll('.team-row').length===1"));
+    if(status==='NO_PAYMENT')assert.ok((await evaluate("document.querySelector('.team-row').textContent")).includes('Nenhum item selecionado'));
+  }
+  await setSearch('no results');
+  await until(()=>evaluate("document.querySelectorAll('.team-row').length===0"));
+  assert.ok((await evaluate("document.querySelector('.table-empty').textContent")).includes('Nenhum cadastro encontrado'));
+  await evaluate("document.querySelector('.clear-filters').click()");
+  await until(()=>evaluate("document.querySelectorAll('.team-row').length===7"));
+  // Clipboard succeeds or gives an actionable fallback without losing the link.
+  await evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.copiedTeamLink=value}}});document.querySelector('.team-actions button').click()");
+  await until(()=>evaluate("document.querySelector('.team-copy-feedback')?.textContent.includes('copiado')"));
+  assert.equal(await evaluate('window.copiedTeamLink'),`http://127.0.0.1:${port}/cadastro-staff`);
+  await evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('denied')}}});document.querySelector('.team-actions button').click()");
+  await until(()=>evaluate("!!document.querySelector('.team-share-link input')"));
+  assert.equal(await evaluate("document.querySelector('.team-share-link input').value"),`http://127.0.0.1:${port}/cadastro-staff`);
+  await evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}});document.querySelector('.team-actions button').click()");
+  const requestCount=teamRequests;
+  await evaluate("[...document.querySelectorAll('button')].find(button=>button.textContent.trim()==='Atualizar').click()");
+  await until(()=>teamRequests>requestCount);
+  teamFail=true;
+  await evaluate("document.querySelector('.team-refresh').click()");
+  await until(()=>evaluate("!!document.querySelector('.team-panel [role=alert]')"));
+  assert.equal(await evaluate("document.querySelectorAll('.team-row').length"),7);
+  assert.ok((await evaluate("document.querySelector('.team-panel [role=alert]').textContent")).includes('última atualização'));
+  teamFail=false;
+  await evaluate("document.querySelector('.team-refresh').click()");
+  await until(()=>evaluate("document.querySelector('.team-panel').getAttribute('aria-busy')==='false' && !document.querySelector('.team-panel [role=alert]')"));
+  mkdirSync(join(root,'artifacts'),{recursive:true});
+  for(const width of [1440,1100,1050,900,768,390,320]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});
+    await evaluate('window.scrollTo(0,0)');
+    await sleep(100);
+    assert.equal(await evaluate("[...document.querySelectorAll('.team-panel *')].some(el=>el.getBoundingClientRect().right>innerWidth+1)"),false,`Team overflow at ${width}`);
+    if(athleteStyles[width]) assert.deepEqual(await listStyles(),athleteStyles[width],`Team uses the same computed styles as athletes at ${width}`);
+    if(width<=390)assert.equal(await evaluate("new Set([...document.querySelectorAll('.tab-btn')].map(el=>el.getBoundingClientRect().top)).size"),1,'All six mobile tabs share one row');
+    if([1440,1050,390].includes(width)) {
+      const shot=await command('Page.captureScreenshot',{format:'png'});
+      writeFileSync(join(root,`artifacts/staff-team-${width}.png`),Buffer.from(shot.data,'base64'));
+    }
+  }
   await evaluate('window.testStaff.logout()');
   assert.equal(await evaluate("sessionStorage.getItem('beer_run_staff_pin')"),null);
   assert.equal(await evaluate('window.testStaff.athletes.value.length'),0);
-  console.log('PASS: staff login, all athletes, paid filters, financial totals, missing values, errors, desktop/mobile and logout.');
+  console.log('PASS: staff login, athletes, financial totals, team kit details, payment filters, search, copy link, refresh, errors, desktop/mobile and logout.');
 } finally {
   try { if(ws?.readyState===WebSocket.OPEN)await command('Browser.close'); } catch {}
   ws?.close();

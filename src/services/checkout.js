@@ -18,7 +18,7 @@ export function loadOrderContext(orderId) {
     return context && uuid.test(context.orderId) && uuid.test(context.key) ? context : null
   } catch { return null }
 }
-async function request(path, { key, body } = {}) {
+export async function request(path, { key, body } = {}) {
   if (!apiBase) throw new Error('O serviço de inscrições ainda não foi configurado. Entre em contato com a organização.')
   let response
   try {
