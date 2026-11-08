@@ -8,9 +8,10 @@ import {join,dirname,basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
-let fail=false,confirmedOnly=false,requests=0;
+let fail=false,confirmedOnly=false,longList=false,kidsList=false,requests=0;
 const runner={name:'Joao Teste',nickname:'Relampago',modality:'corrida',drinksBeer:true};
 const walker={name:'Atleta Confirmado',nickname:'Passo Leve',modality:'caminhada',drinksBeer:false};
+const kid={name:'Crianca Confirmada',nickname:null,modality:'kids',drinksBeer:false};
 const api=createServer(async(req,res)=>{
   res.setHeader('access-control-allow-origin','*');
   res.setHeader('content-type','application/json');
@@ -19,7 +20,10 @@ const api=createServer(async(req,res)=>{
   assert.equal(req.headers['idempotency-key'],undefined);
   requests++;
   if(fail)res.writeHead(503).end('{}');
-  else res.end(JSON.stringify({athletes:confirmedOnly?[runner]:[runner,walker],summary:{total:confirmedOnly?1:2,drinkers:1,nonDrinkers:confirmedOnly?0:1,preRegisteredCount:confirmedOnly?1:0,waitlistCount:33,capacity:2}}));
+  else {
+    const athletes=longList?Array.from({length:30},(_,index)=>({...runner,name:`Atleta ${index+1}`})):confirmedOnly?[runner]:kidsList?[runner,kid]:[runner,walker];
+    res.end(JSON.stringify({athletes,summary:{total:athletes.length,drinkers:longList?30:1,nonDrinkers:confirmedOnly||longList?0:1,preRegisteredCount:confirmedOnly?1:0,waitlistCount:33,capacity:2}}));
+  }
 });
 await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
 const apiPort=api.address().port;
@@ -82,7 +86,8 @@ try {
   assert.equal(await evaluate("document.querySelector('.counter-number').textContent"),'02');
   assert.equal(await evaluate("document.querySelectorAll('.drinks-yes').length"),1);
   assert.equal(await evaluate("document.querySelectorAll('.drinks-no').length"),1);
-  assert.ok((await evaluate("document.querySelector('.pill-waitlist').textContent")).includes('33'));
+  assert.equal(await evaluate("document.querySelector('.pill-waitlist')"),null);
+  assert.equal(await evaluate("document.querySelector('.btn-auto-scroll').disabled"),true);
   assert.equal((await evaluate("document.querySelector('.pill-pre-registered').textContent")).trim(),'0 PRÉ INSCRITOS');
   assert.equal(await evaluate("document.querySelector('.athlete-name').textContent"),'Joao "Relampago" Teste');
   const initial=await evaluate("document.querySelector('.athletes-list').textContent");
@@ -95,6 +100,19 @@ try {
   assert.equal(await evaluate("document.querySelector('.athlete-number').textContent"),'#01');
   await evaluate("(()=>{const input=document.querySelector('input');input.value='ausente';input.dispatchEvent(new Event('input',{bubbles:true}))})()");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===0"));
+  await evaluate("document.querySelector('.clear-search-btn').click()");
+  await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
+  kidsList=true;
+  await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
+  await until(()=>evaluate("!!document.querySelector('.kids-badge')"));
+  assert.equal((await evaluate("document.querySelector('.kids-badge').textContent")).trim(),'KIDS');
+  assert.equal(await evaluate("document.querySelector('.kids-badge').closest('.athlete-row').querySelector('.beer-status-tag')"),null);
+  assert.equal(await evaluate("document.querySelector('.counter-number').textContent"),'02');
+  assert.equal(await evaluate("document.querySelector('.counter-label').textContent"),'ATLETAS CONFIRMADOS');
+  await evaluate("(()=>{const input=document.querySelector('input');input.value='crianca';input.dispatchEvent(new Event('input',{bubbles:true}))})()");
+  await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===1"));
+  assert.equal(await evaluate("document.querySelector('.athlete-name').textContent"),'Crianca Confirmada');
+  assert.equal(await evaluate("document.querySelector('.athlete-number').textContent"),'#01');
   await evaluate("document.querySelector('.clear-search-btn').click()");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
   for(const width of [1100,375]){
@@ -111,12 +129,103 @@ try {
       writeFileSync(join(folder,'public-athletes-'+width+'.png'),Buffer.from(shot.data,'base64'));
     }
   }
+  kidsList=false;
   confirmedOnly=true;
   await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===1"));
   assert.equal(await evaluate("document.querySelectorAll('[role=tab], [aria-pressed]').length"),0);
   assert.equal((await evaluate("document.querySelector('.pill-pre-registered').textContent")).trim(),'1 PRÉ INSCRITOS');
   assert.equal(await evaluate("document.querySelector('.counter-number').textContent"),'01');
+  longList=true;
+  await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
+  await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===30"));
+  for(const width of [1100,375]){
+    await command('Emulation.setDeviceMetricsOverride',{width,height:950,deviceScaleFactor:1,mobile:false});
+    await evaluate("document.querySelector('.scroll-reset').click()");
+    await until(()=>evaluate("!document.querySelector('.btn-auto-scroll').disabled"));
+    assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'),false);
+    const controls=await evaluate("(()=>{const el=document.querySelector('.scroll-controls');const r=el.getBoundingClientRect();return {position:getComputedStyle(el).position,left:r.left,bottom:innerHeight-r.bottom,width:r.width,height:r.height}})()");
+    assert.equal(controls.position,'fixed');
+    assert.equal(controls.left,10);
+    assert.equal(controls.bottom,10);
+    assert.ok(controls.width<240 && controls.height<=52,'Floating controls stay compact');
+    assert.equal(await evaluate("document.querySelector('.scroll-duration input').value"),'30');
+    const distance=await evaluate("(()=>{const el=document.querySelector('.athletes-scroll-wrapper');return el.scrollHeight-el.clientHeight})()");
+    await evaluate("document.querySelector('.btn-auto-scroll').click()");
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display"),'none');
+    assert.equal(await evaluate("document.querySelector('.is-auto-scrolling')"),null);
+    await sleep(500);
+    assert.equal(await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop"),distance);
+    assert.equal(await evaluate("document.querySelector('.is-auto-scrolling')"),null);
+    await until(()=>evaluate("!!document.querySelector('.is-auto-scrolling')"));
+    const before=await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop");
+    assert.ok(before>distance*.98,'Playback starts at the bottom');
+    await sleep(500);
+    const after=await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop");
+    assert.ok((before-after)/distance>.01 && (before-after)/distance<.04,'Moves upward at a pace of one full list per 30 seconds');
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
+    assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display"),'none');
+    const paused=await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop");
+    await sleep(200);
+    assert.equal(await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop"),paused);
+    await evaluate("document.querySelector('.btn-auto-scroll').click()");
+    await evaluate("document.querySelector('.athletes-scroll-wrapper').dispatchEvent(new WheelEvent('wheel'))");
+    await sleep(1100);
+    assert.equal(await evaluate("document.querySelector('.is-auto-scrolling')"),null);
+    assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display"),'none');
+    await evaluate("document.querySelector('.scroll-reset').click()");
+    assert.equal(await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop"),distance);
+    await evaluate("document.querySelector('.btn-auto-scroll').click()");
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
+    await evaluate("(()=>{const el=document.querySelector('.athletes-scroll-wrapper');el.scrollTop=(el.scrollHeight-el.clientHeight)*.02;document.querySelector('.btn-auto-scroll').click()})()");
+    await until(()=>evaluate("!!document.querySelector('.is-auto-scrolling')"));
+    await until(()=>evaluate("!document.querySelector('.is-auto-scrolling')"));
+    assert.equal(await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop"),0);
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display"),'none');
+    await sleep(500);
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display"),'none');
+    await until(()=>evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display!=='none'"));
+    await evaluate("document.querySelector('.btn-auto-scroll').click()");
+    assert.ok(await evaluate("(()=>{const el=document.querySelector('.athletes-scroll-wrapper');return el.scrollTop>(el.scrollHeight-el.clientHeight)*.98})()"));
+    await evaluate("(()=>{const input=document.querySelector('input');input.value='ausente';input.dispatchEvent(new Event('input',{bubbles:true}))})()");
+    await until(()=>evaluate("document.querySelector('.btn-auto-scroll').disabled"));
+    assert.equal(await evaluate("document.querySelector('.is-auto-scrolling')"),null);
+    await evaluate("document.querySelector('.clear-search-btn').click()");
+    await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===30"));
+  }
+  // Advance animation timestamps deterministically to verify the full duration,
+  // including dropped frames, without waiting a real minute for each recording.
+  await evaluate(`(() => {
+    const request = window.requestAnimationFrame, cancel = window.cancelAnimationFrame;
+    const callbacks = new Map(); let id = 0, now;
+    window.requestAnimationFrame = callback => { callbacks.set(++id, callback); return id; };
+    window.cancelAnimationFrame = handle => callbacks.delete(handle);
+    window.startScrollClock = () => { now = performance.now(); };
+    window.advanceScrollClock = ms => { now += ms; const pending = [...callbacks.values()]; callbacks.clear(); pending.forEach(callback => callback(now)); };
+    window.restoreScrollClock = () => { window.requestAnimationFrame = request; window.cancelAnimationFrame = cancel; };
+  })()`);
+  for(const seconds of [23,47.5]){
+    await evaluate(`(() => { const input=document.querySelector('.scroll-duration input');input.value='${seconds}';input.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('.scroll-reset').click(); })()`);
+    await evaluate("document.querySelector('.btn-auto-scroll').click()");
+    await until(()=>evaluate("!!document.querySelector('.is-auto-scrolling')"));
+    await evaluate("window.startScrollClock()");
+    await evaluate(`window.advanceScrollClock(${seconds*500})`);
+    const remaining=await evaluate("(()=>{const el=document.querySelector('.athletes-scroll-wrapper');return el.scrollTop/(el.scrollHeight-el.clientHeight)})()");
+    assert.ok(Math.abs(remaining-.5)<.01,'Half the chosen time covers half the list');
+    await evaluate(`window.advanceScrollClock(${seconds*500})`);
+    assert.equal(await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop"),0);
+    assert.equal(await evaluate("document.querySelector('.is-auto-scrolling')"),null);
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display"),'none');
+    await until(()=>evaluate("getComputedStyle(document.querySelector('.scroll-controls')).display!=='none'"));
+  }
+  await evaluate("window.restoreScrollClock()");
+  for(const value of ['', '0', '-5']){
+    await evaluate(`(() => { const input=document.querySelector('.scroll-duration input');input.value='${value}';input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+    assert.equal(await evaluate("document.querySelector('.btn-auto-scroll').disabled"),true);
+  }
+  await evaluate("(()=>{const input=document.querySelector('.scroll-duration input');input.value='30';input.dispatchEvent(new Event('input',{bubbles:true}))})()");
+  assert.equal(await evaluate("document.querySelector('.btn-auto-scroll').disabled"),false);
+  longList=false;
   fail=true;
   await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
   await until(()=>evaluate("!!document.querySelector('[role=alert]')"));
@@ -124,8 +233,8 @@ try {
   fail=false;confirmedOnly=false;
   await evaluate("document.querySelector('[role=alert] button').click()");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
-  assert.equal(requests,5);
-  console.log('PASS: original layout, confirmed list, pre-registration counter including zero, server rule, counters, search, desktop/mobile, retry.');
+  assert.equal(requests,7);
+  console.log('PASS: confirmed list including Kids, KIDS badge without beverage tag, adult capacity, search, retry, desktop/mobile, custom durations, hidden controls, 1s lead-in and end delay, Escape pause, pending start cancellation and stop at top.');
 } finally {
   try { if(ws?.readyState===WebSocket.OPEN)await command('Browser.close'); } catch {}
   ws?.close();

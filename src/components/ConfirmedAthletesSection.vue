@@ -33,7 +33,29 @@
             </button>
           </div>
         </div>
-        <div class="athletes-scroll-wrapper" aria-live="polite" :aria-busy="loading">
+        <Teleport to="body">
+          <div v-show="!controlsHidden" class="scroll-controls font-condensed" role="group" aria-label="Rolagem automática dos atletas">
+            <button type="button" class="btn-auto-scroll" :disabled="!canScroll || !isDurationValid"
+              aria-label="Iniciar ou continuar rolagem de baixo para cima"
+              title="Rolar atletas de baixo para cima (Esc para pausar)"
+              aria-controls="athletes-scroll" @click="startAutoScroll">
+              <Play :size="16" aria-hidden="true" />
+            </button>
+            <label class="scroll-duration">Tempo
+              <input v-model.number="scrollDuration" type="number" min="1" step="any" required
+                aria-label="Tempo para percorrer toda a lista em segundos" :aria-invalid="!isDurationValid"
+                title="Duração total em segundos (mínimo de 1 segundo)" />
+              <span aria-hidden="true">s</span>
+            </label>
+            <button type="button" class="scroll-reset" :disabled="!canScroll" @click="resetScroll"
+              aria-label="Voltar ao fim da lista para recomeçar" title="Voltar ao fim da lista para recomeçar">
+              <RotateCcw :size="16" aria-hidden="true" />
+            </button>
+          </div>
+        </Teleport>
+        <div id="athletes-scroll" ref="scrollWrapper" class="athletes-scroll-wrapper" :class="{ 'is-auto-scrolling': isAutoScrolling }"
+          aria-label="Lista de atletas confirmados" tabindex="0" aria-live="polite" :aria-busy="loading"
+          @wheel.passive="stopAutoScroll" @pointerdown="stopAutoScroll" @touchstart.passive="stopAutoScroll" @keydown="handleScrollKey">
           <div v-if="loading && !athletes.length" class="loading-state font-condensed">
             <i class="fa-solid fa-spinner fa-spin loading-icon" aria-hidden="true"></i>
             <h4 class="font-slab">Carregando pelotão de atletas...</h4>
@@ -51,13 +73,13 @@
                 </div>
               </div>
               <div class="athlete-status-group">
-                <div v-if="athlete.drinksBeer !== null" :class="['beer-status-tag', athlete.drinksBeer ? 'drinks-yes' : 'drinks-no']" class="font-condensed">
+                <div v-if="athlete.modality !== 'kids' && athlete.drinksBeer !== null" :class="['beer-status-tag', athlete.drinksBeer ? 'drinks-yes' : 'drinks-no']" class="font-condensed">
                   <span class="status-icon" aria-hidden="true">{{ athlete.drinksBeer ? '🍺' : '🥤' }}</span>
                   <span class="status-text">{{ athlete.drinksBeer ? 'VAI BEBER' : 'NÃO VAI BEBER' }}</span>
                 </div>
-                <span class="confirmed-badge font-condensed">
-                  <i :class="athlete.modality === 'caminhada' ? 'fa-solid fa-person-walking' : 'fa-solid fa-person-running'" aria-hidden="true"></i>
-                  {{ athlete.modality === 'caminhada' ? 'Caminhada' : athlete.modality === 'corrida' ? 'Corrida' : 'Não informada' }}
+                <span class="confirmed-badge font-condensed" :class="{ 'kids-badge': athlete.modality === 'kids' }">
+                  <i :class="athlete.modality === 'kids' ? 'fa-solid fa-child-reaching' : athlete.modality === 'caminhada' ? 'fa-solid fa-person-walking' : 'fa-solid fa-person-running'" aria-hidden="true"></i>
+                  {{ athlete.modality === 'kids' ? 'KIDS' : athlete.modality === 'caminhada' ? 'Caminhada' : athlete.modality === 'corrida' ? 'Corrida' : 'Não informada' }}
                 </span>
               </div>
             </div>
@@ -81,13 +103,15 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { Play, RotateCcw } from 'lucide-vue-next'
 import { usePublicAthletes } from '../composables/usePublicAthletes.js'
 
 defineEmits(['open-registration'])
 const { athletes, summary, loading, error, refresh } = usePublicAthletes()
 const searchQuery = ref('')
-const isSoldOut = computed(() => summary.value && summary.value.total >= summary.value.capacity)
+// A capacidade da prova adulta não inclui as vagas separadas da corrida Kids.
+const isSoldOut = computed(() => summary.value && athletes.value.filter(athlete => athlete.modality !== 'kids').length >= summary.value.capacity)
 const normalize = value => (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 function displayName(name, nickname) {
   if (!name || name.includes('"') || !nickname?.trim()) return name || ''
@@ -100,6 +124,114 @@ const filteredAthletes = computed(() => {
   return athletes.value.map((athlete, index) => ({ ...athlete, position: athletes.value.length - index,
     displayName: displayName(athlete.name, athlete.nickname),
   })).filter(athlete => normalize(athlete.name).includes(query) || normalize(athlete.nickname).includes(query) || normalize(athlete.displayName).includes(query))
+})
+
+const scrollWrapper = ref(null)
+const scrollDuration = ref(30)
+const isDurationValid = computed(() => Number.isFinite(scrollDuration.value) && scrollDuration.value >= 1)
+const isAutoScrolling = ref(false)
+const controlsHidden = ref(false)
+const canScroll = ref(false)
+let startTimer
+let revealTimer
+let playbackSequence = 0
+let animationFrame = null
+let previousFrame = null
+let scrollProgress = 0
+let hasStarted = false
+let resizeObserver
+
+function stopAutoScroll() {
+  playbackSequence++
+  clearTimeout(startTimer)
+  clearTimeout(revealTimer)
+  controlsHidden.value = false
+  isAutoScrolling.value = false
+  if (animationFrame !== null) cancelAnimationFrame(animationFrame)
+  animationFrame = null
+  previousFrame = null
+}
+
+function updateScrollAvailability() {
+  const element = scrollWrapper.value
+  canScroll.value = !!element && element.scrollHeight > element.clientHeight + 1
+  if (!canScroll.value) stopAutoScroll()
+}
+
+function animateScroll(timestamp) {
+  const element = scrollWrapper.value
+  if (!element || !isAutoScrolling.value) return
+  // Use elapsed time and the full distance so the selected duration is independent
+  // of list length, screen size and frame rate. Paused time is excluded.
+  const elapsed = previousFrame === null ? 0 : timestamp - previousFrame
+  previousFrame = timestamp
+  const distance = Math.max(0, element.scrollHeight - element.clientHeight)
+  scrollProgress = Math.min(1, scrollProgress + elapsed / (scrollDuration.value * 1000))
+  element.scrollTop = distance * (1 - scrollProgress)
+  if (scrollProgress >= 1 || distance === 0) {
+    stopAutoScroll()
+    controlsHidden.value = true
+    revealTimer = setTimeout(() => { controlsHidden.value = false }, 1000)
+    return
+  }
+  animationFrame = requestAnimationFrame(animateScroll)
+}
+
+async function startAutoScroll() {
+  if (controlsHidden.value) return
+  updateScrollAvailability()
+  if (!canScroll.value || !isDurationValid.value) return
+  const element = scrollWrapper.value
+  const distance = element.scrollHeight - element.clientHeight
+  if (!hasStarted || element.scrollTop <= 1) element.scrollTop = distance
+  scrollProgress = 1 - element.scrollTop / distance
+  hasStarted = true
+  controlsHidden.value = true
+  const sequence = ++playbackSequence
+  // Wait for the panel to leave the screen before counting the clean lead-in.
+  await nextTick()
+  if (sequence !== playbackSequence) return
+  startTimer = setTimeout(() => {
+    previousFrame = performance.now()
+    isAutoScrolling.value = true
+    animationFrame = requestAnimationFrame(animateScroll)
+  }, 1000)
+}
+
+function resetScroll() {
+  stopAutoScroll()
+  hasStarted = false
+  scrollProgress = 0
+  const element = scrollWrapper.value
+  if (element) element.scrollTop = element.scrollHeight - element.clientHeight
+}
+
+function handleScrollKey(event) {
+  if (['Escape', ' ', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) stopAutoScroll()
+}
+
+function handleVisibilityChange() {
+  if (document.hidden) stopAutoScroll()
+}
+
+function handleEscape(event) {
+  if (event.key === 'Escape') stopAutoScroll()
+}
+
+watch(searchQuery, resetScroll, { flush: 'post' })
+watch(scrollDuration, resetScroll)
+watch([filteredAthletes, error], updateScrollAvailability, { flush: 'post' })
+onMounted(() => {
+  resizeObserver = new ResizeObserver(updateScrollAvailability)
+  resizeObserver.observe(scrollWrapper.value)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  document.addEventListener('keydown', handleEscape)
+})
+onUnmounted(() => {
+  stopAutoScroll()
+  resizeObserver?.disconnect()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  document.removeEventListener('keydown', handleEscape)
 })
 </script>
 
@@ -124,7 +256,17 @@ const filteredAthletes = computed(() => {
 .vintage-search:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 3px rgba(217,130,43,.2); width: 270px; }
 .clear-search-btn { position: absolute; right: 10px; background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
 .btn-register-quick { padding: 9px 16px; font-size: .95rem; box-shadow: 2px 2px 0 var(--accent-dark); }
-.athletes-scroll-wrapper { max-height: 440px; overflow-y: auto; padding-right: 6px; margin-bottom: 20px; }
+.scroll-controls { position: fixed; left: max(10px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); z-index: 90; display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--accent-border); border-radius: 10px; background: #f6efdf; box-shadow: 0 3px 12px rgba(25,23,20,.2); }
+.btn-auto-scroll, .scroll-reset { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--accent-border); border-radius: 6px; color: var(--text-dark); cursor: pointer; }
+.btn-auto-scroll { background: var(--accent-gold); }
+.scroll-controls button:disabled { opacity: .5; cursor: default; }
+.scroll-duration { display: flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 700; color: var(--text-dark); }
+.scroll-duration input { font: inherit; color: var(--text-dark); background: #fff; border: 1px solid var(--accent-border); border-radius: 6px; width: 60px; height: 36px; padding: 0 4px; }
+.scroll-duration input[aria-invalid="true"] { border-color: #8c2323; }
+.scroll-reset { background: transparent; }
+.scroll-controls :focus-visible, .athletes-scroll-wrapper:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 3px; }
+.athletes-scroll-wrapper { max-height: 440px; overflow-y: auto; scroll-behavior: auto; padding-right: 6px; margin-bottom: 20px; }
+.is-auto-scrolling .athlete-row:hover { transform: none; border-color: var(--accent-border); box-shadow: none; }
 .athletes-scroll-wrapper::-webkit-scrollbar { width: 8px; }
 .athletes-scroll-wrapper::-webkit-scrollbar-track { background: rgba(0,0,0,.05); border-radius: 4px; }
 .athletes-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--accent-dark); border-radius: 4px; }
@@ -141,6 +283,7 @@ const filteredAthletes = computed(() => {
 .beer-status-tag.drinks-no { background: #f1ede3; border-color: rgba(44,39,31,.25); color: var(--text-muted); }
 .status-icon { font-size: 1rem; }
 .confirmed-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(56,75,40,.12); color: var(--accent-green); border: 1px solid rgba(56,75,40,.3); padding: 4px 10px; border-radius: 4px; font-size: 1rem; font-weight: 800; letter-spacing: .5px; }
+.kids-badge { background: #fff0d4; color: #793f06; border-color: var(--accent-gold); }
 .loading-state, .empty-state { text-align: center; padding: 40px 20px; background: rgba(255,255,255,.5); border: 2px dashed rgba(44,39,31,.25); border-radius: 6px; }
 .loading-icon { font-size: 2.2rem; color: var(--accent-gold); margin-bottom: 12px; }
 .empty-icon { font-size: 2.5rem; color: var(--text-muted); margin-bottom: 12px; }
