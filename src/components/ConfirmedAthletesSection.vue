@@ -33,7 +33,7 @@
             </button>
           </div>
         </div>
-        <Teleport to="body">
+        <Teleport v-if="autoScrollEnabled" to="body">
           <div v-show="!controlsHidden" class="scroll-controls font-condensed" role="group" aria-label="Rolagem automática dos atletas">
             <button type="button" class="btn-auto-scroll" :disabled="!canScroll || !isDurationValid"
               aria-label="Iniciar ou continuar rolagem de baixo para cima"
@@ -108,6 +108,8 @@ import { Play, RotateCcw } from 'lucide-vue-next'
 import { usePublicAthletes } from '../composables/usePublicAthletes.js'
 
 defineEmits(['open-registration'])
+// Ferramenta de gravação local; nunca exibir no build publicado.
+const autoScrollEnabled = import.meta.env.DEV
 const { athletes, summary, loading, error, refresh } = usePublicAthletes()
 const searchQuery = ref('')
 // A capacidade da prova adulta não inclui as vagas separadas da corrida Kids.
@@ -178,7 +180,7 @@ function animateScroll(timestamp) {
 }
 
 async function startAutoScroll() {
-  if (controlsHidden.value) return
+  if (!autoScrollEnabled || controlsHidden.value) return
   updateScrollAvailability()
   if (!canScroll.value || !isDurationValid.value) return
   const element = scrollWrapper.value
@@ -203,7 +205,7 @@ function resetScroll() {
   hasStarted = false
   scrollProgress = 0
   const element = scrollWrapper.value
-  if (element) element.scrollTop = element.scrollHeight - element.clientHeight
+  if (element) element.scrollTop = autoScrollEnabled ? element.scrollHeight - element.clientHeight : 0
 }
 
 function handleScrollKey(event) {
@@ -219,9 +221,12 @@ function handleEscape(event) {
 }
 
 watch(searchQuery, resetScroll, { flush: 'post' })
-watch(scrollDuration, resetScroll)
-watch([filteredAthletes, error], updateScrollAvailability, { flush: 'post' })
+if (autoScrollEnabled) {
+  watch(scrollDuration, resetScroll)
+  watch([filteredAthletes, error], updateScrollAvailability, { flush: 'post' })
+}
 onMounted(() => {
+  if (!autoScrollEnabled) return
   resizeObserver = new ResizeObserver(updateScrollAvailability)
   resizeObserver.observe(scrollWrapper.value)
   document.addEventListener('visibilitychange', handleVisibilityChange)

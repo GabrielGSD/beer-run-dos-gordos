@@ -8,6 +8,7 @@ import {join,dirname,basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
+const productionUI=process.argv.includes('--production-ui');
 let fail=false,confirmedOnly=false,longList=false,kidsList=false,requests=0;
 const runner={name:'Joao Teste',nickname:'Relampago',modality:'corrida',drinksBeer:true};
 const walker={name:'Atleta Confirmado',nickname:'Passo Leve',modality:'caminhada',drinksBeer:false};
@@ -56,7 +57,7 @@ const harness = {
 };
 try {
   vite=await createViteServer({root,envDir:false,configFile:false,plugins:[harness,(await import('@vitejs/plugin-vue')).default()],
-    define:{'import.meta.env.VITE_API_URL':JSON.stringify('http://127.0.0.1:'+apiPort),
+    define:{'import.meta.env.DEV':!productionUI,'import.meta.env.VITE_API_URL':JSON.stringify('http://127.0.0.1:'+apiPort),
       'import.meta.env.VITE_SUPABASE_URL':'""','import.meta.env.VITE_SUPABASE_ANON_KEY':'""','import.meta.env.VITE_GA_MEASUREMENT_ID':'"G-XXXXXXXXXX"'},
     server:{host:'127.0.0.1',port:0},logLevel:'error'});
   await vite.listen();const port=vite.httpServer.address().port;
@@ -80,6 +81,28 @@ try {
   await command('Page.enable');await command('Fetch.enable',{patterns:[{urlPattern:'*'}]});
   await command('Page.navigate',{url:'http://127.0.0.1:'+port+'/athletes-test'});
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
+  if(productionUI){
+    assert.equal(await evaluate("document.querySelector('.scroll-controls')"),null);
+    longList=true;
+    await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
+    await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===30"));
+    for(const width of [1100,375]){
+      await command('Emulation.setDeviceMetricsOverride',{width,height:950,deviceScaleFactor:1,mobile:false});
+      assert.equal(await evaluate("document.querySelector('.scroll-controls')"),null);
+      assert.equal(await evaluate("document.querySelector('.is-auto-scrolling')"),null);
+      assert.ok(await evaluate("(()=>{const el=document.querySelector('.athletes-scroll-wrapper');el.scrollTop=100;return el.scrollTop>0})()"));
+      await evaluate("(()=>{const input=document.querySelector('input');input.value='Atleta 30';input.dispatchEvent(new Event('input',{bubbles:true}))})()");
+      await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===1"));
+      await evaluate("document.querySelector('.clear-search-btn').click()");
+      await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===30"));
+      assert.equal(await evaluate("document.querySelector('.athletes-scroll-wrapper').scrollTop"),0);
+    }
+    longList=false;kidsList=true;
+    await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
+    await until(()=>evaluate("!!document.querySelector('.kids-badge')"));
+    assert.equal(await evaluate("document.querySelector('.scroll-controls')"),null);
+    console.log('PASS: production UI has no recording controls, manual scrolling and search work on desktop/mobile, KIDS badge preserved.');
+  } else {
   assert.equal(await evaluate("document.querySelectorAll('[role=tab], [aria-pressed], .athletes-groups').length"),0);
   assert.equal(await evaluate("document.querySelector('.section-title').textContent"),'ATLETAS CONFIRMADOS');
   assert.equal(await evaluate("document.querySelector('.counter-label').textContent"),'VAGAS PREENCHIDAS');
@@ -235,6 +258,7 @@ try {
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
   assert.equal(requests,7);
   console.log('PASS: confirmed list including Kids, KIDS badge without beverage tag, adult capacity, search, retry, desktop/mobile, custom durations, hidden controls, 1s lead-in and end delay, Escape pause, pending start cancellation and stop at top.');
+  }
 } finally {
   try { if(ws?.readyState===WebSocket.OPEN)await command('Browser.close'); } catch {}
   ws?.close();
