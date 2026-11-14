@@ -14,7 +14,7 @@ const orderId = '11365080-47dc-4ec7-9d40-ab1766dbaf83';
 const checkoutUrl = 'https://checkout.infinitepay.io/test-only';
 let vite, browser, ws, sequence = 0, created = 0, lastPayload, eligibility = 'CONTINUE', checkoutMode = 'ready';
 let coupon = false, checkoutVisits = 0;
-const kidsOrders = new Map(); let kidsEnabled = true, disconnect = false;
+const kidsOrders = new Map(); let kidsEnabled = true, disconnect = false, kidsRemaining = 30;
 const kidsKeys = [];
 const requests = [], exceptions = [], pending = new Map();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -67,7 +67,10 @@ try {
         const result = { orderId: id, amount: body.shirtIncluded ? 6600 : 4000, status: 'PENDING_PAYMENT', checkoutState: 'UNKNOWN', checkoutUrl: null, paymentReviewRequired: true, registration: { ...body, modality: 'kids', shirtModel: body.shirtIncluded ? 'KIDS' : null, shirtSize: body.shirtSize || null, beer: false } };
         kidsOrders.set(id, result); await respond(result, 202);
       } else if (url.pathname.match(/^\/api\/orders\/[^/]+\/status$/) && kidsOrders.has(url.pathname.split('/')[3])) await respond(kidsOrders.get(url.pathname.split('/')[3]));
-      else if (url.pathname === '/api/athletes') await respond({ athletes: [], summary: { total: 0, drinkers: 0, nonDrinkers: 0, capacity: 100, preRegisteredCount: 0, waitlistCount: 20 } });
+      else if (url.pathname === '/api/athletes') {
+        const athletes = Array.from({ length: kidsRemaining === 0 ? 100 : 0 }, (_, i) => ({ name: `Confirmado ${i}`, nickname: null, modality: i < 70 ? 'corrida' : 'kids', drinksBeer: false }));
+        await respond({ athletes, summary: { total: athletes.length, drinkers: 0, nonDrinkers: athletes.length, capacity: 100, preRegisteredCount: 0, waitlistCount: 20 } });
+      }
       else if (url.pathname === '/api/sponsors') await respond({ rows: [] });
       else if (url.pathname === '/api/registrations/eligibility') await respond(eligibility === 'STATUS_AVAILABLE'
         ? { action: eligibility, summary: { status: 'PAID', checkoutUrl: null, reservationExpired: false, paymentReviewRequired: false } }
@@ -99,6 +102,7 @@ try {
     await evaluate('document.fonts.ready.then(() => true)');
     const width = await evaluate('innerWidth');
     if ([390,1440].includes(width)) await screenshot('categorias-' + width);
+    await until(() => evaluate("document.querySelector('[data-category=kids]')?.disabled === false"));
     await click('[data-category=kids]');
     await until(() => evaluate("!!document.querySelector('.kids-form')"), 'kids');
   };
@@ -133,7 +137,7 @@ try {
   await click('[data-category=kids]');
   await until(() => evaluate("!!document.querySelector('#kids-name')"));
   const next = () => click('.kids-actions .next-button');
-  assert.ok((await bodyText()).includes('30 vagas no total'));
+  assert.ok((await bodyText()).includes('100 atletas confirmados entre Adulto e Kids'));
   assert.ok((await bodyText()).includes('De 1 a 13 anos'));
   await set('#kids-name', 'Teste Idade Minima'); await set('#kids-birth', '30/11/2025'); await next();
   await until(() => evaluate("!!document.querySelector('.kids-error')"));
@@ -230,6 +234,7 @@ try {
   await until(() => evaluate("!!document.querySelector('.kids-error')"));
   const originalPayload = JSON.stringify(lastPayload), originalKey = kidsKeys.at(-1);
   assert.ok(originalKey);
+  kidsRemaining = 0; // A tentativa incerta pode ter reservado a ultima vaga.
   await command('Page.reload'); await until(() => evaluate("!!document.querySelector('#kids-terms')"));
   assert.ok((await bodyText()).includes('Terceira Criança'));
   disconnect = false; await next();

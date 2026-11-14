@@ -28,8 +28,8 @@
                 aria-label="Buscar atleta por nome ou apelido" class="vintage-search font-condensed" />
               <button v-if="searchQuery" type="button" @click="searchQuery = ''" class="clear-search-btn" aria-label="Limpar busca">&times;</button>
             </div>
-            <button type="button" @click="$emit('open-registration', 'atletas_topo_rapido')" class="btn-vintage btn-register-quick font-slab">
-              <i class="fa-solid fa-plus" aria-hidden="true"></i> QUERO PARTICIPAR
+            <button type="button" :disabled="registrationsClosed" @click="$emit('open-registration', 'atletas_topo_rapido')" class="btn-vintage btn-register-quick font-slab">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ registrationLabel('QUERO PARTICIPAR') }}
             </button>
           </div>
         </div>
@@ -88,13 +88,13 @@
             <i class="fa-solid fa-magnifying-glass-chart empty-icon" aria-hidden="true"></i>
             <h4 class="font-slab">{{ searchQuery.trim() ? `Nenhum atleta encontrado com "${searchQuery}"` : 'Ainda não há atletas na lista.' }}</h4>
             <p>Seja o primeiro a se inscrever ou confira se o nome foi digitado corretamente!</p>
-            <button type="button" @click="$emit('open-registration', 'atletas_busca_vazia')" class="btn-vintage btn-empty-cta font-slab">GARANTIR MINHA VAGA AGORA</button>
+            <button type="button" :disabled="registrationsClosed" @click="$emit('open-registration', 'atletas_busca_vazia')" class="btn-vintage btn-empty-cta font-slab">{{ registrationLabel('GARANTIR MINHA VAGA AGORA') }}</button>
           </div>
         </div>
         <div class="athletes-footer-ribbon">
           <div class="footer-cta-text font-condensed"><strong>FALTA O SEU NOME AQUI?</strong> Garanta seu kit com medalha, copo, chopp gelado e churrasco!</div>
-          <button type="button" @click="$emit('open-registration', 'atletas_faixa_rodape')" class="btn-vintage btn-footer-cta font-slab">
-            INSCREVER-SE AGORA <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          <button type="button" :disabled="registrationsClosed" @click="$emit('open-registration', 'atletas_faixa_rodape')" class="btn-vintage btn-footer-cta font-slab">
+            {{ registrationLabel('INSCREVER-SE AGORA') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -106,14 +106,16 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Play, RotateCcw } from 'lucide-vue-next'
 import { usePublicAthletes } from '../composables/usePublicAthletes.js'
+import { useRegistrationAvailability, TOTAL_REGISTRATION_CAPACITY } from '../composables/useRegistrationAvailability.js'
+const { registrationsClosed, registrationLabel } = useRegistrationAvailability()
 
 defineEmits(['open-registration'])
 // Ferramenta de gravação local; nunca exibir no build publicado.
 const autoScrollEnabled = import.meta.env.DEV
 const { athletes, summary, loading, error, refresh } = usePublicAthletes()
 const searchQuery = ref('')
-// A capacidade da prova adulta não inclui as vagas separadas da corrida Kids.
-const isSoldOut = computed(() => summary.value && athletes.value.filter(athlete => athlete.modality !== 'kids').length >= summary.value.capacity)
+// O estoque de medalhas e compartilhado por todos os atletas confirmados.
+const isSoldOut = computed(() => summary.value && summary.value.total >= TOTAL_REGISTRATION_CAPACITY)
 const normalize = value => (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 function displayName(name, nickname) {
   if (!name || name.includes('"') || !nickname?.trim()) return name || ''

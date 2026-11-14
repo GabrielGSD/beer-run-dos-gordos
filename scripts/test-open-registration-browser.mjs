@@ -14,6 +14,7 @@ const orderId = '11365080-47dc-4ec7-9d40-ab1766dbaf83';
 const checkoutUrl = 'https://checkout.infinitepay.io/test-only';
 let vite, browser, ws, sequence = 0, created = 0, lastPayload, eligibility = 'CONTINUE', checkoutMode = 'ready';
 let coupon = false, checkoutVisits = 0;
+let confirmedAdults = 0, confirmedKids = 0, availabilityFails = false;
 const requests = [], exceptions = [], pending = new Map();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(fn, label = 'condicao') { for (let i = 0; i < 120; i++) { const result = await fn(); if (result) return result; await delay(100); } throw new Error('Timeout: ' + label); }
@@ -51,7 +52,11 @@ try {
     if (url.port === '19999') {
       if (request.method === 'OPTIONS') { await respond({}); return; }
       requests.push(url.pathname);
-      if (url.pathname === '/api/athletes') await respond({ athletes: [], summary: { total: 0, drinkers: 0, nonDrinkers: 0, capacity: 100, preRegisteredCount: 0, waitlistCount: 20 } });
+      if (url.pathname === '/api/registrations/kids/offer') await respond({ enabled: true, capacity: 30, eventDate: '2026-11-29', minAge: 1, maxAge: 13, amount: 4000, shirtAmount: 2600, shirtSizes: ['2', '4', '6'] });
+      else if (url.pathname === '/api/athletes') {
+        const athletes = Array.from({ length: confirmedAdults + confirmedKids }, (_, i) => ({ name: `Confirmado ${i}`, nickname: null, modality: i < confirmedAdults ? 'corrida' : 'kids', drinksBeer: false }));
+        await respond(availabilityFails ? {} : { athletes, summary: { total: athletes.length, drinkers: 0, nonDrinkers: athletes.length, capacity: 300, preRegisteredCount: 500, waitlistCount: 20 } }, availabilityFails ? 503 : 200);
+      }
       else if (url.pathname === '/api/sponsors') await respond({ rows: [] });
       else if (url.pathname === '/api/registrations/eligibility') await respond(eligibility === 'STATUS_AVAILABLE'
         ? { action: eligibility, summary: { status: 'PAID', checkoutUrl: null, reservationExpired: false, paymentReviewRequired: false } }
@@ -59,7 +64,8 @@ try {
       else if (url.pathname === '/api/coupons/quote') { const input = JSON.parse(request.postData); const originalAmount = input.beer ? 10000 : 9000; await respond({ originalAmount, discountAmount: 1000, amount: originalAmount - 1000, currency: 'BRL' }); }
       else if (url.pathname === '/api/registrations') {
         created++; lastPayload = JSON.parse(request.postData); await delay(180);
-        if (checkoutMode === 'conflict') await respond({ error: { code: 'REGISTRATION_CONFLICT', message: 'CPF ou telefone ja cadastrado.' } }, 409);
+        if (checkoutMode === 'full') await respond({ error: { code: 'EVENT_FULL', message: 'Nao ha vagas disponiveis no momento.' } }, 409);
+        else if (checkoutMode === 'conflict') await respond({ error: { code: 'REGISTRATION_CONFLICT', message: 'CPF ou telefone ja cadastrado.' } }, 409);
         else await respond({ orderId, status: 'PENDING_PAYMENT', amount: lastPayload.beer ? 10000 : 9000, discountAmount: 0, currency: 'BRL', checkoutState: checkoutMode === 'ready' ? 'READY' : 'UNKNOWN', checkoutUrl: checkoutMode === 'ready' ? checkoutUrl : null }, checkoutMode === 'ready' ? 201 : 202);
       } else if (url.pathname.endsWith('/status')) await respond({ orderId, status: 'PENDING_PAYMENT', amount: 9000, checkoutState: 'UNKNOWN', paymentReviewRequired: true });
       else throw new Error('API inesperada: ' + url.pathname);
@@ -78,8 +84,11 @@ try {
     if (hash) {
       await evaluate(`location.hash=${JSON.stringify(hash)}`);
       await until(() => evaluate("!!document.querySelector('.category-selection, .registration-form, .consultation-page')"), 'inscricao');
-      if (await evaluate("!!document.querySelector('.category-selection')")) await click('[data-category=adulto]');
-      await until(() => evaluate("!!document.querySelector('.registration-form, .consultation-page')"), 'adulto');
+      if (await evaluate("!!document.querySelector('.category-selection')")) {
+        await until(() => evaluate("document.querySelector('[data-category=adulto]')?.disabled === false"));
+        await click('[data-category=adulto]');
+      }
+      await until(() => evaluate("!!document.querySelector('.consultation-page') || document.querySelector('.registration-form')?.offsetParent != null"), 'adulto');
     }
   };
   for (const width of [320, 390, 768, 1440]) {
@@ -246,7 +255,94 @@ try {
   assert.equal(await evaluate("document.querySelector('#reg-name').value"), 'Atleta Teste');
   assert.equal(checkoutVisits, 1);
   assert.ok(!requests.some(path => path.includes('/waitlist')));
+  // 99 confirmados + 500 pre-inscritos mantem as duas categorias abertas.
+  confirmedAdults = 98; confirmedKids = 1; checkoutMode = 'ready';
+  await navigate('');
+  await until(() => evaluate("document.querySelector('.counter-number')?.innerText === '99'"));
+  assert.equal(await evaluate("document.querySelector('.hero-remaining strong').textContent.trim()"), 'Última vaga');
+  assert.ok((await evaluate("document.querySelector('.hero-remaining').getAttribute('aria-label')")).includes('99 de 100 confirmados'));
+  assert.equal(await evaluate("document.querySelector('.hero-btn').disabled"), false);
+  await click('.hero-btn');
+  await until(() => evaluate("document.querySelector('[data-category=adulto]')?.disabled === false"));
+  assert.equal(await evaluate("document.querySelector('[data-category=kids]').disabled"), false);
+
+  // O centesimo confirmado e Kids: reconsulta antes do POST impede novo pedido.
+  await navigate(); await set('#shirt-model', 'UNISEX'); await set('#shirt-size', 'M'); await click('.next-button'); await fill();
+  const beforeLimit = created;
+  confirmedKids = 2;
+  await click('.next-button');
+  await until(() => evaluate("document.querySelector('.availability-notice')?.innerText.includes('100 atletas confirmados')"));
+  assert.equal(created, beforeLimit, 'Nao envia POST quando a consulta final ja conta 100');
+  assert.equal(await evaluate("document.querySelector('#reg-name').value"), 'Atleta Teste');
+  assert.equal(await evaluate("document.querySelector('.registration-form').offsetParent"), null);
+
+  for (const width of [390, 1440]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 500 });
+    await navigate('');
+    await until(() => evaluate("document.querySelector('.hero-btn')?.disabled === true"));
+    assert.ok((await bodyText()).includes('VAGAS ESGOTADAS'));
+    assert.equal(await evaluate("document.querySelector('.counter-number').innerText"), '100');
+    assert.equal(await evaluate("document.querySelector('.hero-remaining')"), null, 'Esgotado nao anuncia vagas restantes');
+    assert.equal(await evaluate("document.querySelector('.counter-label').innerText"), 'VAGAS PREENCHIDAS');
+    await evaluate("location.hash='#inscricao'");
+    await until(() => evaluate("document.querySelector('[data-category=adulto]')?.disabled === true"));
+    assert.equal(await evaluate("document.querySelector('[data-category=kids]').disabled"), true);
+    assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'), false);
+    await screenshot('limite-conjunto-100-' + width);
+    for (const [category, selector] of [['adulto', '.registration-form'], ['kids', '.kids-form']]) {
+      await evaluate(`location.hash='#inscricao?categoria=${category}'`);
+      await until(() => evaluate(`!!document.querySelector('${selector}')`));
+      assert.equal(await evaluate(`document.querySelector('${selector}').offsetParent`), null, 'Link direto tambem bloqueado');
+    }
+  }
+
+  // Consultas existentes continuam acessiveis com as duas categorias cheias.
+  await evaluate("location.hash='#inscricao?categoria=kids&consulta=1'");
+  await until(() => evaluate("!!document.querySelector('.kids-saved') && !document.querySelector('.kids-form-card')"));
+  eligibility = 'STATUS_AVAILABLE';
+  await evaluate("location.hash='#inscricao?consulta=1'");
+  await until(() => evaluate("!!document.querySelector('.consultation-page')"));
+  await set('#lookup-phone', '35999991234'); await click('.lookup-controls button');
+  await until(() => evaluate("!!document.querySelector('.public-status')"));
+  assert.ok((await bodyText()).includes('Seu pagamento está confirmado'));
+
+  // Reabertura em 94 e fechamento acima de 100 sem recarregar a pagina.
+  await navigate('');
+  await until(() => evaluate("document.querySelector('.hero-btn')?.disabled === true"));
+  confirmedAdults = 90; confirmedKids = 4;
+  await evaluate("window.dispatchEvent(new Event('focus'))");
+  await until(() => evaluate("document.querySelector('.hero-btn')?.disabled === false"));
+  assert.equal(await evaluate("document.querySelector('.counter-number').innerText"), '94');
+  assert.equal(await evaluate("document.querySelector('.hero-remaining strong').textContent.trim()"), 'Últimas 6 vagas');
+  for (const width of [390, 1440]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 500 });
+    await evaluate("document.querySelector('.hero-cta-box').scrollIntoView({block:'center',behavior:'instant'})");
+    assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'), false, 'Contador de vagas sem overflow');
+    await screenshot('hero-ultimas-vagas-' + width);
+  }
+  confirmedAdults = 70; confirmedKids = 4;
+  await evaluate("window.dispatchEvent(new Event('focus'))");
+  await until(() => evaluate("document.querySelector('.hero-remaining strong')?.textContent.trim() === 'Restam 26 vagas'"));
+  assert.equal(await evaluate("document.querySelector('.hero-remaining').classList.contains('is-urgent')"), false);
+  confirmedAdults = 97; confirmedKids = 4;
+  await evaluate("window.dispatchEvent(new Event('focus'))");
+  await until(() => evaluate("document.querySelector('.hero-btn')?.disabled === true"));
+  assert.equal(await evaluate("document.querySelector('.counter-number').innerText"), '101');
+
+  availabilityFails = true;
+  await navigate('');
+  await until(() => evaluate("document.querySelector('.hero-remaining') === null"));
+  await evaluate("location.hash='#inscricao'");
+  await until(() => evaluate("document.querySelector('.availability-notice')?.innerText.includes('Não foi possível consultar')"));
+  assert.equal(await evaluate("document.querySelector('[data-category=adulto]').disabled"), true);
+  assert.ok(!(await bodyText()).includes('VAGAS ESGOTADAS'));
+  availabilityFails = false; confirmedAdults = 90; confirmedKids = 4;
+  await click('.availability-notice button');
+  await until(() => evaluate("document.querySelector('[data-category=adulto]')?.disabled === false"));
+  assert.equal(await evaluate("document.querySelector('[data-category=kids]').disabled"), false);
+  assert.ok(!requests.includes('/api/registrations/availability'), 'Funciona sem a nova rota do backend');
   assert.equal(exceptions.length, 0, JSON.stringify(exceptions));
+  console.log('PASS: vagas por categoria, links diretos, ultima vaga concorrente, atualizacao automatica, reabertura, consulta com lotacao, falha/retry e mobile/desktop.');
   console.log('PASS: home 320/390/768/1440, desktop alinhado, cinco etapas isoladas, resumo antes do pagamento, validacao/foco, camiseta, rascunho, edicao, cupons, clique duplo, checkout direto, falha recuperavel, conflitos, consulta e links antigos.');
 } finally {
   ws?.close(); browser?.kill(); await vite?.close();
@@ -256,3 +352,4 @@ try {
     try { rmSync(resolved, { recursive: true, force: true }); } catch { /* Chrome pode liberar arquivos depois. */ }
   }
 }
+

@@ -151,6 +151,7 @@
         </div>
       </section>
       <div v-else class="reg-container">
+        <RegistrationAvailabilityNotice category="adult" />
         <details
           v-if="!hideLookupPanel && lookupOpen"
           class="auth-form-box lookup-panel"
@@ -204,6 +205,7 @@
           Progresso recuperado. Confira seus dados.
         </p>
         <form
+          v-show="canRegister('adult') || pendingAttempt"
           class="reg-form registration-form"
           novalidate
           @submit.prevent="submitStep"
@@ -1293,6 +1295,9 @@ import {
   watch,
 } from "vue";
 import PaymentStatusPage from "./PaymentStatusPage.vue";
+import RegistrationAvailabilityNotice from './RegistrationAvailabilityNotice.vue';
+import { useRegistrationAvailability } from '../composables/useRegistrationAvailability.js';
+const { canRegister, markSoldOut, refreshAvailability } = useRegistrationAvailability();
 import PublicRegistrationStatus from "./PublicRegistrationStatus.vue";
 import CouponEntry from "./CouponEntry.vue";
 import ShirtSizeGuide from "./ShirtSizeGuide.vue";
@@ -1305,7 +1310,8 @@ import {
 } from "../services/shirts.js";
 import { registrationPrice, money } from "../services/registration-offer.js";
 import { resolveRegistrationAthlete } from "../services/registration-access.js";
-import { submitRegistration, openCheckout } from "../services/checkout.js";
+import { submitRegistration, openCheckout, hasPendingRegistration } from "../services/checkout.js";
+const pendingAttempt = ref(hasPendingRegistration());
 import {
   trackPageView,
   trackRegistrationEvent,
@@ -1710,7 +1716,7 @@ async function lookupRegistration() {
   }
 }
 async function submitStep() {
-  if (busy.value) return;
+  if (busy.value || (!canRegister('adult') && !pendingAttempt.value)) return;
   submitError.value = "";
   conflict.value = false;
   if (!(await validate(returnToSummary.value ? 4 : step.value))) return;
@@ -1736,6 +1742,10 @@ async function submitStep() {
     chopp: form.drinksBeer,
   });
   try {
+    if (!hasPendingRegistration()) {
+      await refreshAvailability();
+      if (!canRegister('adult')) return;
+    }
     const result = await submitRegistration({
       name: form.name.trim(),
       nickname: form.nickname.trim(),
@@ -1790,6 +1800,7 @@ async function submitStep() {
         "Seu pedido foi salvo. Estamos preparando o pagamento; consulte o status abaixo para continuar.";
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
+    if (error.code === 'EVENT_FULL') markSoldOut('adult');
     conflict.value = error.code === "REGISTRATION_CONFLICT";
     submitError.value =
       error.message ||
@@ -1800,6 +1811,7 @@ async function submitStep() {
     });
   } finally {
     busy.value = false;
+    pendingAttempt.value = hasPendingRegistration();
   }
 }
 function saveOnExit() {

@@ -10,18 +10,22 @@
       <section v-if="!category" class="flow-card category-selection" aria-labelledby="category-title">
         <div class="flow-step-header">
           <h1 id="category-title" class="section-title font-slab" tabindex="-1">PARA QUEM É A INSCRIÇÃO?</h1>
-          <p class="flow-subtitle">Escolha a categoria para preencher sua inscrição.</p>
+          <p class="flow-subtitle">Escolha a categoria. Limite de {{ TOTAL_REGISTRATION_CAPACITY }} atletas confirmados, somando Adulto e Kids.</p>
         </div>
         <div class="category-options">
-          <button class="category-option" data-category="adulto" @click="choose('adulto')">
+          <button class="category-option" data-category="adulto" :disabled="!canRegister('adult')" @click="choose('adulto')">
             <span class="category-heading"><i class="fa-solid fa-person-running" aria-hidden="true"></i><span class="font-slab">ADULTO</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
             <span class="category-description">Corrida ou caminhada · 6,37 km</span>
+            <strong v-if="availability?.adult.soldOut">VAGAS ESGOTADAS</strong>
           </button>
-          <button class="category-option" data-category="kids" @click="choose('kids')">
+          <button class="category-option" data-category="kids" :disabled="!canRegister('kids')" @click="choose('kids')">
             <span class="category-heading"><i class="fa-solid fa-child-reaching" aria-hidden="true"></i><span class="font-slab">KIDS</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-            <span class="category-description">De 1 a 13 anos · 30 vagas</span>
+            <span class="category-description">De 1 a 13 anos</span>
+            <strong v-if="availability?.kids.soldOut">VAGAS ESGOTADAS</strong>
           </button>
         </div>
+        <RegistrationAvailabilityNotice category="adult" />
+        <RegistrationAvailabilityNotice v-if="availability && !availability.soldOut && !canRegister('kids')" category="kids" />
         <div class="category-consultation"><strong>JÁ SE INSCREVEU?</strong><a href="#inscricao?consulta=1">Consultar inscrição Adulto</a><a href="#inscricao?categoria=kids&consulta=1">Consultar inscrição Kids</a></div>
       </section>
       <div v-else class="flow-category-bar font-condensed">
@@ -39,6 +43,9 @@
 
 <script setup>
 import { defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import RegistrationAvailabilityNotice from './RegistrationAvailabilityNotice.vue'
+import { useRegistrationAvailability, TOTAL_REGISTRATION_CAPACITY } from '../composables/useRegistrationAvailability.js'
+const { availability, canRegister, refreshAvailability } = useRegistrationAvailability()
 const OfficialRegistrationPage = defineAsyncComponent(() => import('./OfficialRegistrationPage.vue'))
 const KidsRegistrationPage = defineAsyncComponent(() => import('./KidsRegistrationPage.vue'))
 defineEmits(['go-home'])
@@ -54,6 +61,7 @@ function readRoute() {
 }
 async function choose(value) {
   if (navigationLocked.value) return
+  if (value && !canRegister(value === 'kids' ? 'kids' : 'adult')) return
   window.location.hash = value ? `#inscricao?categoria=${value}` : '#inscricao'
   category.value = value
   consultation.value = false
@@ -63,6 +71,7 @@ async function choose(value) {
 }
 readRoute()
 onMounted(() => window.addEventListener('hashchange', readRoute))
+onMounted(() => refreshAvailability())
 onUnmounted(() => window.removeEventListener('hashchange', readRoute))
 </script>
 

@@ -103,3 +103,5 @@
   .registration-flow .flow-bottom-bar .next-button { grid-column: 2; width: 100%; min-width: 0; padding: 12px; font-size: .82rem; }
   .registration-flow .flow-bottom-bar.is-first-step .next-button { grid-column: 1 / -1; }
 }
+.category-option:disabled { opacity: .65; cursor: not-allowed; }
+.category-option:disabled strong { color: #8c271f; }

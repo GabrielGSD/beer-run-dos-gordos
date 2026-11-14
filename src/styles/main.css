@@ -161,7 +161,8 @@ h4,
   transition: all 0.15s ease;
 }
 
-.btn-vintage:hover {
+.btn-vintage:disabled { opacity: .65; cursor: not-allowed; }
+.btn-vintage:hover:not(:disabled) {
   background-color: var(--accent-amber);
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0px var(--accent-dark);

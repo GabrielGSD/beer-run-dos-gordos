@@ -69,6 +69,12 @@ export function loadPendingKidsRegistration() {
   try { return JSON.parse(sessionStorage.getItem(pendingKey + '_kids') || 'null')?.body || null }
   catch { return null }
 }
+export function hasPendingRegistration(category = 'ADULT') {
+  try {
+    const pending = JSON.parse(sessionStorage.getItem(category === 'KIDS' ? pendingKey + '_kids' : pendingKey) || 'null')
+    return !!pending && uuid.test(pending.key) && typeof pending.hash === 'string'
+  } catch { return false }
+}
 export const getOrderStatus = context => request('/api/orders/' + context.orderId + '/status', context)
 export const refreshOrderPayment = context => request('/api/orders/' + context.orderId + '/refresh', { ...context, body: {} })
 export const refreshPaymentByPhone = phone => request('/api/registrations/payment-check', { body: { phone } })

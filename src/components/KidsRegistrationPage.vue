@@ -6,12 +6,13 @@
     </template>
     <template v-else>
       <section v-if="!consultationOnly" class="flow-card kids-form-card">
+        <RegistrationAvailabilityNotice category="kids" />
         <p v-if="loading" role="status">Carregando informações da inscrição…</p>
         <p v-if="error" class="kids-error flow-error" role="alert">{{ error }}</p>
         <button v-if="!loading && !offer" class="flow-text-button" @click="loadOffer">Tentar novamente</button>
         <p v-if="offer && !offer.enabled" class="flow-notice">As inscrições Kids ainda não estão abertas. Acompanhe a abertura por aqui.</p>
         <template v-if="offer?.enabled">
-          <form ref="formElement" class="kids-form flow-form" @submit.prevent="next">
+          <form v-show="canRegister('kids') || pendingAttempt" ref="formElement" class="kids-form flow-form" @submit.prevent="next">
             <fieldset :disabled="busy">
               <div class="flow-step-header">
                 <h2 class="section-title font-slab" tabindex="-1" ref="stepHeading"><span class="flow-step-number font-condensed">{{ step }}</span>{{ steps[step - 1] }}</h2>
@@ -19,7 +20,7 @@
               </div>
               <template v-if="step === 1">
                 <section class="flow-offer" aria-label="Kit e regras da corrida Kids">
-                  <p><strong>De {{ offer.minAge }} a {{ offer.maxAge }} anos · {{ offer.capacity }} vagas no total</strong><br />Idade considerada em {{ eventDateLabel }}, na data do evento.</p>
+                  <p><strong>De {{ offer.minAge }} a {{ offer.maxAge }} anos · Limite de {{ TOTAL_REGISTRATION_CAPACITY }} atletas confirmados entre Adulto e Kids</strong><br />Idade considerada em {{ eventDateLabel }}, na data do evento.</p>
                   <p class="flow-note"><strong>No kit da criança:</strong> 1 espetinho, bebida sem álcool, copo infantil, medalha e participação nos sorteios.</p>
                   <dl class="flow-prices">
                     <div><dt>SEM CAMISETA</dt><dd class="font-slab">{{ money(offer.amount) }}</dd></div>
@@ -115,11 +116,15 @@
 <script setup>
 import { computed, nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import BirthDateInput from './BirthDateInput.vue'
+import RegistrationAvailabilityNotice from './RegistrationAvailabilityNotice.vue'
+import { useRegistrationAvailability, TOTAL_REGISTRATION_CAPACITY } from '../composables/useRegistrationAvailability.js'
+const { canRegister, markSoldOut, refreshAvailability } = useRegistrationAvailability()
 import PaymentStatusPage from './PaymentStatusPage.vue'
 import ShirtSizeGuide from './ShirtSizeGuide.vue'
 import { KIDS_SHIRT_CHARTS } from '../services/shirts.js'
 import { publicRequest } from '../services/public-api.js'
-import { submitRegistration, openCheckout, listOrderContexts, getOrderStatus, loadPendingKidsRegistration } from '../services/checkout.js'
+import { submitRegistration, openCheckout, listOrderContexts, getOrderStatus, loadPendingKidsRegistration, hasPendingRegistration } from '../services/checkout.js'
+const pendingAttempt = ref(hasPendingRegistration('KIDS'))
 defineProps({ consultationOnly: { type: Boolean, default: false } })
 const emit = defineEmits(['go-home', 'navigation-lock'])
 const steps = ['DADOS DA CRIANÇA', 'DADOS DO RESPONSÁVEL', 'KIT E PARTICIPAÇÃO', 'RESUMO E AUTORIZAÇÃO']
@@ -165,7 +170,7 @@ function validCpf(value) {
 }
 async function go(target) { step.value = target; error.value = ''; await nextTick(); stepHeading.value?.focus(); formElement.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 async function next() {
-  if (busy.value || !formElement.value.reportValidity()) return
+  if (busy.value || (!canRegister('kids') && !pendingAttempt.value) || !formElement.value.reportValidity()) return
   error.value = ''
   if (step.value === 1 && (!form.birthDate || form.birthDate > today || age.value < offer.value.minAge || age.value > 13)) { error.value = `Informe uma data válida. A criança deve ter ${offer.value.minAge ? `entre ${offer.value.minAge} e 13` : 'até 13'} anos na data do evento.`; return }
   if (step.value === 2 && (!validCpf(form.guardianCpf) || !validPhone(form.phone))) { error.value = 'Confira o CPF e o WhatsApp com DDD do responsável.'; return }
@@ -174,13 +179,20 @@ async function next() {
   if (step.value < 4) { await go(step.value + 1); return }
   busy.value = true
   try {
+    if (!hasPendingRegistration('KIDS')) {
+      await refreshAvailability()
+      if (!canRegister('kids')) return
+    }
     const { shirtSize, ...body } = form
     const result = await submitRegistration({ ...body, ...(form.shirtIncluded ? { shirtSize } : {}), emergencyContactName: sameEmergency.value ? form.guardianName : form.emergencyContactName, emergencyContactPhone: sameEmergency.value ? form.phone : form.emergencyContactPhone }, 'KIDS')
     try { sessionStorage.setItem('beer_run_kids_guardian', JSON.stringify({ guardianName: form.guardianName, guardianCpf: form.guardianCpf, guardianRelationship: form.guardianRelationship, phone: form.phone, email: form.email })) } catch {}
     selectedOrder.value = result.orderId
     if (result.checkoutUrl) openCheckout(result.checkoutUrl)
-  } catch (e) { error.value = e.code === 'REGISTRATION_CONFLICT' ? 'Já existe uma inscrição para esta criança e responsável. Consulte o pedido salvo ou fale com a organização.' : e.message }
-  finally { busy.value = false }
+  } catch (e) {
+    if (e.code === 'EVENT_FULL') markSoldOut('kids')
+    error.value = e.code === 'REGISTRATION_CONFLICT' ? 'Já existe uma inscrição para esta criança e responsável. Consulte o pedido salvo ou fale com a organização.' : e.message
+  }
+  finally { busy.value = false; pendingAttempt.value = hasPendingRegistration('KIDS') }
 }
 function restoreGuardian() {
   try { const data = JSON.parse(sessionStorage.getItem('beer_run_kids_guardian') || '{}'); for (const key of ['guardianName', 'guardianCpf', 'guardianRelationship', 'phone', 'email']) if (typeof data[key] === 'string') form[key] = data[key] } catch {}

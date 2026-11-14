@@ -35,7 +35,11 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn){for(let i=0;i<100;i++){const value=await fn();if(value)return value;await sleep(100);}throw new Error('Browser test timed out');}
 function command(method,params={}){
   const id=++sequence;
-  return new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
+  return new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>{pending.delete(id);reject(new Error('CDP timeout: '+method));},10000);
+    pending.set(id,{resolve:value=>{clearTimeout(timeout);resolve(value);},reject:error=>{clearTimeout(timeout);reject(error);}});
+    ws.send(JSON.stringify({id,method,params}));
+  });
 }
 const evaluate=async expression=>(await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
 const harness = {
@@ -105,7 +109,7 @@ try {
   } else {
   assert.equal(await evaluate("document.querySelectorAll('[role=tab], [aria-pressed], .athletes-groups').length"),0);
   assert.equal(await evaluate("document.querySelector('.section-title').textContent"),'ATLETAS CONFIRMADOS');
-  assert.equal(await evaluate("document.querySelector('.counter-label').textContent"),'VAGAS PREENCHIDAS');
+  assert.equal(await evaluate("document.querySelector('.counter-label').textContent"),'ATLETAS CONFIRMADOS');
   assert.equal(await evaluate("document.querySelector('.counter-number').textContent"),'02');
   assert.equal(await evaluate("document.querySelectorAll('.drinks-yes').length"),1);
   assert.equal(await evaluate("document.querySelectorAll('.drinks-no').length"),1);
@@ -115,7 +119,7 @@ try {
   assert.equal(await evaluate("document.querySelector('.athlete-name').textContent"),'Joao "Relampago" Teste');
   const initial=await evaluate("document.querySelector('.athletes-list').textContent");
   await evaluate("document.dispatchEvent(new Event('visibilitychange'))");
-  await until(()=>requests===2);
+  await until(()=>requests>=2);
   await until(()=>evaluate("document.querySelector('.athletes-scroll-wrapper').getAttribute('aria-busy')==='false'"));
   assert.equal(await evaluate("document.querySelector('.athletes-list').textContent"),initial);
   await evaluate("(()=>{const input=document.querySelector('input');input.value='passo';input.dispatchEvent(new Event('input',{bubbles:true}))})()");
@@ -256,7 +260,7 @@ try {
   fail=false;confirmedOnly=false;
   await evaluate("document.querySelector('[role=alert] button').click()");
   await until(()=>evaluate("document.querySelectorAll('.athlete-row').length===2"));
-  assert.equal(requests,7);
+  assert.ok(requests>=7, 'Consultas explicitas e atualizacoes automaticas');
   console.log('PASS: confirmed list including Kids, KIDS badge without beverage tag, adult capacity, search, retry, desktop/mobile, custom durations, hidden controls, 1s lead-in and end delay, Escape pause, pending start cancellation and stop at top.');
   }
 } finally {

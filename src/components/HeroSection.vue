@@ -64,11 +64,17 @@
         </div>
 
         <!-- Call to Action -->
-        <!-- Call to Action -->
         <div class="hero-cta-box">
-          <button class="btn-vintage hero-btn font-slab" @click="$emit('open-registration', 'hero_inscricao')">
-            <i class="fa-solid fa-beer-mug-empty"></i> INSCREVA-SE AGORA
-          </button>
+          <div class="hero-register-action">
+            <button class="btn-vintage hero-btn font-slab" :disabled="registrationsClosed" @click="$emit('open-registration', 'hero_inscricao')">
+              <i class="fa-solid fa-beer-mug-empty"></i> {{ registrationLabel() }}
+            </button>
+            <p v-if="availability && !availability.soldOut" class="hero-remaining font-condensed" :class="{ 'is-urgent': availability.remaining <= 10 }" role="status" :aria-label="`${availability.remaining} ${availability.remaining === 1 ? 'vaga restante' : 'vagas restantes'}. ${availability.total} de ${availability.capacity} confirmados, somando Adulto e Kids.`">
+              <strong>{{ availability.remaining === 1 ? 'Última vaga' : availability.remaining <= 10 ? `Últimas ${availability.remaining} vagas` : `Restam ${availability.remaining} vagas` }}</strong>
+              <span>Adulto + Kids</span>
+            </p>
+          </div>
+          <p v-if="availability?.soldOut" class="cta-subtag font-condensed" role="status">Vagas esgotadas para Adulto e Kids · Limite de {{ availability.capacity }} atletas confirmados</p>
           <a href="#inscricao?consulta=1" class="cta-subtag consultation-link font-condensed">
             JÁ ME INSCREVI — CONSULTAR INSCRIÇÃO
           </a>
@@ -79,6 +85,8 @@
 </template>
 
 <script setup>
+import { useRegistrationAvailability } from '../composables/useRegistrationAvailability.js'
+const { availability, registrationsClosed, registrationLabel } = useRegistrationAvailability()
 defineEmits(['open-registration'])
 </script>
 
@@ -345,14 +353,51 @@ defineEmits(['open-registration'])
 .hero-cta-box {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-self: flex-start;
+  align-items: stretch;
+  width: fit-content;
+  max-width: 100%;
+  gap: 8px;
+}
+
+.hero-register-action {
+  position: relative;
+  margin-top: 20px;
 }
 
 .hero-btn {
+  width: 100%;
   font-size: 1.4rem;
-  padding: 16px 36px;
+  padding: 20px 36px 16px;
 }
+
+.hero-remaining {
+  position: absolute;
+  z-index: 1;
+  top: -28px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin: 0;
+  padding: 5px 10px;
+  border: 3px double currentColor;
+  border-radius: 3px;
+  background: var(--bg-parchment-light);
+  color: var(--accent-green);
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.hero-remaining strong { font-size: .85rem; font-weight: 800; letter-spacing: .04em; white-space: nowrap; }
+.hero-remaining span { font-size: .55rem; font-weight: 700; letter-spacing: .14em; }
+.hero-remaining.is-urgent { color: #843b25; }
 
 .cta-subtag {
   font-size: 1.1rem;
@@ -403,6 +448,7 @@ defineEmits(['open-registration'])
   .hero-cta-box {
     align-self: stretch;
     align-items: center;
+    width: 100%;
   }
 }
 @media (max-width: 600px) {
@@ -420,7 +466,8 @@ defineEmits(['open-registration'])
   .card-text-md { font-size: 1.15rem; }
   .card-sub-text { font-size: 0.68rem; }
   .card-pill-tag { font-size: 0.65rem; padding: 3px 6px; }
-  .hero-btn { width: 100%; padding: 14px 12px; font-size: 1.1rem; }
+  .hero-register-action { width: 100%; }
+  .hero-btn { width: 100%; padding: 20px 12px 14px; font-size: 1.1rem; }
   .cta-subtag { font-size: 0.88rem; letter-spacing: 0; }
 }
 </style>

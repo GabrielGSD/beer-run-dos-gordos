@@ -12,9 +12,10 @@
           <button
             class="btn-vintage footer-btn"
             @click="$emit('open-registration', 'rodape_banner')"
+            :disabled="registrationsClosed"
           >
             <i class="fa-solid fa-beer-mug-empty"></i>
-            INSCREVA-SE AGORA
+            {{ registrationLabel() }}
           </button>
         </div>
       </div>
@@ -97,6 +98,8 @@
 </template>
 
 <script setup>
+import { useRegistrationAvailability } from '../composables/useRegistrationAvailability.js'
+const { registrationsClosed, registrationLabel } = useRegistrationAvailability()
 defineEmits(['open-registration', 'open-sponsorship', 'open-staff', 'open-official-registration'])
 </script>
 
