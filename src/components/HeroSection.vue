@@ -66,9 +66,10 @@
         <!-- Call to Action -->
         <div class="hero-cta-box">
           <div class="hero-register-action">
-            <button class="btn-vintage hero-btn font-slab" :disabled="registrationsClosed" @click="$emit('open-registration', 'hero_inscricao')">
-              <i class="fa-solid fa-beer-mug-empty"></i> {{ registrationLabel() }}
+            <button class="btn-vintage hero-btn font-slab" :disabled="registrationsClosed" :aria-describedby="registrationsClosed ? 'hero-sold-out-stamp' : undefined" @click="$emit('open-registration', 'hero_inscricao')">
+              <i class="fa-solid fa-beer-mug-empty" aria-hidden="true"></i> {{ registrationsClosed ? 'INSCREVA-SE AGORA' : registrationLabel() }}
             </button>
+            <span v-if="registrationsClosed" id="hero-sold-out-stamp" class="hero-sold-out-stamp font-slab" role="status">VAGAS ESGOTADAS</span>
             <p v-if="availability && !availability.soldOut" class="hero-remaining font-condensed" :class="{ 'is-urgent': availability.remaining <= 10 }" role="status" :aria-label="`${availability.remaining} ${availability.remaining === 1 ? 'vaga restante' : 'vagas restantes'}. ${availability.total} de ${availability.capacity} confirmados, somando Adulto e Kids.`">
               <strong>{{ availability.remaining === 1 ? 'Última vaga' : availability.remaining <= 10 ? `Últimas ${availability.remaining} vagas` : `Restam ${availability.remaining} vagas` }}</strong>
               <span>Adulto + Kids</span>
@@ -371,6 +372,26 @@ defineEmits(['open-registration'])
   padding: 20px 36px 16px;
 }
 
+.hero-sold-out-stamp {
+  position: absolute;
+  z-index: 2;
+  top: -22px;
+  right: 14px;
+  max-width: calc(100% - 28px);
+  padding: 6px 14px;
+  border: 6px double currentColor;
+  border-radius: 3px;
+  background: var(--bg-parchment-light);
+  color: #a32620;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: .06em;
+  text-align: center;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
 .hero-remaining {
   position: absolute;
   z-index: 1;
@@ -468,6 +489,7 @@ defineEmits(['open-registration'])
   .card-pill-tag { font-size: 0.65rem; padding: 3px 6px; }
   .hero-register-action { width: 100%; }
   .hero-btn { width: 100%; padding: 20px 12px 14px; font-size: 1.1rem; }
+  .hero-sold-out-stamp { font-size: 1rem; padding: 6px 10px; right: 10px; }
   .cta-subtag { font-size: 0.88rem; letter-spacing: 0; }
 }
 </style>
