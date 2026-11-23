@@ -476,6 +476,26 @@
               </div>
             </div>
 
+            <form class="whatsapp-group-settings vintage-card font-condensed" @submit.prevent="saveWhatsAppGroup">
+              <label for="athletes-whatsapp-group">Link do grupo dos atletas no WhatsApp</label>
+              <div class="whatsapp-group-input-row">
+                <input
+                  id="athletes-whatsapp-group"
+                  v-model="whatsAppGroupDraft"
+                  class="search-input"
+                  type="url"
+                  required
+                  placeholder="https://chat.whatsapp.com/..."
+                  aria-describedby="whatsapp-group-help whatsapp-group-feedback"
+                  @input="whatsAppGroupFeedback = ''"
+                />
+                <button class="btn-vintage btn-sm font-slab" type="submit">Salvar link</button>
+              </div>
+              <p id="whatsapp-group-help">O link padrão já vem preenchido. Alterações são salvas apenas neste navegador. Os botões abrem a conversa com o convite pronto; confirme o envio no WhatsApp.</p>
+              <p v-if="!athleteWhatsAppGroupUrl">Salve o link do grupo para habilitar os convites.</p>
+              <p id="whatsapp-group-feedback" role="status">{{ whatsAppGroupFeedback }}</p>
+            </form>
+
             <!-- Athletes Table -->
             <div class="table-container vintage-card">
               <div class="table-summary-bar font-condensed">
@@ -522,10 +542,12 @@
                         <a
                           v-if="athlete.phone"
                           :href="getAthleteWhatsAppLink(athlete)"
+                          :aria-disabled="!getAthleteWhatsAppLink(athlete)"
+                          @click="guardWhatsAppInvite($event, athlete)"
                           target="_blank"
                           rel="noopener noreferrer"
                           class="whatsapp-link font-condensed"
-                          title="Chamar no WhatsApp"
+                          title="Convidar para o grupo no WhatsApp"
                         >
                           <i class="fa-brands fa-whatsapp"></i>
                           <span>{{ athlete.phone }}</span>
@@ -602,10 +624,15 @@
                       <td style="text-align: right;">
                         <div class="action-buttons-cell">
                           <a
+                            v-if="athlete.phone"
                             :href="getAthleteWhatsAppLink(athlete)"
+                            :aria-disabled="!getAthleteWhatsAppLink(athlete)"
+                            @click="guardWhatsAppInvite($event, athlete)"
                             target="_blank"
+                            rel="noopener noreferrer"
                             class="btn-row-action btn-wa"
-                            title="Enviar mensagem via WhatsApp"
+                            title="Convidar para o grupo no WhatsApp"
+                            :aria-label="`Convidar ${athlete.name} para o grupo no WhatsApp`"
                           >
                             <i class="fa-brands fa-whatsapp"></i>
                           </a>
@@ -654,9 +681,13 @@
                       <a
                         v-if="athlete.phone"
                         :href="getAthleteWhatsAppLink(athlete)"
+                        :aria-disabled="!getAthleteWhatsAppLink(athlete)"
+                        @click="guardWhatsAppInvite($event, athlete)"
                         target="_blank"
+                        rel="noopener noreferrer"
                         class="btn-row-action btn-wa"
-                        title="Enviar mensagem via WhatsApp"
+                        title="Convidar para o grupo no WhatsApp"
+                        :aria-label="`Convidar ${athlete.name} para o grupo no WhatsApp`"
                       >
                         <i class="fa-brands fa-whatsapp"></i>
                       </a>
@@ -1630,6 +1661,8 @@ const {
   fetchProposals,
   updateProposalStatus,
   deleteProposal,
+  athleteWhatsAppGroupUrl,
+  saveAthleteWhatsAppGroup,
   getAthleteWhatsAppLink,
   getWaitlistWhatsAppLink,
   getSponsorWhatsAppLink,
@@ -1637,6 +1670,24 @@ const {
   exportWaitlistCSV,
   exportProposalsCSV
 } = useStaff()
+
+const whatsAppGroupDraft = ref(athleteWhatsAppGroupUrl.value)
+const whatsAppGroupFeedback = ref('')
+
+function saveWhatsAppGroup() {
+  try {
+    saveAthleteWhatsAppGroup(whatsAppGroupDraft.value)
+    whatsAppGroupDraft.value = athleteWhatsAppGroupUrl.value
+    whatsAppGroupFeedback.value = 'Link salvo! Os convites já estão prontos nos botões do WhatsApp.'
+  } catch (error) { whatsAppGroupFeedback.value = error.message }
+}
+
+function guardWhatsAppInvite(event, athlete) {
+  if (getAthleteWhatsAppLink(athlete)) return
+  event.preventDefault()
+  whatsAppGroupFeedback.value = 'Salve o link do grupo antes de enviar um convite.'
+  document.getElementById('athletes-whatsapp-group')?.focus()
+}
 
 const waitlistView = ref('active')
 const activeWaitlist = computed(() => waitlist.value.filter(isActiveWaitlistEntry))

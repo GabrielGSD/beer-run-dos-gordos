@@ -1,5 +1,6 @@
 import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed } from 'vue'
+import { useAthleteWhatsApp } from './useAthleteWhatsApp.js'
 import { formatAthleteDisplayName, mapDatabaseAthlete, MAX_ATHLETES } from './useAthletes.js'
 import { staffAuthenticated as isAuthenticated, staffRequest, staffMutation, loginStaff, logoutStaff, restoreStaffSession, onStaffReset } from '../services/staff-api.js'
 
@@ -14,6 +15,7 @@ const staffError = ref(null)
 onStaffReset(() => { athletes.value = []; athleteSummary.value = null; waitlist.value = []; proposals.value = []; athletesError.value = ''; staffError.value = null })
 
 export function useStaff() {
+  const { athleteWhatsAppGroupUrl, saveAthleteWhatsAppGroup, getAthleteWhatsAppLink } = useAthleteWhatsApp()
   async function fetchStaffAthletes() {
     athletesLoading.value = true
     athletesError.value = ''
@@ -86,34 +88,6 @@ export function useStaff() {
       clean = '55' + clean
     }
     return clean
-  }
-
-  function getAthleteWhatsAppLink(athlete) {
-    const phone = sanitizePhoneForWhatsApp(athlete.phone)
-    if (!phone) return null
-    if (athlete.modality === 'kids') {
-      const message = `Olá, ${athlete.guardianName || 'responsável'}! Aqui é da organização da Beer Run Kids. Estamos entrando em contato sobre a inscrição de ${athlete.name}.`
-      return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-    }
-
-    const firstName = athlete.name?.trim().split(/\s+/)[0] || 'atleta'
-
-    const text = `🍺🏃‍♂️ *Ei, ${firstName}! Tá faltando você nessa história!* 😂
-Passando aqui porque sentimos falta do seu nome na lista de atletas confirmados da *BEER RUN DOS GORDOS!* 👀🍻
-Vimos que você fez a sua *pré-inscrição*, mas ainda não concluiu a inscrição oficial.
-
-⚠️ *Só pra lembrar:* a pré-inscrição foi apenas uma manifestação de interesse. Para garantir sua participação, é necessário finalizar a inscrição pelo nosso site!
-
-A gente tá preparando tudo com muito carinho para essa primeira edição e queremos você fazendo parte dessa resenha! 💛
-
-👉 *Garanta sua inscrição aqui:*
-https://gordosrun.netlify.app/#inscricao
-
-Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
-
-*BEER RUN DOS GORDOS — 1ª EDIÇÃO • 2026*
-*Performance questionável. Histórias garantidas.*`
-    return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
   }
 
   function getWaitlistWhatsAppLink(athlete) {
@@ -256,6 +230,8 @@ Bora correr, caminhar, dar risada e ainda fazer o bem! 🍻🏃‍♂️
     fetchProposals,
     updateProposalStatus,
     deleteProposal,
+    athleteWhatsAppGroupUrl,
+    saveAthleteWhatsAppGroup,
     getAthleteWhatsAppLink,
     getWaitlistWhatsAppLink,
     getSponsorWhatsAppLink,
