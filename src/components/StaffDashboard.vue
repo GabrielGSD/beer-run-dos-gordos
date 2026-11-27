@@ -110,6 +110,11 @@
         <!-- Sticky Navigation Tabs (100% sem scroll no mobile!) -->
         <nav class="staff-nav-tabs">
           <div class="tabs-scroll-wrapper">
+            <button class="tab-btn font-slab" :class="{ active: activeTab === 'raffle' }" @click="activeTab = 'raffle'; raffleOpened = true">
+              <i class="fa-solid fa-gift" aria-hidden="true"></i>
+              <span class="tab-label-desktop">Sorteio</span>
+              <span class="tab-label-mobile">Sorteio</span>
+            </button>
             <button class="tab-btn font-slab" :class="{ active: activeTab === 'team' }" @click="activeTab = 'team'">
               <i class="fa-solid fa-users" aria-hidden="true"></i>
               <span class="tab-label-desktop">Equipe</span>
@@ -181,6 +186,7 @@
           </div>
           <!-- TAB 1: VISÃO GERAL -->
           <StaffTeamPanel v-if="activeTab === 'team'" ref="teamPanel" />
+          <StaffRafflePanel v-if="raffleOpened" v-show="activeTab === 'raffle'" ref="rafflePanel" />
           <section v-if="activeTab === 'overview'" class="tab-pane animate-fade-in">
             <div class="kpi-grid">
               <div class="kpi-card vintage-card" data-testid="confirmed-kpi">
@@ -1618,6 +1624,7 @@
 
 <script setup>
 import StaffTeamPanel from './StaffTeamPanel.vue'
+import StaffRafflePanel from './StaffRafflePanel.vue'
 import { formatShirtSelection } from '../services/shirts.js'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { isActiveWaitlistEntry } from '../services/waitlist.js'
@@ -1827,6 +1834,7 @@ async function handleLoginSubmit() {
 // TABS & FILTROS
 // ----------------------------------------------------------------------------
 const activeTab = ref('overview')
+const raffleOpened = ref(false)
 
 const drinkersCount = computed(() => athletes.value.filter(a => a.drinksBeer).length)
 const nonDrinkersCount = computed(() => athletes.value.filter(a => !a.drinksBeer).length)
@@ -2067,6 +2075,7 @@ async function handleSponsorActive(id, value) {
 }
 
 const teamPanel = ref(null)
+const rafflePanel = ref(null)
 async function refreshAll() {
   staffError.value = null
   const results = await Promise.allSettled([
@@ -2074,7 +2083,8 @@ async function refreshAll() {
     fetchWaitlist(),
     fetchProposals(),
     fetchStaffSponsors(),
-    teamPanel.value?.refresh()
+    teamPanel.value?.refresh(),
+    rafflePanel.value?.refresh()
   ])
   const failure = results.find(result => result.status === 'rejected')
   if (failure) staffError.value = failure.reason.message

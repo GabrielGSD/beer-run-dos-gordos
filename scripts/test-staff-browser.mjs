@@ -61,7 +61,7 @@ let vite,chrome,ws;
 const tempRoot=realpathSync(tmpdir());const profile=mkdtempSync(join(tempRoot,'beer-run-browser-'));
 const pending=new Map();let sequence=0;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function until(fn){for(let i=0;i<100;i++){const value=await fn();if(value)return value;await sleep(100);}throw new Error('Browser test timed out');}
+async function until(fn,timeout=10000){for(let i=0;i<timeout/100;i++){const value=await fn();if(value)return value;await sleep(100);}throw new Error('Browser test timed out');}
 function command(method,params={}){
   const id=++sequence;
   return new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
@@ -223,6 +223,7 @@ try {
   const requestCount=teamRequests;
   await evaluate("[...document.querySelectorAll('button')].find(button=>button.textContent.trim()==='Atualizar').click()");
   await until(()=>teamRequests>requestCount);
+  await until(()=>evaluate("!document.querySelector('.team-refresh').disabled"));
   teamFail=true;
   await evaluate("document.querySelector('.team-refresh').click()");
   await until(()=>evaluate("!!document.querySelector('.team-panel [role=alert]')"));
@@ -238,16 +239,189 @@ try {
     await sleep(100);
     assert.equal(await evaluate("[...document.querySelectorAll('.team-panel *')].some(el=>el.getBoundingClientRect().right>innerWidth+1)"),false,`Team overflow at ${width}`);
     if(athleteStyles[width]) assert.deepEqual(await listStyles(),athleteStyles[width],`Team uses the same computed styles as athletes at ${width}`);
-    if(width<=390)assert.equal(await evaluate("new Set([...document.querySelectorAll('.tab-btn')].map(el=>el.getBoundingClientRect().top)).size"),1,'All six mobile tabs share one row');
+    if(width<=390)assert.equal(await evaluate("new Set([...document.querySelectorAll('.tab-btn')].map(el=>el.getBoundingClientRect().top)).size"),1,'All seven mobile tabs share one row');
     if([1440,1050,390].includes(width)) {
       const shot=await command('Page.captureScreenshot',{format:'png'});
       writeFileSync(join(root,`artifacts/staff-team-${width}.png`),Buffer.from(shot.data,'base64'));
     }
   }
+  // Raffle uses every athlete and staff record, independent of payment status.
+  rows[2].name = 'Sophia Carvalho Fernandes Borelli';
+  rows[2].nickname = 'Soso';
+  rows[1].modality = 'kids';
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Sorteio')).click()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===11"));
+  assert.ok((await evaluate("document.querySelector('.raffle-sidebar').textContent")).includes('4 atletas · 7 staff · 0 extras'));
+  assert.ok((await evaluate("document.querySelector('.raffle-participants').textContent")).includes('Sophia "Soso" Borelli'));
+  await evaluate("const input=document.querySelector('#raffle-search');input.value='Soso';input.dispatchEvent(new Event('input',{bubbles:true}))");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===1"));
+  await evaluate("document.querySelector('#raffle-search').value='';document.querySelector('#raffle-search').dispatchEvent(new Event('input',{bubbles:true}))");
+  const setNames = value=>evaluate(`(()=>{const el=document.querySelector('#raffle-names');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await setNames('Convidado Um\nConvidado Dois\nconvidado um\nPago Teste');
+  await evaluate("document.querySelector('.raffle-card form').requestSubmit()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===13"));
+  assert.ok((await evaluate("document.querySelector('.raffle-feedback').textContent")).includes('2 nome(s) já presente(s)'));
+  const selectAudience = value => evaluate(`document.querySelector('.raffle-audience button[value="${value}"]').click()`);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.raffle-audience button')].map(button=>button.value)"),['all','adults','kids']);
+  await selectAudience('kids');
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===1"));
+  assert.ok((await evaluate("document.querySelector('.raffle-participants').textContent")).includes('Pendente Teste'));
+  assert.ok((await evaluate("document.querySelector('.raffle-counts').textContent")).includes('1 disponíveis'));
+  await evaluate("document.querySelector('#raffle-search').value='missing';document.querySelector('#raffle-search').dispatchEvent(new Event('input',{bubbles:true}))");
+  assert.equal(await evaluate("document.querySelector('.raffle-draw').disabled"),false,'Name search does not affect eligibility');
+  await evaluate("document.querySelector('#raffle-search').value='';document.querySelector('#raffle-search').dispatchEvent(new Event('input',{bubbles:true}))");
+  await selectAudience('all');
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===13"));
+  for(const width of [1440,768,390,320]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height:1100,deviceScaleFactor:1,mobile:false});
+    await evaluate('window.scrollTo(0,0)');
+    await sleep(100);
+    assert.equal(await evaluate("[...document.querySelectorAll('.raffle-panel *')].some(el=>el.getBoundingClientRect().right>innerWidth+1)"),false,`Raffle overflow at ${width}`);
+    if(width===1440 || width===390) {
+      const shot=await command('Page.captureScreenshot',{format:'png'});
+      writeFileSync(join(root,`artifacts/staff-raffle-names-${width}.png`),Buffer.from(shot.data,'base64'));
+    }
+  }
+  // Normal animation locks editing and cannot start a second concurrent draw.
+  await evaluate("window.originalRandom=crypto.getRandomValues.bind(crypto);crypto.getRandomValues=values=>{values[0]=2;return values}");
+  await evaluate("document.querySelector('.raffle-draw').focus();document.querySelector('.raffle-draw').click();document.querySelector('.raffle-draw').click()");
+  await until(()=>evaluate("document.querySelector('.raffle-fullscreen').matches(':modal')"));
+  assert.equal(await evaluate("document.body.style.overflow"),'hidden');
+  assert.equal(await evaluate("document.activeElement.classList.contains('raffle-exit')"),true);
+  assert.equal(await evaluate("document.querySelector('#raffle-names').disabled"),true);
+  assert.equal(await evaluate("document.querySelector('.raffle-repeat input').disabled"),true);
+  assert.equal(await evaluate("[...document.querySelectorAll('.raffle-audience button')].every(button=>button.disabled)"),true,'Cannot change group during a draw');
+  assert.equal(await evaluate("document.querySelectorAll('.raffle-confetti-piece').length"),0,'No celebration before the result');
+  const previewName = await evaluate("document.querySelector('.raffle-name-slot strong').textContent");
+  await until(()=>evaluate(`document.querySelector('.raffle-name-slot strong')?.textContent !== ${JSON.stringify(previewName)} && !!document.querySelector('.is-drawing')`));
+  assert.equal(await evaluate("document.querySelector('.raffle-heading button').disabled"),true);
+  await until(()=>evaluate("document.querySelectorAll('.raffle-history li').length===1"));
+  assert.ok((await evaluate("document.querySelector('.raffle-counts').textContent")).includes('12 disponíveis'));
+  assert.equal(await evaluate("document.querySelector('.raffle-result strong').textContent===document.querySelector('.raffle-history li strong').textContent"),true);
+  assert.equal(await evaluate("document.querySelector('.raffle-result strong').textContent"),'Sophia "Soso" Borelli');
+  await until(()=>evaluate("document.querySelectorAll('.raffle-confetti-piece').length===100"));
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.raffle-confetti')).pointerEvents"),'none','Confetti cannot block the controls');
+  await evaluate("crypto.getRandomValues=window.originalRandom");
+  assert.ok((await evaluate("document.querySelector('.raffle-announcement').textContent")).includes('Ganhador:'));
+  await sleep(1100);
+  for(const [width,height] of [[1440,900],[390,844],[320,640],[844,390]]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+    await evaluate('window.scrollTo(0,0)');
+    const viewport = await evaluate("(()=>{const rect=document.querySelector('.raffle-fullscreen').getBoundingClientRect();return {x:rect.x,y:rect.y,width:rect.width,height:rect.height,innerWidth,innerHeight}})()");
+    assert.equal(viewport.x===0 && viewport.y===0 && Math.abs(viewport.width-viewport.innerWidth)<1 && Math.abs(viewport.height-viewport.innerHeight)<1,true,`Presentation covers the viewport: ${JSON.stringify(viewport)}`);
+    assert.equal(await evaluate("(()=>{const rect=document.querySelector('.raffle-result strong').getBoundingClientRect();return rect.left>=0 && rect.right<=innerWidth && rect.top>=0 && rect.bottom<=innerHeight})()"),true,`Winner fits at ${width} x ${height}`);
+    assert.equal(await evaluate("!!document.elementFromPoint(innerWidth/2,innerHeight/2).closest('.raffle-fullscreen')"),true,'Presentation covers the staff interface');
+    assert.equal(await evaluate("document.querySelector('.raffle-draw-label')===null"),true,'No draw number on the presentation');
+    const centerOffset = await evaluate("(()=>{const rect=document.querySelector('.raffle-result').getBoundingClientRect();return Math.abs(rect.y+rect.height/2-innerHeight/2)})()");
+    assert.ok(centerOffset<4,`Winner block is centered at ${width} x ${height}: ${centerOffset}px offset`);
+    const shot=await command('Page.captureScreenshot',{format:'png'});
+    writeFileSync(join(root,`artifacts/staff-raffle-fullscreen-${width}.png`),Buffer.from(shot.data,'base64'));
+  }
+  await until(()=>evaluate("document.querySelectorAll('.raffle-confetti-piece').length===0"),20000);
+  await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await until(()=>evaluate("!document.querySelector('.raffle-fullscreen').open"));
+  assert.equal(await evaluate("document.body.style.overflow"),'');
+  assert.equal(await evaluate("document.activeElement.classList.contains('raffle-draw')"),true);
+  // Switching tabs and reloading preserve the session's extras and results.
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Atletas')).click()");
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Sorteio')).click()");
+  assert.equal(await evaluate("document.querySelectorAll('.raffle-history li').length"),1);
+  await evaluate("const state=JSON.parse(sessionStorage.getItem('beer_run_raffle_session_v1'));delete state.history[0].displayName;sessionStorage.setItem('beer_run_raffle_session_v1',JSON.stringify(state))");
+  await command('Page.reload');
+  await until(()=>evaluate("!!document.querySelector('[data-testid=confirmed-kpi]')"));
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Sorteio')).click()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===13"));
+  assert.equal(await evaluate("document.querySelectorAll('.raffle-history li').length"),1);
+  assert.equal(await evaluate("document.querySelector('.raffle-history li strong').textContent"),'Sophia "Soso" Borelli');
+  assert.equal(await evaluate("document.querySelectorAll('.raffle-confetti-piece').length"),0,'Restored winners do not replay confetti');
+  // Reduced motion still produces exactly one result and no repeat winners.
+  await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  for(let i=0;i<12;i++) {
+    await evaluate("(document.querySelector('.raffle-next') || document.querySelector('.raffle-draw')).click()");
+    await until(()=>evaluate(`document.querySelectorAll('.raffle-history li').length===${i+2}`));
+    assert.equal(await evaluate("document.querySelectorAll('.raffle-confetti-piece').length"),0,'Reduced motion omits the confetti animation');
+  }
+  assert.equal(await evaluate("document.querySelector('.raffle-draw').disabled"),true);
+  assert.equal(await evaluate("document.querySelector('.raffle-next').disabled"),true);
+  assert.equal(await evaluate("new Set(JSON.parse(sessionStorage.getItem('beer_run_raffle_session_v1')).history.map(row=>row.id)).size"),13);
+  await evaluate("document.querySelector('.raffle-exit').click()");
+  await until(()=>evaluate("!document.querySelector('.raffle-fullscreen').open"));
+  await evaluate("document.querySelector('.raffle-repeat input').click()");
+  await evaluate("document.querySelector('.raffle-draw').click()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-history li').length===14"));
+  await evaluate("document.querySelector('.raffle-exit').click()");
+  await until(()=>evaluate("!document.querySelector('.raffle-fullscreen').open"));
+  // A partial load must never allow a draw, including with existing cached entries.
+  teamFail=true;
+  await evaluate("document.querySelector('.raffle-heading button').click()");
+  await until(()=>evaluate("!!document.querySelector('.raffle-error')"));
+  assert.equal(await evaluate("document.querySelector('.raffle-draw').disabled"),true);
+  teamFail=false;
+  await evaluate("document.querySelector('.raffle-heading button').click()");
+  await until(()=>evaluate("!document.querySelector('.raffle-draw').disabled"));
+  await evaluate("window.confirm=()=>false;document.querySelector('.raffle-history button').click()");
+  assert.equal(await evaluate("document.querySelectorAll('.raffle-history li').length"),14);
+  await evaluate("window.confirm=()=>true;document.querySelector('.raffle-history button').click()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-history li').length===0"));
+  await evaluate("document.querySelector('.raffle-remove').click()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===12"));
+  // Kids draws exclude adults and staff, and share the same no-repeat history.
+  await evaluate("document.querySelector('.raffle-repeat input').click()");
+  await selectAudience('kids');
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===1"));
+  await setNames('Convidado Kids');
+  await evaluate("document.querySelector('#raffle-extra-kids').click();document.querySelector('.raffle-card form').requestSubmit()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===2"));
+  for(let i=0;i<2;i++) {
+    await evaluate("(document.querySelector('.raffle-next') || document.querySelector('.raffle-draw')).click()");
+    await until(()=>evaluate(`document.querySelectorAll('.raffle-history li').length===${i+1}`));
+    assert.equal(await evaluate("JSON.parse(sessionStorage.getItem('beer_run_raffle_session_v1')).history.at(-1).isChild"),true,'Only a Kids participant can win');
+    assert.equal(await evaluate("document.querySelector('.raffle-board-footer > span').textContent"),'Sorteio Kids');
+  }
+  assert.equal(await evaluate("document.querySelector('.raffle-next').disabled"),true,'Exhausted Kids group blocks the next draw');
+  await evaluate("document.querySelector('.raffle-exit').click()");
+  await selectAudience('all');
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===13"));
+  assert.ok((await evaluate("document.querySelector('.raffle-counts').textContent")).includes('11 disponíveis'),'Kids winners remain excluded when switching to Todos');
+  await selectAudience('kids');
+  await command('Page.reload');
+  await until(()=>evaluate("!!document.querySelector('[data-testid=confirmed-kpi]')"));
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Sorteio')).click()");
+  await until(()=>evaluate("document.querySelector('.raffle-panel')?.getAttribute('aria-busy')==='false'"));
+  assert.equal(await evaluate("document.querySelector('.raffle-audience [aria-pressed=true]').value"),'kids');
+  assert.equal(await evaluate("document.querySelectorAll('.raffle-participants li').length"),2,'Kids guests persist across reload');
+  assert.equal(await evaluate("document.querySelector('.raffle-draw').disabled"),true);
+  await selectAudience('adults');
+  await until(()=>evaluate("document.querySelectorAll('.raffle-participants li').length===11"));
+  assert.equal(await evaluate("document.querySelector('.raffle-roster-summary').textContent"),'3 atletas · 7 staff · 1 extras');
+  assert.equal(await evaluate("document.querySelector('.raffle-participants').textContent.includes('Kids')"),false,'Adults excludes registered Kids and Kids guests');
+  await evaluate("document.querySelector('.raffle-draw').click()");
+  await until(()=>evaluate("document.querySelectorAll('.raffle-history li').length===3"));
+  assert.equal(await evaluate("JSON.parse(sessionStorage.getItem('beer_run_raffle_session_v1')).history.at(-1).isChild===true"),false,'Only a non-Kids participant can win an adult draw');
+  assert.equal(await evaluate("document.querySelector('.raffle-board-footer > span').textContent"),'Sorteio para adultos');
+  await evaluate("document.querySelector('.raffle-exit').click()");
+  await selectAudience('all');
+  assert.ok((await evaluate("document.querySelector('.raffle-counts').textContent")).includes('10 disponíveis'),'Adult winners remain excluded in Todos');
+  await selectAudience('adults');
+  await command('Page.reload');
+  await until(()=>evaluate("!!document.querySelector('[data-testid=confirmed-kpi]')"));
+  await evaluate("[...document.querySelectorAll('.tab-btn')].find(button=>button.textContent.includes('Sorteio')).click()");
+  await until(()=>evaluate("document.querySelector('.raffle-panel')?.getAttribute('aria-busy')==='false'"));
+  assert.equal(await evaluate("document.querySelector('.raffle-audience [aria-pressed=true]').value"),'adults','Adult filter persists on reload');
+  assert.ok((await evaluate("document.querySelector('.raffle-counts').textContent")).includes('10 disponíveis'));
+  await selectAudience('kids');
+  // A group with no entries has a distinct, actionable empty state.
+  rows[1].modality = 'caminhada';
+  await evaluate("document.querySelector('.raffle-remove').click();document.querySelector('.raffle-heading button').click()");
+  await until(()=>evaluate("document.querySelector('.raffle-panel').getAttribute('aria-busy')==='false' && document.querySelectorAll('.raffle-participants li').length===0"));
+  assert.equal(await evaluate("document.querySelector('.raffle-draw').disabled"),true);
+  assert.ok((await evaluate("document.querySelector('.raffle-caption').textContent")).includes('Nenhum participante neste grupo'));
   await evaluate('window.testStaff.logout()');
+  assert.equal(await evaluate("sessionStorage.getItem('beer_run_raffle_session_v1')"),null);
   assert.equal(await evaluate("sessionStorage.getItem('beer_run_staff_pin')"),null);
   assert.equal(await evaluate('window.testStaff.athletes.value.length'),0);
-  console.log('PASS: staff login, athletes, financial totals, team kit details, payment filters, search, copy link, refresh, errors, desktop/mobile and logout.');
+  console.log('PASS: staff login, athletes, financial totals, team, raffle loading, additions, animation, history, no repeats, persistence, partial failures, desktop/mobile and logout.');
 } finally {
   try { if(ws?.readyState===WebSocket.OPEN)await command('Browser.close'); } catch {}
   ws?.close();

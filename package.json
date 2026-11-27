@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:raffle": "node scripts/test-raffle.mjs",
     "test:registration": "node scripts/test-registration-browser.mjs",
     "test:analytics": "node scripts/test-analytics.mjs",
     "dev": "vite",

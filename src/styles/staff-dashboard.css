@@ -1829,10 +1829,10 @@
     display: none;
   }
 
-  /* Seis abas em uma linha, incluindo os cadastros da equipe. */
+  /* Sete abas em uma linha, incluindo equipe e sorteio. */
   .tabs-scroll-wrapper {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     width: 100%;
     padding: 0;
     gap: 0;
